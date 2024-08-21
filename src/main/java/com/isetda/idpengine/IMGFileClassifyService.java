@@ -45,9 +45,9 @@ public class IMGFileClassifyService {
                 } else {
                     // 파일이 이미지 또는 PDF인 경우 리스트에 추가
                     String lowercaseName = file.getName().toLowerCase();
-                    if (lowercaseName.endsWith(".jpg") || lowercaseName.endsWith(".png")) {
+                    if (lowercaseName.endsWith(".jpg") || lowercaseName.endsWith(".png")||lowercaseName.endsWith(".pdf")) {
                         filteredFiles.add(file);
-                    } else if (lowercaseName.endsWith(".pdf")) {
+//                    } else if (lowercaseName.endsWith(".pdf")) {
 
                     }
                 }
