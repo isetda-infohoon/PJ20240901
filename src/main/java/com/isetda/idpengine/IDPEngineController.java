@@ -2,18 +2,35 @@ package com.isetda.idpengine;
 
 import javafx.event.ActionEvent;
 import javafx.scene.control.TextField;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
+import java.io.File;
 import java.io.IOException;
 
 public class IDPEngineController {
+    private static final Logger log = LogManager.getLogger(IDPEngineController.class);
     public TextField inputImageFolderPath;
     public TextField inputResultFolderPath;
 
     private IDPEngineService service = new IDPEngineService();
+    private IMGFileClassifyService imgFileClassifyService = new IMGFileClassifyService();
+    private GoogleService googleService = new GoogleService();
 
+    //분리된 이미지 저장 변수
+    private File[] imageAndPdfFiles;
 
     public void onButton1Click(ActionEvent event) throws IOException {
-        //preprocessing();
+        imageAndPdfFiles = imgFileClassifyService.getFilteredFiles(inputImageFolderPath.getText());
+        log.info("사용자로부터 받은 이미지 폴더 경로 : {} ",inputImageFolderPath.getText());
+
+            imgFileClassifyService.copyFiles(imageAndPdfFiles);
+            log.info("파일 복사 성공 : {} 개",imageAndPdfFiles.length );
+            imgFileClassifyService.deleteFilesInFolder(inputImageFolderPath.getText());
+            log.info("파일 삭제 성공 ");
+
+
+        googleService.uploadAndOCR();
     }
 
     public void onButton2Click(ActionEvent event) {
