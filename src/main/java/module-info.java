@@ -12,10 +12,15 @@ module com.isetda.idpengine {
     requires google.cloud.vision;
     requires com.google.common;
     requires okhttp3;
-    requires java.desktop;
-    requires javafx.swing;
     requires org.apache.poi.poi;
     requires org.apache.poi.ooxml;
+    requires com.google.gson;
+    requires jdk.compiler;
+
+    requires java.xml;
+    requires org.apache.logging.log4j;
+
+    requires java.desktop;
 
     opens com.isetda.idpengine to javafx.fxml;
     exports com.isetda.idpengine;
