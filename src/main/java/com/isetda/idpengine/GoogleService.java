@@ -27,7 +27,7 @@ public class GoogleService {
     //환경변수 인스턴스 생성
     private ConfigLoader configLoader = ConfigLoader.getInstance();
 
-    private IMGFileClassifyService service = new IMGFileClassifyService();
+    private IMGFileIOService service = new IMGFileIOService();
 
     //json파일에 대한 이름을 가져올려고(어떻게 될 지 모르니까 일단 변수로 저장해 놓자 쓸 곳이 있겠찌??)
     private List<String> jsonFilePaths = new ArrayList<>();
@@ -60,12 +60,14 @@ public class GoogleService {
 
     //구글 버킷에 이미지 올리기 및 ocr 진행
     public void uploadAndOCR() throws IOException {
+        log.info("업로드 및 OCR 처리 시작");
         File[] files = service.getFilteredFiles(IMAGE_FOLDPATH);
         Storage storage = getStorageService();
         File localDir = new File(RESULT_FILEPATH);
 
         if (!localDir.exists()) {
             localDir.mkdirs();
+            log.info("결과 디렉토리 생성됨: {}", RESULT_FILEPATH);
         }
         String accessToken = getAccessToken();
         OkHttpClient client = new OkHttpClient();
@@ -83,6 +85,7 @@ public class GoogleService {
 
             // 버킷 업로드
             try { // 이미지 버킷에 업로드
+                log.info("파일을 버킷에 업로드 중: {}", objectName);
                 storage.create(blobInfo, Files.readAllBytes(file.toPath()));
                 log.info("파일 업로드 성공: {}", file.getName());
             } catch (IOException e) {
@@ -99,6 +102,7 @@ public class GoogleService {
             RequestBody body = RequestBody.create(jsonRequest, MediaType.parse("application/json; charset=utf-8"));
             Request request = new Request.Builder().url(OCR_URL).addHeader("Authorization", "Bearer " + accessToken).post(body).build();
 
+            log.info("파일에 대한 OCR 요청 전송 중: {}", file.getName());
             try (Response response = client.newCall(request).execute()) {
                 if (!response.isSuccessful()) {
                     log.error("OCR 요청 실패: {}", response.message());

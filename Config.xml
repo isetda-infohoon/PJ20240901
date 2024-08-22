@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <projectId>savvy-etching-429500-u1
+        <bucketNames>
+            <bucketName>jung_da</bucketName>
+        </bucketNames>
+    </projectId>
+    <keyFilePath>C:/Users/JAVA/savvy-etching-429500-u1-ddc3a10f28a9.json</keyFilePath>
+    <deletedCheck>true</deletedCheck>
+    <cloudPlatform>https://www.googleapis.com/auth/cloud-platform</cloudPlatform>
+    <ocrUrl>https://vision.googleapis.com/v1/images:annotate</ocrUrl>
+
+    <excelFilePath>C:\Users\isetda\OneDrive\바탕 화면\식품안전 프로젝트 관련 자료\국가, 문서 양식별 추출 단어 리스트.xlsx</excelFilePath>
+    <imageFolderPath>C:\Users\isetda\testImg</imageFolderPath>
+    <resultFilePath>C:\Users\isetda\testImg\</resultFilePath>
+</configuration>

@@ -19,9 +19,6 @@ public class IDPEngineApplication extends Application {
     }
 
     public static void main(String[] args) {
-        //JsonService jsonService = new JsonService("C:\\Users\\isetda\\testImg\\독일 식품안전 인증서16_OCR_result.json");
-        //jsonService.getWordPosition();
-
         launch();
     }
 }
