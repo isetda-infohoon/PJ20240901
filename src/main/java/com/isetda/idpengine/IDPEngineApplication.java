@@ -4,9 +4,7 @@ import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
-import org.apache.xmlbeans.impl.xb.xsdschema.Public;
 
-import java.io.File;
 import java.io.IOException;
 
 public class IDPEngineApplication extends Application {
@@ -21,8 +19,11 @@ public class IDPEngineApplication extends Application {
     }
 
     public static void main(String[] args) {
+        IDPEngineService service = new IDPEngineService();
+        JsonService jsonService = new JsonService("C:\\Users\\isetda\\testImg\\독일 식품안전 인증서16_OCR_result.json");
+        jsonService.getWordPosition();
+        service.getVariable();
+
         launch();
-
     }
-
 }

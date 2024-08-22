@@ -10,10 +10,6 @@ import java.io.IOException;
 
 public class IDPEngineController {
     private static final Logger log = LogManager.getLogger(IDPEngineController.class);
-    private ConfigLoader configLoader = ConfigLoader.getInstance();
-    String folderPath = configLoader.getResultFilePath();
-    String jsonFolderPath = configLoader.getResultFilePath();
-
     public TextField inputImageFolderPath;
     public TextField inputResultFolderPath;
 
