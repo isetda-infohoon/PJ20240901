@@ -17,7 +17,7 @@ public class JsonService {
     private String jsonFilePath; // JSON 파일 경로를 저장할 변수
 
     public JSONObject jsonObject;
-    public List<Map<String, Object>> jsonCollection;
+    public List<Map<String, Object>> wordList;
 
 
     private static final Logger log = LogManager.getLogger(JsonService.class);
@@ -38,8 +38,7 @@ public class JsonService {
     //그룹화 json 가공
 
     public void getWordPosition() {
-        jsonCollection = new ArrayList<>();
-        List<Map<String, Object>> wordList = new ArrayList<>(); // 단일 리스트로 변경
+        wordList = new ArrayList<>(); // 단일 리스트로 변경
 
         JSONObject responsesObject = jsonObject.getJSONArray("responses").getJSONObject(0);
         JSONArray textAnnotationsArray = responsesObject.getJSONArray("textAnnotations");

@@ -130,14 +130,19 @@ public class IDPEngineService {
             String fileName = curFile.getName().substring(0, curFile.getName().lastIndexOf("."));
             String saveFilePath = resultFolderPath + "\\" + fileName + ".xlsx";
 
-            jsonToJsonObject(jsonFilePath);
-            getWordPosition();
+            JsonService jsonService = new JsonService(jsonFilePath);
+
+            StringBuilder allWords = new StringBuilder();
+
+            for (Map<String, Object> item : jsonService.wordList) {
+                allWords.append(item.get("description"));
+            }
 
             // 엑셀 데이터와 비교해서 문서 분류
-            String jsonLocale = jsonCollection.getFirst().get("locale").toString();
-            String jsonDescription = jsonCollection.getFirst().get("description").toString();
+            //String jsonLocale = jsonService.jsonLocal;
+            //String jsonDescription = jsonCollection.getFirst().get("description").toString();
 
-            classifyDocuments(excelData, jsonLocale, jsonDescription);
+            classifyDocuments(excelData, jsonService.jsonLocal, allWords.toString());
 
             try {
                 createExcel(saveFilePath);
