@@ -111,7 +111,7 @@ public class GoogleService {
 
                 String responseBody = response.body().string();
                 String outputFileName = file.getName().substring(0, file.getName().lastIndexOf("."));
-                String outputPath = RESULT_FILEPATH + outputFileName + "_OCR_result.json";
+                String outputPath = RESULT_FILEPATH + "\\" + outputFileName + "_OCR_result.json";
                 try (FileWriter writer = new FileWriter(outputPath)) {
                     writer.write(responseBody);
                     log.info("OCR 결과 경로 :{}", outputPath);

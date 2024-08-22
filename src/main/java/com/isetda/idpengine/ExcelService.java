@@ -1,5 +1,7 @@
 package com.isetda.idpengine;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
@@ -8,6 +10,8 @@ import java.util.*;
 
 
 public class ExcelService {
+    private static final Logger log = LogManager.getLogger(IDPEngineController.class);
+
     private ConfigLoader configLoader = ConfigLoader.getInstance();
     String excelFilePath = configLoader.getExcelFilePath();
 
@@ -68,7 +72,7 @@ public class ExcelService {
             }
 
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("엑셀에서 단어 리스트를 가져오지 못했습니다: {}", e.getStackTrace()[0]);
         }
 
         // 엑셀 데이터 출력 (테스트용)
@@ -105,7 +109,7 @@ public class ExcelService {
             try {
                 createExcel(saveFilePath);
             } catch (IOException e) {
-                e.printStackTrace();
+                log.error("엑셀 파일 생성에 실패했습니다: {}", e.getStackTrace()[0]);
             }
         }
     }
@@ -117,6 +121,7 @@ public class ExcelService {
 
         if (targetSheetData == null) {
             // 일치하는 시트가 없을 경우
+            log.warn("일치하는 시트(국가)가 없습니다.");
         }
 
         int maxMatches = 0;
@@ -152,13 +157,14 @@ public class ExcelService {
                 index = col;
             }
 
-            System.out.println("resultWord : " + resultWord);
+            //System.out.println("resultWord : " + resultWord);
         }
 
 
         System.out.println(maxMatches + ", " + index);
 
-        System.out.println("문서 분류 결과: " + targetSheetData.get(index).get(0));
+        //System.out.println("문서 분류 결과: " + targetSheetData.get(index).get(0));
+        log.info("문서 분류 결과: {}", targetSheetData.get(index).get(0));
 
         List<String> countryType = new ArrayList<>();
         countryType.add("국가");
@@ -226,7 +232,7 @@ public class ExcelService {
 
         try (FileOutputStream fileOut = new FileOutputStream(saveFilePath)) {
             workbook.write(fileOut);
-            System.out.println("엑셀 파일이 성공적으로 생성되었습니다: " + saveFilePath);
+            log.info("엑셀 파일이 성공적으로 생성되었습니다: {} ", saveFilePath);
         }
         workbook.close();
     }

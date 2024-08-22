@@ -13,8 +13,8 @@ public class IDPEngineController {
     private ConfigLoader configLoader = ConfigLoader.getInstance();
     public TextField inputImageFolderPath;
     public TextField inputResultFolderPath;
+    public String imageFolderPath;
 
-//    private IDPEngineService service = new IDPEngineService();
     private IMGFileIOService imgFileIOService = new IMGFileIOService();
     private GoogleService googleService = new GoogleService();
     private ExcelService service = new ExcelService();
@@ -27,10 +27,8 @@ public class IDPEngineController {
     private File[] imageAndPdfFiles;
 
     public void onButton1Click(ActionEvent event) throws IOException {
-        imageAndPdfFiles = imgFileIOService.getFilteredFiles(inputImageFolderPath.getText());
-        log.info("사용자로부터 받은 이미지 폴더 경로 : {} ",inputImageFolderPath.getText());
-
         processing();
+        imageAndPdfFiles = imgFileIOService.getFilteredFiles(imageFolderPath);
 
             imgFileIOService.copyFiles(imageAndPdfFiles);
             log.info("파일 복사 성공 : {} 개",imageAndPdfFiles.length );
@@ -48,6 +46,14 @@ public class IDPEngineController {
 
 
     public void processing() {
+        if (inputResultFolderPath.getText().isEmpty()) {
+            imageFolderPath = configLoader.getImageFolderPath();
+            log.info("이미지 폴더 기본 경로 : {} ", imageFolderPath);
+        } else {
+            imageFolderPath = inputResultFolderPath.getText();
+            log.info("사용자로부터 받은 이미지 폴더 경로 : {} ", imageFolderPath);
+        }
+
         if (inputResultFolderPath.getText().isEmpty()) {
             service.resultFolderPath = configLoader.getResultFilePath();
             log.info("결과 파일 저장 기본 경로 : {} ", service.resultFolderPath);
