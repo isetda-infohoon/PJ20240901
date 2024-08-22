@@ -10,13 +10,16 @@ import java.io.IOException;
 
 public class IDPEngineController {
     private static final Logger log = LogManager.getLogger(IDPEngineController.class);
+    private ConfigLoader configLoader = ConfigLoader.getInstance();
     public TextField inputImageFolderPath;
     public TextField inputResultFolderPath;
 
-    private IDPEngineService service = new IDPEngineService();
+//    private IDPEngineService service = new IDPEngineService();
     private IMGFileIOService imgFileIOService = new IMGFileIOService();
     private GoogleService googleService = new GoogleService();
-//    private JsonService jsonService = new JsonService();
+    String folderPath = configLoader.getResultFilePath();
+    String jsonFolderPath = configLoader.getResultFilePath();
+
 
     //분리된 이미지 저장 변수
     private File[] imageAndPdfFiles;
@@ -56,8 +59,8 @@ public class IDPEngineController {
 //            service.resultFolderPath = inputResultFolderPath.getText();
 //        }
 
-        // 전달 받은 폴더 경로의 json 파일 필터링
-        service.getFilteredJsonFiles();
-        service.createFinalResultFile();
+//        // 전달 받은 폴더 경로의 json 파일 필터링
+//        service.getFilteredJsonFiles();
+//        service.createFinalResultFile();
     }
 }
