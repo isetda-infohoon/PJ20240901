@@ -96,7 +96,7 @@ public class ExcelService {
 
             StringBuilder allWords = new StringBuilder();
 
-            for (Map<String, Object> item : jsonService.wordList) {
+            for (Map<String, Object> item : jsonService.jsonCollection) {
                 allWords.append(item.get("description"));
             }
 
