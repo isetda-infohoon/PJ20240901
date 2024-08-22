@@ -154,7 +154,7 @@ public class IDPEngineService {
             String fileName = curFile.getName().substring(0, curFile.getName().lastIndexOf("."));
             String saveFilePath = resultFolderPath + "\\" + fileName + ".xlsx";
 
-            jsonToJsonObject(jsonFilePath);
+//            jsonToJsonObject(jsonFilePath);
             getWordPosition();
 
             // 엑셀 데이터와 비교해서 문서 분류
