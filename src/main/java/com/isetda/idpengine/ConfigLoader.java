@@ -23,7 +23,7 @@ public class ConfigLoader {
     private String imageFolderPath;
     private String resultFilePath;
 
-    private String configFilePath = "C:\\Users\\isetda\\IdeaProjects\\IDPEngine\\Config.xml";
+    private String configFilePath = "C:\\Users\\suaah\\IdeaProjects\\PJ20240901\\Config.xml";
 
     private ConfigLoader() {
         loadConfig();

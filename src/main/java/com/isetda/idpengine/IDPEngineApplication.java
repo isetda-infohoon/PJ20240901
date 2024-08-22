@@ -19,9 +19,6 @@ public class IDPEngineApplication extends Application {
     }
 
     public static void main(String[] args) {
-        IDPEngineService service = new IDPEngineService();
-        service.getVariable();
-
         launch();
     }
 }

@@ -26,30 +26,6 @@ public class IDPEngineService {
     public List<List<String>> resultWord;
     public List<Map<String, Object>> jsonCollection;
 
-    public void getVariable() {
-        // Properties 객체 생성
-        Properties properties = new Properties();
-
-        try (FileInputStream inputStream = new FileInputStream(new File(XML_FILE_PATH))) {
-            // XML 파일을 Properties 객체로 로드
-            properties.loadFromXML(inputStream);
-
-            // 환경 설정 값 가져오기
-            BUCKET_NAME = properties.getProperty("BUCKET_NAME");
-            EXCEL_FILE_PATH = properties.getProperty("EXCEL_FILE_PATH");
-            KEY_FILE_PATH = properties.getProperty("KEY_FILE_PATH");
-            PROJECT_ID = properties.getProperty("PROJECT_ID");
-
-            // 가져온 값 활용
-            System.out.println("Bucket Name: " + BUCKET_NAME);
-            System.out.println("Excel File Path: " + EXCEL_FILE_PATH);
-            System.out.println("Key File Path: " + KEY_FILE_PATH);
-            System.out.println("Project ID: " + PROJECT_ID);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
     // 단어, 위치 정보 가져오는 메소드 (jsonObjectSplit)
     public void getWordPosition() {
         jsonCollection = new ArrayList<>();
