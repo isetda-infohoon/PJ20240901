@@ -8,8 +8,8 @@
 
         <!-- 파일에 로그를 저장하는 Appender -->
         <RollingFile name="FILE"
-                     fileName="C:/Users/isetda/OneDrive/바탕 화면/LOG/${date:yyyy}/${date:MM}/IDPEngine.log"
-                     filePattern="C:/Users/isetda/OneDrive/바탕 화면/LOG/${date:yyyy}/${date:MM}/IDPEngine_%d{yyyy-MM-dd}.%i.log.gz">
+                     fileName="C:/Users/suaah/OneDrive/바탕 화면/test-folder/log/${date:yyyy}/${date:MM}/IDPEngine.log"
+                     filePattern="C:/Users/suaah/OneDrive/바탕 화면/test-folder/log/${date:yyyy}/${date:MM}/IDPEngine_%d{yyyy-MM-dd}.%i.log.gz">
             <PatternLayout>
                 <Pattern>%d{yyyy-MM-dd HH:mm:ss} [%-5level] %logger{36} - %msg%n</Pattern>
             </PatternLayout>
