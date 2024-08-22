@@ -7,6 +7,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.File;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -19,7 +20,6 @@ public class JsonService {
     public JSONObject jsonObject;
     public List<Map<String, Object>> wordList;
 
-
     private static final Logger log = LogManager.getLogger(JsonService.class);
 
     public JsonService(String jsonFilePath) {
@@ -28,15 +28,15 @@ public class JsonService {
         getWordPosition();
     }
 
-    private void loadJsonData() {
+    public void loadJsonData() {
         try {
             jsonObject = new JSONObject(FileUtils.readFileToString(new File(jsonFilePath), "UTF-8"));
         } catch (IOException e) {
             log.error("Error reading JSON file", e);
         }
     }
-    //그룹화 json 가공
 
+    //그룹화 json 가공
     public void getWordPosition() {
         wordList = new ArrayList<>(); // 단일 리스트로 변경
 
@@ -87,13 +87,13 @@ public class JsonService {
         wordList.sort(Comparator.comparingInt((Map<String, Object> a) -> (int) a.get("minY")).thenComparingInt(a -> (int) a.get("maxX")));
         System.out.println(jsonLocal);
         // 정렬된 결과 출력
-        for (Map<String, Object> item : wordList) {
-            System.out.println("Word:");
-            System.out.println("  Description: " + item.get("description"));
-            System.out.println("  Coordinates: " + item.get("vertices"));
-            System.out.println("  Min X: " + item.get("minX") + ", Min Y: " + item.get("minY"));
-            System.out.println("  Max X: " + item.get("maxX") + ", Max Y: " + item.get("maxY"));
-            System.out.println();
-        }
+//        for (Map<String, Object> item : wordList) {
+//            System.out.println("Word:");
+//            System.out.println("  Description: " + item.get("description"));
+//            System.out.println("  Coordinates: " + item.get("vertices"));
+//            System.out.println("  Min X: " + item.get("minX") + ", Min Y: " + item.get("minY"));
+//            System.out.println("  Max X: " + item.get("maxX") + ", Max Y: " + item.get("maxY"));
+//            System.out.println();
+//        }
     }
 }

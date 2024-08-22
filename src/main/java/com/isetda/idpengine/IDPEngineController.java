@@ -10,10 +10,12 @@ import java.io.IOException;
 
 public class IDPEngineController {
     private static final Logger log = LogManager.getLogger(IDPEngineController.class);
+    private ConfigLoader configLoader = ConfigLoader.getInstance();
+
     public TextField inputImageFolderPath;
     public TextField inputResultFolderPath;
 
-    private IDPEngineService service = new IDPEngineService();
+    private ExcelService service = new ExcelService();
     private IMGFileClassifyService imgFileClassifyService = new IMGFileClassifyService();
     private GoogleService googleService = new GoogleService();
 
@@ -23,6 +25,8 @@ public class IDPEngineController {
     public void onButton1Click(ActionEvent event) throws IOException {
         imageAndPdfFiles = imgFileClassifyService.getFilteredFiles(inputImageFolderPath.getText());
         log.info("사용자로부터 받은 이미지 폴더 경로 : {} ",inputImageFolderPath.getText());
+
+        processing();
 
             imgFileClassifyService.copyFiles(imageAndPdfFiles);
             log.info("파일 복사 성공 : {} 개",imageAndPdfFiles.length );
@@ -34,28 +38,25 @@ public class IDPEngineController {
     }
 
     public void onButton2Click(ActionEvent event) {
+        //service.resultFolderPath = inputResultFolderPath.getText();
         classificationDocument();
     }
 
-
-//    // 전처리
-//    public void preprocessing() throws IOException {
-//        service.imageFolderPath = inputImageFolderPath.getText();
-//        service.resultFolderPath = inputResultFolderPath.getText();
-//
-//        service.getFilteredFiles();
-//        service.uploadImagesToBucket();
-//        service.processVision();
-//    }
+    public void processing() {
+        if (inputResultFolderPath.getText().isEmpty()) {
+            service.resultFolderPath = configLoader.getResultFilePath();
+            log.info("결과 파일 저장 기본 경로 : {} ", service.resultFolderPath);
+        } else {
+            service.resultFolderPath = inputResultFolderPath.getText();
+            log.info("사용자로부터 받은 결과 파일 저장 경로 : {} ", service.resultFolderPath);
+        }
+    }
 
     // 문서 분류
     public void classificationDocument() {
-//        if (service.resultFolderPath.isEmpty()) {
-//            service.resultFolderPath = inputResultFolderPath.getText();
-//        }
-
         // 전달 받은 폴더 경로의 json 파일 필터링
         service.getFilteredJsonFiles();
         service.createFinalResultFile();
     }
+
 }
