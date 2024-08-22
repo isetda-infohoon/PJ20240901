@@ -11,8 +11,8 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
-public class IMGFileClassifyService {
-    private static final Logger log = LogManager.getLogger(IMGFileClassifyService.class);
+public class IMGFileIOService {
+    private static final Logger log = LogManager.getLogger(IMGFileIOService.class);
 
     private ConfigLoader configLoader = ConfigLoader.getInstance();
 
@@ -46,6 +46,7 @@ public class IMGFileClassifyService {
                     // 파일이 이미지 또는 PDF인 경우 리스트에 추가
                     String lowercaseName = file.getName().toLowerCase();
                     if (lowercaseName.endsWith(".jpg") || lowercaseName.endsWith(".png")||lowercaseName.endsWith(".pdf")) {
+                        log.debug("필터링된 파일 추가: {}", file.getAbsolutePath());
                         filteredFiles.add(file);
 //                    } else if (lowercaseName.endsWith(".pdf")) {
 
