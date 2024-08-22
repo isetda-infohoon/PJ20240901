@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
-<properties>
-    <entry key="BUCKET_NAME">example-rpa-3</entry>
-    <entry key="EXCEL_FILE_PATH">C:\\Users\\suaah\\OneDrive\\바탕 화면\\식품안전관리 서류\\국가, 문서 양식별 추출 단어 리스트.xlsx</entry>
-    <entry key="KEY_FILE_PATH">C:\\Users\\suaah\\OneDrive\\바탕 화면\\test-folder\\google-api-key\\my-project-rpa-432408-3ab03066be17.json</entry>
-    <entry key="PROJECT_ID">my-project-rpa</entry>
-    <entry key="PERCENTAGE">0.3</entry>
-</properties>
