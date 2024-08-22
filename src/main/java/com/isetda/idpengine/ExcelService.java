@@ -32,6 +32,7 @@ public class ExcelService {
         jsonFiles = files;
     }
 
+
     // 엑셀의 단어 리스트 가져오기
     public Map<String, List<List<String>>> getExcelData() {
         Map<String, List<List<String>>> excelData = new HashMap<>();

@@ -38,7 +38,6 @@ public class IDPEngineController {
     }
 
     public void onButton2Click(ActionEvent event) {
-        //service.resultFolderPath = inputResultFolderPath.getText();
         classificationDocument();
     }
 
