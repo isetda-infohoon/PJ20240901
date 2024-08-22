@@ -21,6 +21,7 @@ module com.isetda.idpengine {
     requires org.apache.logging.log4j;
 
     requires java.desktop;
+    requires org.apache.commons.io;
 
     opens com.isetda.idpengine to javafx.fxml;
     exports com.isetda.idpengine;

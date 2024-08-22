@@ -50,9 +50,9 @@ public class IDPEngineController {
 
     // 문서 분류
     public void classificationDocument() {
-        if (service.resultFolderPath.isEmpty()) {
-            service.resultFolderPath = inputResultFolderPath.getText();
-        }
+//        if (service.resultFolderPath.isEmpty()) {
+//            service.resultFolderPath = inputResultFolderPath.getText();
+//        }
 
         // 전달 받은 폴더 경로의 json 파일 필터링
         service.getFilteredJsonFiles();
