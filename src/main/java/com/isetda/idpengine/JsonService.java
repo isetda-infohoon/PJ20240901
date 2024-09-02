@@ -25,7 +25,6 @@ public class JsonService {
 
     // 생성자에서 JSON 데이터 로딩 및 처리
     public JsonService(String jsonFilePath) {
-        log.info("JSON 파일 경로: {}", jsonFilePath);
         try {
             this.jsonObject = new JSONObject(FileUtils.readFileToString(new File(jsonFilePath), "UTF-8"));
             log.info("JSON 데이터 로딩 성공");
@@ -38,59 +37,62 @@ public class JsonService {
     private void getWordPosition() {
         log.info("단어 위치 추출 시작");
         jsonCollection = new ArrayList<>();
+        try {
+            JSONObject responsesObject = jsonObject.getJSONArray("responses").getJSONObject(0);
+            JSONArray textAnnotationsArray = responsesObject.getJSONArray("textAnnotations");
+            jsonLocal = textAnnotationsArray.getJSONObject(0).getString("locale");
 
-        JSONObject responsesObject = jsonObject.getJSONArray("responses").getJSONObject(0);
-        JSONArray textAnnotationsArray = responsesObject.getJSONArray("textAnnotations");
-        jsonLocal = textAnnotationsArray.getJSONObject(0).getString("locale");
+            log.info("언어 코드: {}", jsonLocal);
 
-        log.info("언어 코드: {}", jsonLocal);
+            for (int i = 1; i < textAnnotationsArray.length(); i++) {
+                Map<String, Object> data = new HashMap<>();
+                JSONObject textAnnotation = textAnnotationsArray.getJSONObject(i);
 
-        for (int i = 1; i < textAnnotationsArray.length(); i++) {
-            Map<String, Object> data = new HashMap<>();
-            JSONObject textAnnotation = textAnnotationsArray.getJSONObject(i);
+                String description = textAnnotation.getString("description");
+                JSONArray verticesArray = textAnnotation.getJSONObject("boundingPoly").getJSONArray("vertices");
 
-            String description = textAnnotation.getString("description");
-            JSONArray verticesArray = textAnnotation.getJSONObject("boundingPoly").getJSONArray("vertices");
+                List<JSONObject> vertices = IntStream.range(0, verticesArray.length())
+                        .mapToObj(verticesArray::getJSONObject)
+                        .collect(Collectors.toList());
 
-            List<JSONObject> vertices = IntStream.range(0, verticesArray.length())
-                    .mapToObj(verticesArray::getJSONObject)
-                    .collect(Collectors.toList());
+                int minX = vertices.stream().mapToInt(v -> v.getInt("x")).min().orElse(0);
+                int minY = vertices.stream().mapToInt(v -> v.getInt("y")).min().orElse(0);
+                int maxX = vertices.stream().mapToInt(v -> v.getInt("x")).max().orElse(0);
+                int maxY = vertices.stream().mapToInt(v -> v.getInt("y")).max().orElse(0);
 
-            int minX = vertices.stream().mapToInt(v -> v.getInt("x")).min().orElse(0);
-            int minY = vertices.stream().mapToInt(v -> v.getInt("y")).min().orElse(0);
-            int maxX = vertices.stream().mapToInt(v -> v.getInt("x")).max().orElse(0);
-            int maxY = vertices.stream().mapToInt(v -> v.getInt("y")).max().orElse(0);
+                data.put("description", description);
+                data.put("vertices", vertices);
+                data.put("minX", minX);
+                data.put("minY", minY);
+                data.put("maxX", maxX);
+                data.put("maxY", maxY);
 
-            data.put("description", description);
-            data.put("vertices", vertices);
-            data.put("minX", minX);
-            data.put("minY", minY);
-            data.put("maxX", maxX);
-            data.put("maxY", maxY);
+                jsonCollection.add(data);
+            }
 
-            jsonCollection.add(data);
-        }
+            jsonCollection.sort(Comparator.comparingInt((Map<String, Object> a) -> (int) a.get("minY"))
+                    .thenComparingInt(a -> (int) a.get("maxX")));
 
-        jsonCollection.sort(Comparator.comparingInt((Map<String, Object> a) -> (int) a.get("minY"))
-                .thenComparingInt(a -> (int) a.get("maxX")));
 
-        log.info("단어 위치 추출 완료");
+            for (Map<String, Object> item : jsonCollection) {
+                String description = (String) item.get("description");
+                List<JSONObject> vertices = (List<JSONObject>) item.get("vertices");
+                int minX = (int) item.get("minX");
+                int minY = (int) item.get("minY");
+                int maxX = (int) item.get("maxX");
+                int maxY = (int) item.get("maxY");
 
-        for (Map<String, Object> item : jsonCollection) {
-            String description = (String) item.get("description");
-            List<JSONObject> vertices = (List<JSONObject>) item.get("vertices");
-            int minX = (int) item.get("minX");
-            int minY = (int) item.get("minY");
-            int maxX = (int) item.get("maxX");
-            int maxY = (int) item.get("maxY");
+                // 로그 쌓기 위한 것
+                String verticesString = vertices.stream()
+                        .map(v -> String.format("(%d, %d)", v.getInt("x"), v.getInt("y")))
+                        .collect(Collectors.joining(", "));
 
-            // 로그 쌓기 위한 것
-            String verticesString = vertices.stream()
-                    .map(v -> String.format("(%d, %d)", v.getInt("x"), v.getInt("y")))
-                    .collect(Collectors.joining(", "));
-
-            log.info("단어: {}, 좌표: [{}], Min X: {}, Min Y: {}, Max X: {}, Max Y: {}",
-                    description, verticesString, minX, minY, maxX, maxY);
+                log.info("단어: [{}] , 좌표: [{}], Min X: {}, Min Y: {}, Max X: {}, Max Y: {}",
+                        description, verticesString, minX, minY, maxX, maxY);
+            }
+            log.info("단어 위치 추출 완료");
+        }catch (Exception e){
+            log.error("단어 위치 추출 중 오류 발생: {}", e.getMessage(), e);
         }
     }
 
@@ -99,14 +101,35 @@ public class JsonService {
         BufferedImage image = ImageIO.read(imageFile);
         Graphics2D g2d = image.createGraphics();
         g2d.setColor(Color.RED);
-        g2d.setStroke(new java.awt.BasicStroke(2)); // 박스의 두께
+        g2d.setStroke(new java.awt.BasicStroke(1)); // 박스의 두께
 
+        // 엑셀 데이터를 가져와 Set으로 변환
+        ExcelService excelService = new ExcelService();
+        Map<String, List<List<String>>> excelData = excelService.getExcelData();
+        Set<String> excelWords = excelData.getOrDefault(jsonLocal.toUpperCase(), Collections.emptyList())
+                .stream()
+                .flatMap(List::stream)
+                .collect(Collectors.toSet());
+
+        log.info("엑셀 데이터에서 로컬 값: {}", jsonLocal);
+        log.info("엑셀 데이터에서 가져온 단어 목록: {}", excelWords);
+
+        // jsonCollection을 순회하면서 엑셀 데이터와 일치하는 단어의 좌표만 마킹
         for (Map<String, Object> word : jsonCollection) {
-            int minX = (int) word.get("minX");
-            int minY = (int) word.get("minY");
-            int maxX = (int) word.get("maxX");
-            int maxY = (int) word.get("maxY");
-            g2d.drawRect(minX, minY, maxX - minX, maxY - minY);
+            String description = (String) word.get("description");
+
+            if (excelWords.contains(description)) { // 엑셀 데이터와 일치하는지 확인
+                int minX = (int) word.get("minX");
+                int minY = (int) word.get("minY");
+                int maxX = (int) word.get("maxX");
+                int maxY = (int) word.get("maxY");
+
+                log.info("일치하는 단어: [{}] , 좌표: Min X: {}, Min Y: {}, Max X: {}, Max Y: {}",
+                        description, minX, minY, maxX, maxY);
+
+                // 일치하는 단어의 좌표에 마킹
+                g2d.drawRect(minX, minY, maxX - minX, maxY - minY);
+            }
         }
         g2d.dispose();
 
@@ -120,13 +143,13 @@ public class JsonService {
         log.info("이미지와 JSON 파일 처리 시작");
         File folder = new File(folderPath);
         if (!folder.exists() || !folder.isDirectory()) {
-            log.error("유효하지 않은 폴더 경로: {}", folderPath);
+            log.warn("유효하지 않은 폴더 경로입니다: {}", folderPath);
             return;
         }
 
         File[] imageFiles = folder.listFiles((dir, name) -> name.toLowerCase().endsWith(".jpg") || name.toLowerCase().endsWith(".png"));
         if (imageFiles == null || imageFiles.length == 0) {
-            log.warn("폴더에서 이미지 파일을 찾을 수 없습니다: {}", folderPath);
+            log.warn("폴더에 이미지 파일이 없습니다: {}", folderPath);
             return;
         }
 
@@ -136,7 +159,7 @@ public class JsonService {
                 File jsonFile = new File(jsonFolderPath, baseName + "_OCR_result.json");
 
                 if (jsonFile.exists()) {
-                    log.info("JSON 파일 발견: {}", jsonFile.getAbsolutePath());
+                    log.info("JSON 파일 경로: {}", jsonFile.getAbsolutePath());
                     JsonService jsonService = new JsonService(jsonFile.getAbsolutePath());
                     jsonService.drawMarking(imageFile, jsonService.jsonCollection);
                 } else {

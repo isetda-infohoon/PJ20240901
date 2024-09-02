@@ -6,7 +6,11 @@ import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
+import java.util.stream.Collectors;
 
 
 public class ExcelService {
@@ -15,7 +19,7 @@ public class ExcelService {
     private ConfigLoader configLoader = ConfigLoader.getInstance();
     String excelFilePath = configLoader.getExcelFilePath();
 
-    public String resultFolderPath;
+    public String resultFolderPath=configLoader.getResultFilePath();
 
     public File[] jsonFiles;
     public List<List<String>> resultList; // 각 변수로
@@ -97,7 +101,7 @@ public class ExcelService {
             String saveFilePath = resultFolderPath + "\\" + fileName + ".xlsx";
 
             JsonService jsonService = new JsonService(jsonFilePath);
-
+            //모든 단어 저장 할 객체 왜?? 이걸 사용했는 지 질문
             StringBuilder allWords = new StringBuilder();
 
             for (Map<String, Object> item : jsonService.jsonCollection) {
@@ -106,17 +110,15 @@ public class ExcelService {
 
             classifyDocuments(excelData, jsonService.jsonLocal, allWords.toString());
 
-            try {
-                createExcel(saveFilePath);
-            } catch (IOException e) {
-                log.error("엑셀 파일 생성에 실패했습니다: {}", e.getStackTrace()[0]);
-            }
+            createExcel(saveFilePath);
+            log.info("엑셀 저장 성공 {}",saveFilePath);
         }
     }
 
     // 엑셀 데이터와 비교하여 국가 및 양식 분류
     public void classifyDocuments(Map<String, List<List<String>>> excelData, String jsonLocale, String jsonDescription) {
-        List<List<String>> targetSheetData = excelData.get(jsonLocale);
+        List<List<String>> targetSheetData = excelData.get(jsonLocale.toUpperCase());
+        System.out.println(excelData);
         System.out.println(targetSheetData);
 
         if (targetSheetData == null) {
@@ -190,51 +192,63 @@ public class ExcelService {
     }
 
     // 엑셀에 결과 값 쓰기
-    public void createExcel(String saveFilePath) throws IOException {
-        Workbook workbook = new XSSFWorkbook();
-        Sheet sheet = workbook.createSheet("Sheet1");
+    public void createExcel(String saveFilePath) {
+        Path path = Paths.get(saveFilePath);
 
-        // Writing resultList
-        for (int i = 0; i < resultList.size(); i++) {
-            Row row = sheet.createRow(i);
-            for (int j = 0; j < resultList.get(i).size(); j++) {
-                Cell cell = row.createCell(j);
-                cell.setCellValue(resultList.get(i).get(j));
-            }
-
-            if (i == resultList.size() - 1) {
-                // Writing resultWord
-                int colNum = 2; // 3열부터 시작 (C열에 해당)
-
-                for (List<String> rowData : resultWord) {
-                    Cell cell = row.createCell(colNum); // 2열에 해당
-
-                    StringBuilder cellValue = new StringBuilder(rowData.getFirst());
-                    cellValue.append(" (");
-
-                    for (int j = 1; j < rowData.size() - 1; j++) {
-                        cellValue.append(rowData.get(j));
-                        if (j < rowData.size() - 2) {
-                            cellValue.append(", ");
-                        }
-                    }
-
-                    cellValue.append(")");
-                    cell.setCellValue(cellValue.toString());
-                    colNum++;
-
-                    Cell cell2 = row.createCell(colNum);
-                    cell2.setCellValue(rowData.getFirst() + " (" + rowData.getLast() + ")");
-                    colNum++;
-                }
-            }
+        // 파일 존재 여부 확인
+        if (Files.exists(path)) {
+            log.debug("파일이 이미 존재합니다: {}", saveFilePath);
+            return;  // 기존 파일이 존재하면 넘어가기
         }
+        log.info("새 엑셀 파일을 생성합니다: {}", saveFilePath);
 
-        try (FileOutputStream fileOut = new FileOutputStream(saveFilePath)) {
+        // XSSFWorkbook 생성
+        try (Workbook workbook = new XSSFWorkbook();
+             FileOutputStream fileOut = new FileOutputStream(saveFilePath)) {
+
+            Sheet sheet = workbook.createSheet("Sheet1");
+
+            // 헤더 작성
+            Row headerRow = sheet.createRow(0);
+            String[] headers = {"국가", "문서 양식", "키워드", "키워드 개수"};
+            for (int i = 0; i < headers.length; i++) {
+                headerRow.createCell(i).setCellValue(headers[i]);
+            }
+
+            // 데이터 작성
+            Row dataRow = sheet.createRow(1);
+
+            // 국가 정보와 문서 양식 정보 작성
+            if (!resultList.isEmpty()) {
+                dataRow.createCell(0).setCellValue(resultList.get(0).get(1)); // 국가
+                dataRow.createCell(1).setCellValue(resultList.get(1).get(1)); // 문서 양식
+            }
+            // 키워드 및 키워드 개수 작성
+                String keywordData = resultWord.stream().map(rowData -> rowData.get(0) + ": (" + rowData.stream().skip(1).limit(rowData.size() - 2).collect(Collectors.joining(", ")) + ")").collect(Collectors.joining("; "));
+
+                dataRow.createCell(2).setCellValue(keywordData);
+
+                String keywordCountData = resultWord.stream().map(rowData -> rowData.get(0) + "(" + rowData.get(rowData.size() - 1) + ")").collect(Collectors.joining(" "));
+
+                dataRow.createCell(3).setCellValue(keywordCountData);
+                dataRow.createCell(2).setCellValue("키워드 정보 포함 안 함");
+                dataRow.createCell(3).setCellValue("키워드 개수 포함 안 함");
+
+            // 자동 열 크기 조정
+            for (int i = 0; i < headers.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+            // 파일 저장
             workbook.write(fileOut);
-            log.info("엑셀 파일이 성공적으로 생성되었습니다: {} ", saveFilePath);
+            log.info("엑셀 파일 작성 및 저장 성공: {}", saveFilePath);
+
+        } catch (FileNotFoundException e) {
+            log.error("파일을 찾을 수 없습니다: {}", saveFilePath, e);
+        } catch (IOException e) {
+            log.error("엑셀 파일 저장 중 오류 발생: {}", saveFilePath, e);
+        } catch (Exception e) {
+            log.error("예상치 못한 오류 발생: {}", e.getMessage(), e);
         }
-        workbook.close();
     }
 }
 

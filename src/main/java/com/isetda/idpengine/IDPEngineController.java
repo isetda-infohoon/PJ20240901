@@ -28,12 +28,12 @@ public class IDPEngineController {
 
     public void onButton1Click(ActionEvent event) throws IOException {
         processing();
-        imageAndPdfFiles = imgFileIOService.getFilteredFiles(imageFolderPath);
+        imageAndPdfFiles = imgFileIOService.getFilteredFiles(inputImageFolderPath.getText());
 
             imgFileIOService.copyFiles(imageAndPdfFiles);
-            log.info("파일 복사 성공 : {} 개",imageAndPdfFiles.length );
-            imgFileIOService.deleteFilesInFolder(inputImageFolderPath.getText());
-            log.info("파일 삭제 성공 ");
+            log.info("이미지 파일 복사 개수 : {} 개",imageAndPdfFiles.length );
+//            imgFileIOService.deleteFilesInFolder(inputImageFolderPath.getText());
+//            log.info("파일 삭제 성공 ");
 
 
         googleService.uploadAndOCR();
@@ -56,7 +56,7 @@ public class IDPEngineController {
 
         if (inputResultFolderPath.getText().isEmpty()) {
             service.resultFolderPath = configLoader.getResultFilePath();
-            log.info("결과 파일 저장 기본 경로 : {} ", service.resultFolderPath);
+            log.info("결과 파일 저장 경로 : {} ", service.resultFolderPath);
         } else {
             service.resultFolderPath = inputResultFolderPath.getText();
             log.info("사용자로부터 받은 결과 파일 저장 경로 : {} ", service.resultFolderPath);
