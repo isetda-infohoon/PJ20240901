@@ -85,7 +85,6 @@ public class ExcelService {
                         sheetData.add(columnData);
                     }
                 }
-
                 excelData.put(sheet.getSheetName(), sheetData);
             }
 
@@ -105,15 +104,15 @@ public class ExcelService {
         return excelData;
     }
 
-    public void getDatabase() {
-        DBService databaseConnection = new DBService();
-        Connection connection = databaseConnection.getConnection();
-
-        Map<String, List<List<String[]>>> database = new HashMap<>();
-
-
-
-    }
+//    public void getDatabase() {
+//        DBService databaseConnection = new DBService();
+//        Connection connection = databaseConnection.getConnection();
+//
+//        Map<String, List<List<String[]>>> database = new HashMap<>();
+//
+//
+//
+//    }
 
     // 폴더의 모든 파일(json)을 반복 (JSON Object로 저장 및 split, classifyDocuments 메소드로 분류 진행) (iterateFiles)
     public void createFinalResultFile() {

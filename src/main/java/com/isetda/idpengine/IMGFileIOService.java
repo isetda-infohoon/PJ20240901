@@ -16,7 +16,6 @@ public class IMGFileIOService {
 
     private ConfigLoader configLoader = ConfigLoader.getInstance();
     String imageFolderPath = configLoader.getImageFolderPath();
-
     public File[] getFilteredFiles(String folderPath) {
         log.info("{} 경로의 폴더에서 파일을 필터링 시작", folderPath);
         File folder = new File(folderPath);
@@ -30,9 +29,9 @@ public class IMGFileIOService {
         } else {
             log.info("{} 폴더에서 {}개의 파일을 가져왔습니다",folderPath,filteredFiles.size());
         }
-
         // 리스트를 배열로 변환하여 반환
         return filteredFiles.toArray(new File[0]);
+
     }
 
     private void findFilesRecursively(File folder, List<File> filteredFiles) {

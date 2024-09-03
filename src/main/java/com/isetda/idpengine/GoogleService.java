@@ -59,9 +59,9 @@ public class GoogleService {
     }
 
     //구글 버킷에 이미지 올리기 및 ocr 진행
-    public void uploadAndOCR() throws IOException {
+    public void uploadAndOCR(File[] filse) throws IOException {
         log.info("구글 버킷 업로드 및 OCR 처리 시작");
-        File[] files = service.getFilteredFiles(IMAGE_FOLDPATH);
+        File[] files = filse;
         Storage storage = getStorageService();
         File localDir = new File(RESULT_FILEPATH);
 

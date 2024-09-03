@@ -31,12 +31,12 @@ public class IDPEngineController {
         imageAndPdfFiles = imgFileIOService.getFilteredFiles(inputImageFolderPath.getText());
 
             imgFileIOService.copyFiles(imageAndPdfFiles);
-            log.info("이미지 파일 복사 개수 : {} 개",imageAndPdfFiles.length );
+            log.info("이미지 파일 복사 개수 : {} 개",imageAndPdfFiles.length);
 //            imgFileIOService.deleteFilesInFolder(inputImageFolderPath.getText());
 //            log.info("파일 삭제 성공 ");
 
 
-        googleService.uploadAndOCR();
+        googleService.uploadAndOCR(imageAndPdfFiles);
         JsonService.processMarking(folderPath,jsonFolderPath);
     }
 
