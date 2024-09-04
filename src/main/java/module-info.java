@@ -23,7 +23,7 @@ module com.isetda.idpengine {
     requires java.desktop;
     requires org.apache.commons.io;
     requires java.sql;
-    requires com.sun.jna;
+    requires jni4net.j;
 
     opens com.isetda.idpengine to javafx.fxml;
     exports com.isetda.idpengine;

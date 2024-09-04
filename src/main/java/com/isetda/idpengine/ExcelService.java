@@ -15,6 +15,7 @@ public class ExcelService {
 
     private ConfigLoader configLoader = ConfigLoader.getInstance();
     String excelFilePath = configLoader.getExcelFilePath();
+    boolean dbDataUsageFlag = configLoader.isDbDataUsageFlag();
 
     public String resultFolderPath;
 
@@ -56,7 +57,7 @@ public class ExcelService {
                 Sheet sheet = workbook.getSheetAt(i);
                 List<List<String[]>> sheetData = new ArrayList<>();
 
-                log.info("읽어온 시트: {} --- ", sheet.getSheetName());
+                log.info("--- 읽어온 시트: {} --- ", sheet.getSheetName());
 
                 int maxColumns = 0;
                 for (Row row : sheet) {
@@ -105,19 +106,72 @@ public class ExcelService {
         return excelData;
     }
 
-    public void getDatabase() {
-        DBService databaseConnection = new DBService();
-        Connection connection = databaseConnection.getConnection();
+    public Map<String, List<List<String[]>>> getDBData() {
+        Map<String, List<List<String[]>>> dbData = new HashMap<>();
 
-        Map<String, List<List<String[]>>> database = new HashMap<>();
+        DBService dbService = new DBService();
+        List<Word> wordList = dbService.getWordData();
 
+        String currentCountry = "";
 
+        for (Word wordData : wordList) {
+            String countryCode = wordData.getCountryCode();
+            String documentType = wordData.getDocumentType();
+            String word = wordData.getWord();
+            String wordWeight = String.valueOf(wordData.getWordWeight());
 
+            // countryCode에 해당하는 리스트 가져오기
+            List<List<String[]>> documentList = dbData.getOrDefault(countryCode, new ArrayList<>());
+
+            if (!currentCountry.equals(countryCode)) {
+                log.info("--- 읽어온 시트: {} ---", countryCode);
+                currentCountry = countryCode;
+            }
+
+            // documentType에 해당하는 리스트 찾기
+            List<String[]> currentDocument = null;
+            for (List<String[]> doc : documentList) {
+                if (doc.get(0)[0].equals(documentType)) {
+                    currentDocument = doc;
+                    break;
+                }
+            }
+
+            // documentType에 해당하는 리스트가 없으면 새로 생성
+            if (currentDocument == null) {
+                currentDocument = new ArrayList<>();
+                currentDocument.add(new String[]{documentType, ""});
+                documentList.add(currentDocument);
+
+                log.info("database 에서 단어 읽어오는 중: {} ", documentType);
+            }
+
+            // 단어와 가중치를 리스트에 추가
+            currentDocument.add(new String[]{word, wordWeight});
+            log.info("database 에서 단어 읽어오는 중: {}, {}", word, wordWeight);
+
+            // 결과 Map에 업데이트
+            dbData.put(countryCode, documentList);
+        }
+
+        for (Map.Entry<String, List<List<String[]>>> entry : dbData.entrySet()) {
+            log.info("엑셀 시트: {}", entry.getKey());
+            for (List<String[]> column : entry.getValue()) {
+                log.info("엑셀 값: {}", column);
+            }
+        }
+
+        return dbData;
     }
 
     // 폴더의 모든 파일(json)을 반복 (JSON Object로 저장 및 split, classifyDocuments 메소드로 분류 진행) (iterateFiles)
     public void createFinalResultFile() {
-        Map<String, List<List<String[]>>> excelData = getExcelData();
+        Map<String, List<List<String[]>>> wordData;
+        if (dbDataUsageFlag) {
+            wordData = getDBData();
+        } else {
+            wordData = getExcelData();
+        }
 
         int cnt = 1;
         for (File curFile : jsonFiles) {
@@ -136,7 +190,7 @@ public class ExcelService {
                 allWords.append(item.get("description"));
             }
 
-            classifyDocuments(excelData, jsonService.jsonLocal, allWords.toString());
+            classifyDocuments(wordData, jsonService.jsonLocal, allWords.toString());
 
             try {
                 createExcel(saveFilePath);
@@ -295,6 +349,9 @@ public class ExcelService {
         }
         workbook.close();
     }
+
+
+
 
 }
 
