@@ -4,9 +4,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.io.*;
-import java.sql.Connection;
 import java.util.*;
 
 
@@ -38,9 +39,9 @@ public class ExcelService {
         jsonFiles = files;
 
         if (jsonFiles.length == 0) {
-            log.info("폴더에 JSON 파일이 존재하지 않습니다");
+            log.info("폴더 내 JSON 파일 목록 저장 실패 - JSON 파일 없음");
         } else {
-            log.info("폴더에서 JSON 파일을 읽어 왔습니다");
+            log.info("폴더 내 JSON 파일 목록 저장 완료");
         }
 
     }
@@ -57,7 +58,7 @@ public class ExcelService {
                 Sheet sheet = workbook.getSheetAt(i);
                 List<List<String[]>> sheetData = new ArrayList<>();
 
-                log.info("--- 읽어온 시트: {} --- ", sheet.getSheetName());
+                log.info("시트명: {}", sheet.getSheetName());
 
                 int maxColumns = 0;
                 for (Row row : sheet) {
@@ -69,6 +70,7 @@ public class ExcelService {
                 // 단어 리스트가 있는 열을 반복
                 for (int col = 0; col < maxColumns; col+=2) {
                     List<String[]> columnData = new ArrayList<>();
+                    boolean isFirstIteration = true;
 
                     // 각 단어와 가중치 값을 가져와 배열로 함께 저장
                     for (Row row : sheet) {
@@ -79,7 +81,13 @@ public class ExcelService {
                             value[0] = cell.toString();
                             value[1] = row.getCell(col+1).toString();
                             columnData.add(value);
-                            log.info("엑셀 파일에서 단어 읽어오는 중: {}, {}", value[0], value[1]);
+
+                            if (isFirstIteration) {
+                                log.info("H: {}, {}", value[0], value[1]);
+                                isFirstIteration = false;
+                            } else {
+                                log.info("W: {}, {}", value[0], value[1]);
+                            }
                         }
                     }
                     if (!columnData.isEmpty()) {
@@ -90,10 +98,10 @@ public class ExcelService {
                 excelData.put(sheet.getSheetName(), sheetData);
             }
 
-            log.info("엑셀에서 단어 리스트를 성공적으로 가져왔습니다");
+            log.info("엑셀 단어 리스트 추출 완료");
 
         } catch (IOException e) {
-            log.error("엑셀에서 단어 리스트를 가져오지 못했습니다: {}", e.getStackTrace()[0]);
+            log.error("엑셀 단어 리스트 추출 실패: {}", e.getStackTrace()[0]);
         }
 
         // 엑셀 데이터 출력 (테스트용)
@@ -124,7 +132,7 @@ public class ExcelService {
             List<List<String[]>> documentList = dbData.getOrDefault(countryCode, new ArrayList<>());
 
             if (!currentCountry.equals(countryCode)) {
-                log.info("--- 읽어온 시트: {} ---", countryCode);
+                log.info("국가코드: {}", countryCode);
                 currentCountry = countryCode;
             }
 
@@ -143,35 +151,99 @@ public class ExcelService {
                 currentDocument.add(new String[]{documentType, ""});
                 documentList.add(currentDocument);
 
-                log.info("database 에서 단어 읽어오는 중: {} ", documentType);
+                log.info("H: {} ", documentType);
             }
 
             // 단어와 가중치를 리스트에 추가
             currentDocument.add(new String[]{word, wordWeight});
-            log.info("database 에서 단어 읽어오는 중: {}, {}", word, wordWeight);
+            log.info("W: {}, {}", word, wordWeight);
 
             // 결과 Map에 업데이트
             dbData.put(countryCode, documentList);
         }
 
         for (Map.Entry<String, List<List<String[]>>> entry : dbData.entrySet()) {
-            log.info("엑셀 시트: {}", entry.getKey());
+            log.info("국가 코드: {}", entry.getKey());
             for (List<String[]> column : entry.getValue()) {
-                log.info("엑셀 값: {}", column);
+                log.info("DB 값: {}", column);
             }
         }
 
         return dbData;
     }
 
+    // TODO json 경로 추가 후 실행 확인
+    public Map<String, List<List<String[]>>> getJsonData() {
+        Map<String, List<List<String[]>>> jsonData = new HashMap<>();
+
+        String jsonFilePath = "C:\\Users\\suaah\\OneDrive\\바탕 화면\\식품안전관리 서류\\국가, 문서 양식별 추출 단어 리스트.json";
+
+        try (FileReader reader = new FileReader(new File(jsonFilePath))) {
+            // JSON 파일 읽기
+            StringBuilder sb = new StringBuilder();
+            int i;
+            while ((i = reader.read()) != -1) {
+                sb.append((char) i);
+            }
+
+            // JSON 파싱
+            JSONObject rootObject = new JSONObject(sb.toString());
+
+            System.out.println(rootObject);
+
+            for (String countryCode : rootObject.keySet()) {
+                JSONArray documents = rootObject.getJSONArray(countryCode);
+
+                Map<String, List<String[]>> tempMap = new HashMap<>();
+
+                for (int j = 0; j < documents.length(); j++) {
+                    JSONObject document = documents.getJSONObject(j);
+
+                    for (String documentType : document.keySet()) {
+                        if (!documentType.endsWith(" 가중치")) {
+                            String word = document.getString(documentType);
+                            double weight = document.getDouble(documentType + " 가중치");
+
+                            tempMap.putIfAbsent(documentType, new ArrayList<>());
+                            tempMap.get(documentType).add(new String[]{word, String.valueOf(weight)});
+                        }
+                    }
+                }
+
+                List<List<String[]>> documentList = new ArrayList<>();
+                for (Map.Entry<String, List<String[]>> entry : tempMap.entrySet()) {
+                    List<String[]> wordList = new ArrayList<>();
+                    wordList.add(new String[]{entry.getKey(), "empty"});
+                    wordList.addAll(entry.getValue());
+                    documentList.add(wordList);
+                }
+
+                jsonData.put(countryCode, documentList);
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        for (Map.Entry<String, List<List<String[]>>> entry : jsonData.entrySet()) {
+            log.info("국가 코드: {}", entry.getKey());
+            for (List<String[]> column : entry.getValue()) {
+                log.info("단어 값: {}", column);
+            }
+        }
+
+        return jsonData;
+    }
+
     // 폴더의 모든 파일(json)을 반복 (JSON Object로 저장 및 split, classifyDocuments 메소드로 분류 진행) (iterateFiles)
     public void createFinalResultFile() {
         Map<String, List<List<String[]>>> wordData;
-        if (dbDataUsageFlag) {
-            wordData = getDBData();
-        } else {
-            wordData = getExcelData();
-        }
+//        if (dbDataUsageFlag) {
+//            wordData = getDBData();
+//        } else {
+//            wordData = getExcelData();
+//        }
+        wordData = getJsonData();
 
         int cnt = 1;
         for (File curFile : jsonFiles) {
@@ -195,7 +267,7 @@ public class ExcelService {
             try {
                 createExcel(saveFilePath);
             } catch (IOException e) {
-                log.error("엑셀 파일 생성에 실패했습니다: {}", e.getStackTrace()[0]);
+                log.error("엑셀 파일 생성 실패: {}", e.getStackTrace()[0]);
             }
             cnt++;
         }
@@ -207,7 +279,7 @@ public class ExcelService {
 
         if (targetSheetData == null) {
             // 일치하는 시트가 없을 경우
-            log.info("일치하는 시트(국가)가 없습니다.");
+            log.info("일치 시트(국가) 없음");
         }
 
         int maxMatches = 0;
@@ -237,7 +309,7 @@ public class ExcelService {
                     try {
                         addWeight += Double.parseDouble(columnData.get(i)[1]);
                     } catch (Exception e) {
-                        log.error("가중치 합계를 구하는 중 오류가 발생했습니다: {}", e.getStackTrace()[0]);
+                        log.error("가중치 계산 실패: {}", e.getStackTrace()[0]);
                     }
 
                     matches++;
@@ -246,15 +318,15 @@ public class ExcelService {
                 } else {
                     cnt = 0;
                 }
-                log.info("단어 '{}' 일치하는 횟수: {}, 가중치: {}", value, cnt, Double.parseDouble(columnData.get(i)[1]));
+                log.info("'{}' - 일치 횟수: {}, 가중치: {}", value, cnt, Double.parseDouble(columnData.get(i)[1]));
             }
 
-            log.info("{} / {} = {}", addWeight, matches, addWeight / matches);
-            double weight = Math.round(addWeight / matches);
+            //log.info("{} / {} = {}", addWeight, matches, addWeight / matches);
+            double weight = (double) Math.round(addWeight / matches * 10) / 10;
 
-            log.info("'{}' 양식 매치된 단어 수: {}/{}", columnData.get(0)[0], matches, columnData.size() - 1);
-            log.info("'{}' 양식 가중치 평균 값: {}", columnData.get(0)[0], weight);
-            log.info("'{}' 양식 매치 결과: {}", columnData.get(0)[0], matchingValues.subList(1, matchingValues.size()));
+            log.info("'{}' 양식 - 매치된 단어 수: {}/{}", columnData.get(0)[0], matches, columnData.size() - 1);
+            log.info("'{}' 양식 - 가중치 평균 값: {}", columnData.get(0)[0], weight);
+            log.info("'{}' 양식 - 매치 결과: {}", columnData.get(0)[0], matchingValues.subList(1, matchingValues.size()));
 
 
             matchingValues.add(matches + ""); // 매치 단어 수 결과 리스트에 추가
@@ -272,9 +344,9 @@ public class ExcelService {
         }
 
         if (matchIndex == weightIndex) {
-            log.info("단어 매치 결과와 가중치 비교 결과가 일치합니다");
+            log.info("단어 매치 결과와 가중치 비교 결과 일치");
         } else {
-            log.info("단어 매치 결과와 가중치 비교 결과가 일치하지 않습니다");
+            log.info("단어 매치 결과와 가중치 비교 결과 불일치");
         }
 
         log.info("문서 분류 결과: 국가코드({}), 문서양식({}), 가중치({})", jsonLocale, targetSheetData.get(matchIndex).get(0)[0], maxWeight);
@@ -345,7 +417,7 @@ public class ExcelService {
 
         try (FileOutputStream fileOut = new FileOutputStream(saveFilePath)) {
             workbook.write(fileOut);
-            log.info("엑셀 파일이 성공적으로 생성되었습니다: {} ", saveFilePath);
+            log.info("엑셀 파일 생성 완료: {} ", saveFilePath);
         }
         workbook.close();
     }

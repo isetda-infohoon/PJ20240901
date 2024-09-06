@@ -23,9 +23,9 @@ public class DBService {
         Connection connection = null;
         try {
             connection = DriverManager.getConnection(jdbcUrl, username, password);
-            log.info("database에 연결 했습니다.");
+            log.info("DB Connect");
         } catch (SQLException e) {
-            log.error("database에 연결하지 못했습니다: {}", e.getStackTrace()[0]);
+            log.error("DB Connect 실패: {}", e.getStackTrace()[0]);
         }
 
         return connection;
@@ -53,9 +53,9 @@ public class DBService {
             preparedStatement.close();
             connection.close();
 
-            log.info("database에서 COUNTRY 테이블을 가져왔습니다.");
+            log.info("COUNTRY 테이블 저장 완료");
         } catch (Exception e) {
-            log.error("database에서 COUNTRY 테이블을 가져오는데 실패했습니다: {}", e.getStackTrace()[0]);
+            log.error("COUNTRY 테이블 저장 실패: {}", e.getStackTrace()[0]);
         }
 
 //        for (Country vo : countryList) {
@@ -93,9 +93,9 @@ public class DBService {
 
             connection.close();
 
-            log.info("database에서 DOCUMENT 테이블을 가져왔습니다.");
+            log.info("DOCUMENT 테이블 저장 완료");
         } catch (Exception e) {
-            log.error("database에서 DOCUMENT 테이블을 가져오는데 실패했습니다: {}", e.getStackTrace()[0]);
+            log.error("DOCUMENT 테이블 저장 실패: {}", e.getStackTrace()[0]);
         }
 
 //        for (Document vo : documentList) {
@@ -137,9 +137,9 @@ public class DBService {
 
             connection.close();
 
-            log.info("database에서 WORD 테이블을 가져왔습니다.");
+            log.info("WORD 테이블 저장 완료");
         } catch (Exception e) {
-            log.error("database에서 WORD 테이블을 가져오는데 실패했습니다: {}", e.getStackTrace()[0]);
+            log.error("WORD 테이블 저장 실패: {}", e.getStackTrace()[0]);
         }
 
 //        for (Word vo : wordList) {
@@ -148,4 +148,6 @@ public class DBService {
 
         return wordList;
     }
+
+
 }

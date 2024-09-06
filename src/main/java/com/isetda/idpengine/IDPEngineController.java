@@ -51,7 +51,7 @@ public class IDPEngineController {
             log.info("이미지 폴더 기본 경로 : {} ", imageFolderPath);
         } else {
             imageFolderPath = inputResultFolderPath.getText();
-            log.info("사용자로부터 받은 이미지 폴더 경로 : {} ", imageFolderPath);
+            log.info("사용자 입력 이미지 폴더 경로 : {} ", imageFolderPath);
         }
 
         if (inputResultFolderPath.getText().isEmpty()) {
@@ -59,7 +59,7 @@ public class IDPEngineController {
             log.info("결과 파일 저장 기본 경로 : {} ", service.resultFolderPath);
         } else {
             service.resultFolderPath = inputResultFolderPath.getText();
-            log.info("사용자로부터 받은 결과 파일 저장 경로 : {} ", service.resultFolderPath);
+            log.info("사용자 입력 결과 파일 저장 경로 : {} ", service.resultFolderPath);
         }
     }
 
