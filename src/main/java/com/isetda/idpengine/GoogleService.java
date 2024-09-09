@@ -67,7 +67,7 @@ public class GoogleService {
 
         if (!localDir.exists()) {
             localDir.mkdirs();
-            log.info("결과 디렉토리 생성됨: {}", RESULT_FILEPATH);
+            log.info("결과 디렉토리 생성: {}", RESULT_FILEPATH);
         }
         String accessToken = getAccessToken();
         OkHttpClient client = new OkHttpClient();
@@ -84,7 +84,7 @@ public class GoogleService {
 
             // 버킷에 해당 파일이 있는 지 확인
             if (storage.get(blobId) != null) {
-                log.warn("이미지 파일이 이미 버킷에 존재합니다: {}", objectName);
+                log.warn("이미지 파일이 이미 버킷에 존재: {}", objectName);
                 fileCounter++;
                 continue;  // 스킵
             }

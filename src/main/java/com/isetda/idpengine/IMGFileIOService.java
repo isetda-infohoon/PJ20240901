@@ -2,7 +2,12 @@ package com.isetda.idpengine;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.rendering.ImageType;
+import org.apache.pdfbox.rendering.PDFRenderer;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -16,6 +21,7 @@ public class IMGFileIOService {
 
     private ConfigLoader configLoader = ConfigLoader.getInstance();
     String imageFolderPath = configLoader.getImageFolderPath();
+
     public File[] getFilteredFiles(String folderPath) {
         log.info("{} 경로의 폴더에서 파일을 필터링 시작", folderPath);
         File folder = new File(folderPath);
@@ -27,11 +33,10 @@ public class IMGFileIOService {
         if (filteredFiles.isEmpty()) {
             log.info("{} 폴더에서 파일이 없습니다", folderPath);
         } else {
-            log.info("{} 폴더에서 {}개의 파일을 가져왔습니다",folderPath,filteredFiles.size());
+            log.info("{} 폴더에서 {}개의 파일을 가져왔습니다", folderPath, filteredFiles.size());
         }
         // 리스트를 배열로 변환하여 반환
         return filteredFiles.toArray(new File[0]);
-
     }
 
     private void findFilesRecursively(File folder, List<File> filteredFiles) {
@@ -45,15 +50,45 @@ public class IMGFileIOService {
                 } else {
                     // 파일이 이미지 또는 PDF인 경우 리스트에 추가
                     String lowercaseName = file.getName().toLowerCase();
-                    if (lowercaseName.endsWith(".jpg") || lowercaseName.endsWith(".png") || lowercaseName.endsWith(".pdf")) {
-                        // 파일 이름과 확장자만 로그에 출력
+                    if (lowercaseName.endsWith(".jpg") || lowercaseName.endsWith(".png")) {
                         filteredFiles.add(file);
+                    } else if (lowercaseName.endsWith(".pdf")) {
+                        log.info("PDF 파일 발견: {}", file.getAbsolutePath());
+                        try {
+                            // PDF에서 추출된 이미지를 필터링된 파일 리스트에 추가
+                            filteredFiles.addAll(extractImagesFromPDF(file.getAbsolutePath()));
+                        } catch (IOException e) {
+                            log.error("PDF 파일에서 이미지를 추출하는 중 오류 발생: {}", file.getAbsolutePath(), e);
+                        }
                     }
                 }
             }
         } else {
             log.error("폴더에서 파일 목록을 가져오는 중 오류 발생: {}", folder.getAbsolutePath());
         }
+    }
+
+    // PDF에서 이미지를 추출하는 메서드 (수정됨: 추출된 이미지를 반환)
+    private List<File> extractImagesFromPDF(String pdfPath) throws IOException {
+        List<File> extractedImages = new ArrayList<>();
+
+        try (PDDocument document = PDDocument.load(new File(pdfPath))) {
+            PDFRenderer pdfRenderer = new PDFRenderer(document);
+
+            for (int page = 0; page < document.getNumberOfPages(); ++page) {
+                BufferedImage bim = pdfRenderer.renderImageWithDPI(page, 600, ImageType.RGB);
+                String fileName = pdfPath.replace(".pdf", "") + "-" + page + ".jpg";
+                File imageFile = new File(imageFolderPath, new File(fileName).getName());
+                ImageIO.write(bim, "jpg", imageFile);
+                extractedImages.add(imageFile);
+                log.info("PDF에서 이미지 추출 완료: {}", imageFile.getAbsolutePath());
+            }
+        } catch (IOException e) {
+            log.error("PDF 파일에서 이미지를 추출하는 중 오류 발생: {}", pdfPath, e);
+            throw e;
+        }
+
+        return extractedImages; // 추출된 이미지를 반환
     }
 
     // 파일 삭제 메서드
@@ -97,10 +132,10 @@ public class IMGFileIOService {
                 Files.copy(sourcePath, destinationPath);
                 // 파일 이름과 확장자만 로그에 출력
                 String fileName = file.getName();
-                log.info("파일 복사 성공: 이름: {} -> 저장 경로: {}", fileName, destinationPath);
+                log.info("복사 성공: 이름: {} -> 저장 경로: {}", fileName, destinationPath);
             } catch (IOException e) {
                 String fileName = file.getName();
-                log.error("파일 복사 중 오류 발생: 이름: {} -> 저장경로: {}, 오류: {}", fileName, destinationPath, e.getMessage(), e);
+                log.error("복사 중 오류 발생: 이름: {} -> 저장경로: {}, 오류: {}", fileName, destinationPath, e.getMessage(), e);
                 throw e; // 오류 발생 시 던지기
             }
         }

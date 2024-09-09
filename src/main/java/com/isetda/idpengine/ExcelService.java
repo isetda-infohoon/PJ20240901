@@ -11,7 +11,7 @@ import java.util.*;
 
 
 public class ExcelService {
-    private static final Logger log = LogManager.getLogger(IDPEngineController.class);
+    private static final Logger log = LogManager.getLogger(ExcelService.class);
 
     private ConfigLoader configLoader = ConfigLoader.getInstance();
     String excelFilePath = configLoader.getExcelFilePath();
@@ -191,7 +191,7 @@ public class ExcelService {
                 } else {
                     cnt = 0;
                 }
-                log.info("단어 '{}' 일치하는 횟수: {}, 가중치: {}", value, cnt, Double.parseDouble(columnData.get(i)[1]));
+//                log.info("단어 '{}' 일치하는 횟수: {}, 가중치: {}", value, cnt, Double.parseDouble(columnData.get(i)[1]));
             }
 
             log.info("{} / {} = {}", addWeight, matches, addWeight / matches);

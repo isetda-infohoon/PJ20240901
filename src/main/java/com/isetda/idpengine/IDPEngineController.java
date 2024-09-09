@@ -30,20 +30,16 @@ public class IDPEngineController {
         processing();
         imageAndPdfFiles = imgFileIOService.getFilteredFiles(inputImageFolderPath.getText());
 
-            imgFileIOService.copyFiles(imageAndPdfFiles);
-            log.info("이미지 파일 복사 개수 : {} 개",imageAndPdfFiles.length);
-//            imgFileIOService.deleteFilesInFolder(inputImageFolderPath.getText());
-//            log.info("파일 삭제 성공 ");
-
+        imgFileIOService.copyFiles(imageAndPdfFiles);
+        log.info("이미지 파일 복사 개수 : {} 개", imageAndPdfFiles.length);
 
         googleService.uploadAndOCR(imageAndPdfFiles);
-        JsonService.processMarking(folderPath,jsonFolderPath);
+        JsonService.processMarking(folderPath, jsonFolderPath);
     }
 
     public void onButton2Click(ActionEvent event) {
         classificationDocument();
     }
-
 
     public void processing() {
         if (inputResultFolderPath.getText().isEmpty()) {

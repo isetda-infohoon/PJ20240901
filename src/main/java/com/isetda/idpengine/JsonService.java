@@ -3,6 +3,7 @@ package com.isetda.idpengine;
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.poi.ss.formula.functions.T;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -58,28 +59,31 @@ public class JsonService {
                 int maxX = vertices.stream().mapToInt(v -> v.getInt("x")).max().orElse(0);
                 int maxY = vertices.stream().mapToInt(v -> v.getInt("y")).max().orElse(0);
 
+                int midY = (minY + maxY) / 2; // MinY와 MaxY의 중간 값 계산
+
                 data.put("description", description);
                 data.put("vertices", vertices);
                 data.put("minX", minX);
                 data.put("minY", minY);
                 data.put("maxX", maxX);
                 data.put("maxY", maxY);
+                data.put("midY", midY); // 중간 값 저장
 
                 jsonCollection.add(data);
             }
 
-            // minY의 오차 범위를 고려한 정렬
+            // 중간 값을 기준으로 정렬
             jsonCollection.sort((a, b) -> {
-                int minY_a = (int) a.get("minY");
-                int minY_b = (int) b.get("minY");
+                int midY_a = (int) a.get("midY");
+                int midY_b = (int) b.get("midY");
 
-                // 오차 범위를 고려한 minY 정렬
-                if (Math.abs(minY_a - minY_b) <= 3) {
-                    // minY가 비슷하면 maxX로 정렬
-                    return Integer.compare((int) a.get("maxX"), (int) b.get("maxX"));
+                // 오차 범위를 고려한 midY 정렬
+                if (Math.abs(midY_a - midY_b) <= 3) {
+                    // midY가 비슷하면 minX로 정렬
+                    return Integer.compare((int) a.get("minX"), (int) b.get("minX"));
                 } else {
-                    // minY로 정렬
-                    return Integer.compare(minY_a, minY_b);
+                    // midY로 정렬
+                    return Integer.compare(midY_a, midY_b);
                 }
             });
 
@@ -105,47 +109,40 @@ public class JsonService {
     }
 
 
-    private void wordToFind(){
-        List<Map<String, Object>> matchedWords=findMatchingWords(jsonCollection,excelData3);
-        log.info("안녕 3 : {}", matchedWords);
-    }
 
     private List<Map<String, Object>> findMatchingWords(List<Map<String, Object>> words, List<String> targetWords) {
         List<Map<String, Object>> results = new ArrayList<>();
 
-        for (String targetWord : targetWords) {
-            for (int i = 0; i < words.size(); i++) {
-                StringBuilder currentText = new StringBuilder((String) words.get(i).get("description"));
-                int startX = (int) words.get(i).get("minX");
-                int startY = (int) words.get(i).get("minY");
-                int maxX = (int) words.get(i).get("maxX");
-                int maxY = (int) words.get(i).get("maxY");
+        for (int i = 0; i < words.size(); i++) {
+            StringBuilder currentText = new StringBuilder();
+            int startX = (int) words.get(i).get("minX");
+            int startY = (int) words.get(i).get("minY");
+            int maxX = startX;
+            int maxY = startY;
 
-                List<Map<String, Object>> potentialMatches = new ArrayList<>();
-                potentialMatches.add(words.get(i));
+            // 단어 자체도 추가
+            List<Map<String, Object>> checkText = new ArrayList<>();
+            Map<String, Object> singleWord = words.get(i);
+            checkText.add(singleWord);
+            currentText.append(singleWord.get("description"));
 
-                for (int j = i + 1; j < words.size() && currentText.length() < targetWord.length(); j++) {
-                    Map<String, Object> nextWord = words.get(j);
-                    if (isOnSameLine(words.get(i), nextWord)) {
-                        currentText.append(nextWord.get("description"));
-                        potentialMatches.add(nextWord);
-                        maxX = Math.max(maxX, (int) nextWord.get("maxX"));
-                        maxY = Math.max(maxY, (int) nextWord.get("maxY"));
-                    } else if (currentText.length() > 0) {
-                        break;
-                    }
-                }
+            // 단일 단어 자체를 결과에 추가
+            addToResults(results, checkText, currentText.toString().replace(" ", ""), startX, startY, maxX, maxY, targetWords);
 
-                if (currentText.toString().replace(" ", "").equals(targetWord)) {
-                    int minX = potentialMatches.stream().mapToInt(w -> (int) w.get("minX")).min().orElse(startX);
-                    Map<String, Object> result = new HashMap<>();
-                    result.put("description", targetWord);
-                    result.put("minX", minX);
-                    result.put("minY", startY);
-                    result.put("maxX", maxX);
-                    result.put("maxY", maxY);
-                    results.add(result);
-                    break;
+            // 연속된 단어 조합 생성
+            for (int j = i + 1; j < words.size(); j++) {
+                Map<String, Object> nextWord = words.get(j);
+                if (isOnSameLineByMidY(checkText.get(checkText.size() - 1), nextWord)) {
+                    log.info("연결 단어 : {}",currentText);
+                    currentText.append(nextWord.get("description"));
+                    checkText.add(nextWord);
+                    maxX = Math.max(maxX, (int) nextWord.get("maxX"));
+                    maxY = Math.max(maxY, (int) nextWord.get("maxY"));
+
+                    // 현재 조합이 targetWords에 포함되는지 확인
+                    addToResults(results, checkText, currentText.toString().replace(" ", ""), startX, startY, maxX, maxY, targetWords);
+                } else {
+                    break; // 동일한 라인이 아니면 중단
                 }
             }
         }
@@ -153,34 +150,51 @@ public class JsonService {
         return results;
     }
 
-    private boolean isOnSameLine(Map<String, Object> a, Map<String, Object> b) {
-        int aMaxY = (int) a.get("maxY");
-        int aMinY = (int) a.get("minY");
-        int bMaxY = (int) b.get("maxY");
-        int bMinY = (int) b.get("minY");
-
-        int verticalOverlap = Math.min(aMaxY, bMaxY) - Math.max(aMinY, bMinY);
-        return verticalOverlap >= -4;
+    private void addToResults(List<Map<String, Object>> results, List<Map<String, Object>> checkText,
+                              String combinedText, int startX, int startY, int maxX, int maxY, List<String> targetWords) {
+        // 조합된 텍스트가 targetWords에 포함되는지 확인
+        if (targetWords.contains(combinedText)) {
+            int minX = checkText.stream().mapToInt(w -> (int) w.get("minX")).min().orElse(startX);
+            Map<String, Object> result = new HashMap<>();
+            result.put("description", combinedText);
+            result.put("minX", minX);
+            result.put("minY", startY);
+            result.put("maxX", maxX);
+            result.put("maxY", maxY);
+            results.add(result);
+        }
     }
+
+    private boolean isOnSameLineByMidY(Map<String, Object> a, Map<String, Object> b) {
+        int midY_a = ((int) a.get("minY") + (int) a.get("maxY")) / 2;
+        int midY_b = ((int) b.get("minY") + (int) b.get("maxY")) / 2;
+
+        return Math.abs(midY_a - midY_b) <= 3; // 중간 값의 차이가 3 이내면 같은 라인으로 간주
+    }
+
+
 
 
 
 
     public List<String> excelData3 = new ArrayList<>();
 
-    public void drawMarking(File imageFile, List<Map<String, Object>> jsonCollection) throws IOException {
-
+    public void drawMarking(File imageFile, List<Map<String, Object>> jsonCollection, Map<String, List<List<String[]>>> excelData) throws IOException {
         log.info("이미지에 마킹을 추가하는 중: {}", imageFile.getAbsolutePath());
+
         BufferedImage image = ImageIO.read(imageFile);
+        if (image == null) {
+            log.error("이미지를 읽어오는 데 실패했습니다: {}", imageFile.getAbsolutePath());
+            return;
+        }
+
         Graphics2D g2d = image.createGraphics();
         g2d.setColor(Color.RED);
         g2d.setStroke(new java.awt.BasicStroke(1)); // 박스의 두께
 
         // 엑셀 데이터를 가져와 Set으로 변환
-        ExcelService excelService = new ExcelService();
-        Map<String, List<List<String[]>>> excelData = excelService.getExcelData();
         List<List<String[]>> execelData2 = excelData.get(jsonLocal);
-        log.info("안녕 1 {}",execelData2);
+//        log.info("안녕 1 {}",execelData2);
 
         for (List<String[]> row : execelData2) {
             for (String[] cell : row) {
@@ -191,7 +205,7 @@ public class JsonService {
             }
         }
 
-        log.info("안녕 2 {}", excelData3);
+//        log.info("안녕 2 {}", excelData3);
 
         // jsonLocal을 대문자로 변환하고 엑셀 데이터에서 해당 로컬에 대한 단어를 추출
         Set<String> excelWords = excelData.getOrDefault(jsonLocal, Collections.emptyList())
@@ -200,11 +214,12 @@ public class JsonService {
                 .flatMap(Arrays::stream)
                 .collect(Collectors.toSet());
 
-        log.info("엑셀 데이터에서 로컬 값: {}", jsonLocal);
+        log.info("국가 코드: {}", jsonLocal);
         log.info("엑셀 데이터에서 가져온 단어 목록: {}", excelWords);
 
         List<Map<String, Object>> matchedWords = findMatchingWords(jsonCollection, excelData3);
-        log.info("안녕4 : {}",matchedWords);
+//        log.info("경우의 수 : {}",matchedWords);
+
         // jsonCollection을 순회하면서 엑셀 데이터와 일치하는 단어의 좌표만 마킹
         for (Map<String, Object> word : matchedWords) {
             String description = (String) word.get("description");
@@ -224,13 +239,16 @@ public class JsonService {
         }
         g2d.dispose();
 
-        File outputImageFile = new File("annotated_" + imageFile.getName());
+        File outputImageFile = new File(imageFile.getName()+"annotated");
         ImageIO.write(image, "png", outputImageFile);
 
-        log.info("주석이 추가된 이미지가 저장되었습니다: {}", outputImageFile.getAbsolutePath());
+        log.info("주석이 추가된 이미지가 저장: {}", outputImageFile.getAbsolutePath());
     }
 
     public static void processMarking(String folderPath, String jsonFolderPath) {
+        ExcelService excelService = new ExcelService();
+        Map<String, List<List<String[]>>> excelData = excelService.getExcelData();
+
         log.info("이미지와 JSON 파일 처리 시작");
         File folder = new File(folderPath);
         if (!folder.exists() || !folder.isDirectory()) {
@@ -252,7 +270,7 @@ public class JsonService {
                 if (jsonFile.exists()) {
                     log.info("JSON 파일 경로: {}", jsonFile.getAbsolutePath());
                     JsonService jsonService = new JsonService(jsonFile.getAbsolutePath());
-                    jsonService.drawMarking(imageFile, jsonService.jsonCollection);
+                    jsonService.drawMarking(imageFile, jsonService.jsonCollection,excelData);
                 } else {
                     log.warn("이미지에 대한 JSON 파일을 찾을 수 없습니다: {}", imageFile.getName());
                 }

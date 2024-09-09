@@ -24,6 +24,7 @@ module com.isetda.idpengine {
     requires org.apache.commons.io;
     requires java.sql;
     requires com.sun.jna;
+    requires org.apache.pdfbox;
 
     opens com.isetda.idpengine to javafx.fxml;
     exports com.isetda.idpengine;
