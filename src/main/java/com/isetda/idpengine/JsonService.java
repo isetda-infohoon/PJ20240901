@@ -100,7 +100,7 @@ public class JsonService {
                         .map(v -> String.format("(%d, %d)", v.getInt("x"), v.getInt("y")))
                         .collect(Collectors.joining(", "));
 
-                log.info(String.format("좌표: %-45s | Min X: %5d | Min Y: %5d | Max X: %5d | Max Y: %5d | 단어: %-20s ", verticesString, minX, minY, maxX, maxY, description));
+                log.info(String.format("L: %-45s | Min X: %5d | Min Y: %5d | Max X: %5d | Max Y: %5d | W: %-20s ", verticesString, minX, minY, maxX, maxY, description));
             }
             log.info("단어 위치 추출 완료");
         } catch (Exception e) {
@@ -112,9 +112,13 @@ public class JsonService {
 
     private List<Map<String, Object>> findMatchingWords(List<Map<String, Object>> words, List<String> targetWords) {
         List<Map<String, Object>> results = new ArrayList<>();
+        int a = 0;
 
         for (int i = 0; i < words.size(); i++) {
+            a=0;
             StringBuilder currentText = new StringBuilder();
+            int startMaxX =(int) words.get(i).get("maxX");
+            int startMaxY =(int) words.get(i).get("maxY");
             int startX = (int) words.get(i).get("minX");
             int startY = (int) words.get(i).get("minY");
             int maxX = startX;
@@ -125,9 +129,10 @@ public class JsonService {
             Map<String, Object> singleWord = words.get(i);
             checkText.add(singleWord);
             currentText.append(singleWord.get("description"));
+//            log.info("안:{}",currentText);
 
             // 단일 단어 자체를 결과에 추가
-            addToResults(results, checkText, currentText.toString().replace(" ", ""), startX, startY, maxX, maxY, targetWords);
+            addToResults(results, checkText, currentText.toString().replace(" ", ""), startX, startY, startMaxX, startMaxY, targetWords);
 
             // 연속된 단어 조합 생성
             for (int j = i + 1; j < words.size(); j++) {
@@ -135,6 +140,7 @@ public class JsonService {
                 if (isOnSameLineByMidY(checkText.get(checkText.size() - 1), nextWord)) {
                     log.info("연결 단어 : {}",currentText);
                     currentText.append(nextWord.get("description"));
+                    a++;
                     checkText.add(nextWord);
                     maxX = Math.max(maxX, (int) nextWord.get("maxX"));
                     maxY = Math.max(maxY, (int) nextWord.get("maxY"));
@@ -142,10 +148,12 @@ public class JsonService {
                     // 현재 조합이 targetWords에 포함되는지 확인
                     addToResults(results, checkText, currentText.toString().replace(" ", ""), startX, startY, maxX, maxY, targetWords);
                 } else {
+                    log.info("연결된 단어 전체 경우의 수: {}",a);
                     break; // 동일한 라인이 아니면 중단
                 }
             }
         }
+        log.info("연결된 단어 전체 경우의 수: {}",a);
 
         return results;
     }
@@ -155,6 +163,7 @@ public class JsonService {
         // 조합된 텍스트가 targetWords에 포함되는지 확인
         if (targetWords.contains(combinedText)) {
             int minX = checkText.stream().mapToInt(w -> (int) w.get("minX")).min().orElse(startX);
+
             Map<String, Object> result = new HashMap<>();
             result.put("description", combinedText);
             result.put("minX", minX);
@@ -179,8 +188,9 @@ public class JsonService {
 
     public List<String> excelData3 = new ArrayList<>();
 
-    public void drawMarking(File imageFile, List<Map<String, Object>> jsonCollection, Map<String, List<List<String[]>>> excelData) throws IOException {
+    public void drawMarking(File imageFile, List<Map<String, Object>> jsonCollection, Map<String, List<List<String[]>>> excelData ,String documentType ) throws IOException {
         log.info("이미지에 마킹을 추가하는 중: {}", imageFile.getAbsolutePath());
+        ExcelService excelService =new ExcelService();
 
         BufferedImage image = ImageIO.read(imageFile);
         if (image == null) {
@@ -192,60 +202,64 @@ public class JsonService {
         g2d.setColor(Color.RED);
         g2d.setStroke(new java.awt.BasicStroke(1)); // 박스의 두께
 
-        // 엑셀 데이터를 가져와 Set으로 변환
-        List<List<String[]>> execelData2 = excelData.get(jsonLocal);
-//        log.info("안녕 1 {}",execelData2);
+        // 엑셀 데이터에서 해당 문서 양식에 해당하는 데이터만 추출
+        List<List<String[]>> excelRows = excelData.get(jsonLocal);
+        if (excelRows == null) {
+            log.warn("해당하는 엑셀 데이터가 없습니다: {}", jsonLocal);
+            return;
+        }
 
-        for (List<String[]> row : execelData2) {
-            for (String[] cell : row) {
-                // cell 배열의 첫 번째 요소만 추가
-                if (cell.length > 0) {
-                    excelData3.add(cell[0]);
+        Set<String> excelWords = new HashSet<>();
+
+        // "사업자등록증(영업허가증)" 또는 다른 문서 양식 이름에 해당하는 데이터를 가져오기
+        // 또는 다른 문서 양식 이름으로 변경 가능
+        log.info("문서 타입 : {}",documentType);
+        for (List<String[]> row : excelRows) {
+            if (row.size() > 0 && documentType.equals(row.get(0)[0])) {
+                for (int i = 1; i < row.size(); i++) { // 첫 번째 열은 컬럼 이름이므로 제외
+                    excelWords.add(row.get(i)[0]); // 문서 양식에 해당하는 단어들만 수집
                 }
+                break; // 해당 문서 양식에 해당하는 행을 찾았으므로 루프 종료
             }
         }
 
-//        log.info("안녕 2 {}", excelData3);
+        if (excelWords.isEmpty()) {
+            log.warn("문서 양식 '{}'에 해당하는 단어가 없습니다.", documentType);
+            return;
+        }
 
-        // jsonLocal을 대문자로 변환하고 엑셀 데이터에서 해당 로컬에 대한 단어를 추출
-        Set<String> excelWords = excelData.getOrDefault(jsonLocal, Collections.emptyList())
-                .stream()
-                .flatMap(List::stream)
-                .flatMap(Arrays::stream)
-                .collect(Collectors.toSet());
+        log.info("엑셀에서 추출한 단어들: {}", excelWords);
 
-        log.info("국가 코드: {}", jsonLocal);
-        log.info("엑셀 데이터에서 가져온 단어 목록: {}", excelWords);
+        List<Map<String, Object>> matchedWords = findMatchingWords(jsonCollection, new ArrayList<>(excelWords));
 
-        List<Map<String, Object>> matchedWords = findMatchingWords(jsonCollection, excelData3);
-//        log.info("경우의 수 : {}",matchedWords);
-
-        // jsonCollection을 순회하면서 엑셀 데이터와 일치하는 단어의 좌표만 마킹
         for (Map<String, Object> word : matchedWords) {
             String description = (String) word.get("description");
 
-            if (excelWords.contains(description)) { // 엑셀 데이터와 일치하는지 확인
+            if (excelWords.contains(description)) {
                 int minX = (int) word.get("minX");
                 int minY = (int) word.get("minY");
                 int maxX = (int) word.get("maxX");
                 int maxY = (int) word.get("maxY");
 
-                log.info("일치하는 단어: [{}] , 좌표: Min X: {}, Min Y: {}, Max X: {}, Max Y: {}",
+                log.info("W: [{}] , L: Min X: {}, Min Y: {}, Max X: {}, Max Y: {}",
                         description, minX, minY, maxX, maxY);
 
-                // 일치하는 단어의 좌표에 마킹
                 g2d.drawRect(minX, minY, maxX - minX, maxY - minY);
             }
         }
         g2d.dispose();
 
-        File outputImageFile = new File(imageFile.getName()+"annotated");
+        // 이미지 파일의 이름을 PNG 확장자로 변경
+        String outputImagePath = imageFile.getParent() + File.separator + imageFile.getName().substring(0, imageFile.getName().lastIndexOf('.')) + "_annotated.png";
+        File outputImageFile = new File(outputImagePath);
         ImageIO.write(image, "png", outputImageFile);
 
-        log.info("주석이 추가된 이미지가 저장: {}", outputImageFile.getAbsolutePath());
+        log.info("주석이 추가된 이미지가 저장되었습니다: {}", outputImageFile.getAbsolutePath());
     }
 
-    public static void processMarking(String folderPath, String jsonFolderPath) {
+
+    public static void processMarking(String folderPath, String jsonFolderPath, String documentType) throws IOException {
+
         ExcelService excelService = new ExcelService();
         Map<String, List<List<String[]>>> excelData = excelService.getExcelData();
 
@@ -263,22 +277,19 @@ public class JsonService {
         }
 
         for (File imageFile : imageFiles) {
-            try {
-                String baseName = imageFile.getName().substring(0, imageFile.getName().lastIndexOf('.'));
-                File jsonFile = new File(jsonFolderPath, baseName + "_OCR_result.json");
+            String baseName = imageFile.getName().substring(0, imageFile.getName().lastIndexOf('.'));
+            File jsonFile = new File(jsonFolderPath, baseName + "_OCR_result.json");
 
-                if (jsonFile.exists()) {
-                    log.info("JSON 파일 경로: {}", jsonFile.getAbsolutePath());
-                    JsonService jsonService = new JsonService(jsonFile.getAbsolutePath());
-                    jsonService.drawMarking(imageFile, jsonService.jsonCollection,excelData);
-                } else {
-                    log.warn("이미지에 대한 JSON 파일을 찾을 수 없습니다: {}", imageFile.getName());
-                }
-            } catch (IOException e) {
-                log.error("이미지 처리 중 오류 발생: {}", imageFile.getName(), e);
+            if (jsonFile.exists()) {
+                log.info("JSON 파일 경로: {}", jsonFile.getAbsolutePath());
+                JsonService jsonService = new JsonService(jsonFile.getAbsolutePath());
+                jsonService.drawMarking(imageFile, jsonService.jsonCollection, excelData,documentType);
+            } else {
+                log.warn("이미지에 대한 JSON 파일을 찾을 수 없습니다: {}", imageFile.getName());
             }
         }
         log.info("이미지 및 JSON 파일 처리 완료");
     }
+
 
 }

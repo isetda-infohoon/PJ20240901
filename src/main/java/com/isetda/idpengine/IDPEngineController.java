@@ -34,11 +34,13 @@ public class IDPEngineController {
         log.info("이미지 파일 복사 개수 : {} 개", imageAndPdfFiles.length);
 
         googleService.uploadAndOCR(imageAndPdfFiles);
-        JsonService.processMarking(folderPath, jsonFolderPath);
+//        JsonService.processMarking(folderPath, jsonFolderPath);
     }
 
-    public void onButton2Click(ActionEvent event) {
+    public void onButton2Click(ActionEvent event) throws IOException {
         classificationDocument();
+//        JsonService.processMarking(folderPath, jsonFolderPath);
+
     }
 
     public void processing() {
@@ -60,7 +62,7 @@ public class IDPEngineController {
     }
 
     // 문서 분류
-    public void classificationDocument() {
+    public void classificationDocument() throws IOException {
         // 전달 받은 폴더 경로의 json 파일 필터링
         service.getFilteredJsonFiles();
         service.createFinalResultFile();

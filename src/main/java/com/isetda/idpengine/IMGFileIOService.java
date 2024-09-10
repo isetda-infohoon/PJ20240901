@@ -21,6 +21,7 @@ public class IMGFileIOService {
 
     private ConfigLoader configLoader = ConfigLoader.getInstance();
     String imageFolderPath = configLoader.getImageFolderPath();
+    String resultFilePath = configLoader.getResultFilePath();
 
     public File[] getFilteredFiles(String folderPath) {
         log.info("{} 경로의 폴더에서 파일을 필터링 시작", folderPath);
@@ -78,7 +79,7 @@ public class IMGFileIOService {
             for (int page = 0; page < document.getNumberOfPages(); ++page) {
                 BufferedImage bim = pdfRenderer.renderImageWithDPI(page, 600, ImageType.RGB);
                 String fileName = pdfPath.replace(".pdf", "") + "-" + page + ".jpg";
-                File imageFile = new File(imageFolderPath, new File(fileName).getName());
+                File imageFile = new File(resultFilePath, new File(fileName).getName());
                 ImageIO.write(bim, "jpg", imageFile);
                 extractedImages.add(imageFile);
                 log.info("PDF에서 이미지 추출 완료: {}", imageFile.getAbsolutePath());
@@ -127,7 +128,14 @@ public class IMGFileIOService {
     public void copyFiles(File[] files) throws IOException {
         for (File file : files) {
             Path sourcePath = file.toPath();
-            Path destinationPath = Paths.get(imageFolderPath, file.getName());
+            Path destinationPath = Paths.get(resultFilePath, file.getName());
+
+            // 동일한 이름의 파일이 이미 존재하는지 확인
+            if (Files.exists(destinationPath)) {
+                log.info("이미지가 이미 존재: {}", destinationPath);
+                continue; // 파일 복사 건너뛰기
+            }
+
             try {
                 Files.copy(sourcePath, destinationPath);
                 // 파일 이름과 확장자만 로그에 출력
