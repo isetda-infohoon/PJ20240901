@@ -258,10 +258,7 @@ public class JsonService {
     }
 
 
-    public static void processMarking(String folderPath, String jsonFolderPath, String documentType) throws IOException {
-
-        ExcelService excelService = new ExcelService();
-        Map<String, List<List<String[]>>> excelData = excelService.getExcelData();
+    public static void processMarking(Map<String, List<List<String[]>>> excelData, String folderPath, String jsonFolderPath, String documentType) throws IOException {
 
         log.info("이미지와 JSON 파일 처리 시작");
         File folder = new File(folderPath);

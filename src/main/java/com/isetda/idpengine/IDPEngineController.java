@@ -16,7 +16,7 @@ public class IDPEngineController {
 
 
 
-    private ExcelService service = new ExcelService();
+    private ExcelService excelService = new ExcelService();
 
     String resultFilePath = configLoader.getResultFilePath();
 
@@ -30,7 +30,7 @@ public class IDPEngineController {
     public void onButton1Click(ActionEvent event) throws IOException {
         IMGFileIOService imgFileIOService = new IMGFileIOService();
         GoogleService googleService = new GoogleService();
-        configLoader.resultFilePath = inputResultFolderPath.getText();
+        processing();
         imgFileIOService.configLoader = configLoader;
 //        if (!resultFolder.exists()) {
 //            boolean created = resultFolder.mkdirs(); // 여러 폴더도 생성 가능
@@ -59,27 +59,32 @@ public class IDPEngineController {
     }
 
     public void processing() {
-        if (inputImageFolderPath.getText().isEmpty()) {
-            log.info("이미지 폴더 기본 경로 : {} ", configLoader.imageFolderPath);
-        } else {
-            configLoader.imageFolderPath = inputImageFolderPath.getText();
-            log.info("사용자 입력 이미지 폴더 경로 : {} ", configLoader.imageFolderPath);
-        }
+        configLoader.resultFilePath = inputResultFolderPath.getText();
 
-        if (inputResultFolderPath.getText().isEmpty()) {
-            service.resultFolderPath = configLoader.getResultFilePath();
-            log.info("결과 파일 저장 경로 : {} ", configLoader.resultFilePath);
-        } else {
-            service.resultFolderPath = inputResultFolderPath.getText();
-            configLoader.resultFilePath = inputResultFolderPath.getText();
-            log.info("사용자 입력 결과 파일 저장 경로 : {} ", configLoader.resultFilePath );
-        }
+//        if (inputImageFolderPath.getText().isEmpty()) {
+//            log.info("이미지 폴더 기본 경로 : {} ", configLoader.imageFolderPath);
+//        } else {
+//            configLoader.imageFolderPath = inputImageFolderPath.getText();
+//            log.info("사용자 입력 이미지 폴더 경로 : {} ", configLoader.imageFolderPath);
+//        }
+//
+//        if (inputResultFolderPath.getText().isEmpty()) {
+//            service.resultFolderPath = configLoader.getResultFilePath();
+//            log.info("결과 파일 저장 경로 : {} ", configLoader.resultFilePath);
+//        } else {
+//            service.resultFolderPath = inputResultFolderPath.getText();
+//            configLoader.resultFilePath = inputResultFolderPath.getText();
+//            log.info("사용자 입력 결과 파일 저장 경로 : {} ", configLoader.resultFilePath );
+//        }
     }
 
     // 문서 분류
     public void classificationDocument() throws IOException {
+        processing();
+        excelService.configLoader = configLoader;
+
         // 전달 받은 폴더 경로의 json 파일 필터링
-        service.getFilteredJsonFiles();
-        service.createFinalResultFile();
+        excelService.getFilteredJsonFiles();
+        excelService.createFinalResultFile();
     }
 }

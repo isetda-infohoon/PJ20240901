@@ -14,11 +14,8 @@ import java.util.*;
 public class ExcelService {
     private static final Logger log = LogManager.getLogger(ExcelService.class);
 
-    private ConfigLoader configLoader = ConfigLoader.getInstance();
-    String excelFilePath = configLoader.getExcelFilePath();
+    public ConfigLoader configLoader;
 //    boolean dbDataUsageFlag = configLoader.isDbDataUsageFlag();
-
-    public String resultFolderPath;
 
     public File[] jsonFiles;
     public List<List<String>> resultList; // 각 변수로
@@ -28,10 +25,11 @@ public class ExcelService {
     public String fileName;
 
     public List<String> documentType = new ArrayList<>();
+    public Map<String, List<List<String[]>>> excelData;
 
     // 폴더에서 JSON 파일 가져오기
     public void getFilteredJsonFiles() {
-        File folder = new File(resultFolderPath);
+        File folder = new File(configLoader.resultFilePath);
 
         File[] files = folder.listFiles(new FilenameFilter() {
             @Override
@@ -56,7 +54,7 @@ public class ExcelService {
     public Map<String, List<List<String[]>>> getExcelData() {
         Map<String, List<List<String[]>>> excelData = new HashMap<>();
 
-        try (FileInputStream fis = new FileInputStream(excelFilePath);
+        try (FileInputStream fis = new FileInputStream(configLoader.excelFilePath);
              Workbook workbook = new XSSFWorkbook(fis)) {
 
             for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
@@ -128,11 +126,10 @@ public class ExcelService {
 //
 //
 //    }
-    String folderPath = configLoader.getResultFilePath();
-    String jsonFolderPath = configLoader.getResultFilePath();
+
     // 폴더의 모든 파일(json)을 반복 (JSON Object로 저장 및 split, classifyDocuments 메소드로 분류 진행) (iterateFiles)
     public void createFinalResultFile() throws IOException {
-        Map<String, List<List<String[]>>> excelData = getExcelData();
+        excelData = getExcelData();
 
         int cnt = 1;
         for (File curFile : jsonFiles) {
@@ -141,7 +138,7 @@ public class ExcelService {
             String jsonFilePath = curFile.getPath();
 
             fileName = curFile.getName().substring(0, curFile.getName().lastIndexOf("."));
-            String saveFilePath = resultFolderPath + "\\" + fileName + ".xlsx";
+            String saveFilePath = configLoader.resultFilePath + "\\" + fileName + ".xlsx";
 
             JsonService jsonService = new JsonService(jsonFilePath);
 
@@ -156,7 +153,7 @@ public class ExcelService {
             log.info("문서 타입 54 :{}",documentType);
             log.info("문서 타입 56 :{}",resultList);
 
-            JsonService.processMarking(folderPath,jsonFolderPath,docType);
+            JsonService.processMarking(excelData, configLoader.resultFilePath,configLoader.resultFilePath,docType);
 
             try {
                 createExcel(saveFilePath);
