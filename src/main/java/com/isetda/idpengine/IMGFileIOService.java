@@ -20,7 +20,7 @@ public class IMGFileIOService {
     private static final Logger log = LogManager.getLogger(IMGFileIOService.class);
     public ConfigLoader configLoader;
 //    String resultFilePath;
-
+//왜 이래
     public File[] getFilteredFiles() {
         log.info("{} 경로의 폴더에서 파일을 필터링 시작", configLoader.imageFolderPath);
         File folder = new File(configLoader.imageFolderPath);
