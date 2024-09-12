@@ -43,7 +43,7 @@ public class IDPEngineController {
 //        processing();
         imageAndPdfFiles = imgFileIOService.getFilteredFiles(inputImageFolderPath.getText());
         googleService.RESULT_FILEPATH = inputResultFolderPath.getText();
-
+//        dsa
         imgFileIOService.copyFiles(imageAndPdfFiles);
         log.info("이미지 파일 복사 개수 : {} 개", imageAndPdfFiles.length);
 
