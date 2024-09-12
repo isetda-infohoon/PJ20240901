@@ -181,13 +181,6 @@ public class JsonService {
         return Math.abs(midY_a - midY_b) <= 3; // 중간 값의 차이가 3 이내면 같은 라인으로 간주
     }
 
-
-
-
-
-
-    public List<String> excelData3 = new ArrayList<>();
-
     public void drawMarking(File imageFile, List<Map<String, Object>> jsonCollection, Map<String, List<List<String[]>>> excelData ,String documentType ) throws IOException {
         log.info("이미지에 마킹을 추가하는 중: {}", imageFile.getAbsolutePath());
         ExcelService excelService =new ExcelService();

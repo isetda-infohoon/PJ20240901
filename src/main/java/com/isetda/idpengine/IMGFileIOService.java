@@ -21,18 +21,18 @@ public class IMGFileIOService {
     public ConfigLoader configLoader;
 //    String resultFilePath;
 
-    public File[] getFilteredFiles(String folderPath) {
-        log.info("{} 경로의 폴더에서 파일을 필터링 시작", folderPath);
-        File folder = new File(folderPath);
+    public File[] getFilteredFiles() {
+        log.info("{} 경로의 폴더에서 파일을 필터링 시작", configLoader.imageFolderPath);
+        File folder = new File(configLoader.imageFolderPath);
         List<File> filteredFiles = new ArrayList<>();
 
         // 파일 및 폴더를 재귀적으로 탐색
         findFilesRecursively(folder, filteredFiles);
 
         if (filteredFiles.isEmpty()) {
-            log.info("{} 폴더에서 파일이 없습니다", folderPath);
+            log.info("{} 폴더에서 파일이 없습니다", configLoader.imageFolderPath);
         } else {
-            log.info("{} 폴더에서 {}개의 파일을 가져왔습니다", folderPath, filteredFiles.size());
+            log.info("{} 폴더에서 {}개의 파일을 가져왔습니다", configLoader.imageFolderPath, filteredFiles.size());
         }
         // 리스트를 배열로 변환하여 반환
         return filteredFiles.toArray(new File[0]);
@@ -70,6 +70,7 @@ public class IMGFileIOService {
     // PDF에서 이미지를 추출하는 메서드 (수정됨: 추출된 이미지를 반환)
     private List<File> extractImagesFromPDF(String pdfPath) throws IOException {
         List<File> extractedImages = new ArrayList<>();
+        log.info("www : {}",pdfPath);
 
         try (PDDocument document = PDDocument.load(new File(pdfPath))) {
             PDFRenderer pdfRenderer = new PDFRenderer(document);
@@ -92,13 +93,13 @@ public class IMGFileIOService {
     }
 
     // 파일 삭제 메서드
-    public void deleteFilesInFolder(String folderPath) {
-        log.info("폴더의 모든 파일 삭제 시작: {}", folderPath);
-        File folder = new File(folderPath);
+    public void deleteFilesInFolder() {
+        log.info("폴더의 모든 파일 삭제 시작: {}", configLoader.imageFolderPath);
+        File folder = new File(configLoader.imageFolderPath);
 
         // 폴더가 존재하지 않거나 디렉토리가 아닌 경우
         if (!folder.exists() || !folder.isDirectory()) {
-            log.error("폴더가 존재하지 않거나 디렉토리가 아닙니다: {}", folderPath);
+            log.error("폴더가 존재하지 않거나 디렉토리가 아닙니다: {}", configLoader.imageFolderPath);
             return;
         }
 
@@ -119,7 +120,7 @@ public class IMGFileIOService {
                 }
             }
         } else {
-            log.error("폴더에서 파일을 가져오는 중 오류가 발생했습니다: {}", folderPath);
+            log.error("폴더에서 파일을 가져오는 중 오류가 발생했습니다: {}", configLoader.imageFolderPath);
         }
     }
 
