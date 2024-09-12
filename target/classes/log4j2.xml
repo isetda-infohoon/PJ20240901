@@ -20,7 +20,7 @@
 
     <Loggers>
         <!-- 최상위 로그 설정 -->
-        <Root level="debug">
+        <Root level="info">
             <AppenderRef ref="CONSOLE"/>
             <AppenderRef ref="FILE"/> <!-- 파일로 로그 저장 -->
         </Root>

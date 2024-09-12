@@ -18,10 +18,8 @@ import java.util.List;
 
 public class IMGFileIOService {
     private static final Logger log = LogManager.getLogger(IMGFileIOService.class);
-
-    private ConfigLoader configLoader = ConfigLoader.getInstance();
-    String imageFolderPath = configLoader.getImageFolderPath();
-    String resultFilePath = configLoader.getResultFilePath();
+    public ConfigLoader configLoader;
+//    String resultFilePath;
 
     public File[] getFilteredFiles(String folderPath) {
         log.info("{} 경로의 폴더에서 파일을 필터링 시작", folderPath);
@@ -78,10 +76,11 @@ public class IMGFileIOService {
 
             for (int page = 0; page < document.getNumberOfPages(); ++page) {
                 BufferedImage bim = pdfRenderer.renderImageWithDPI(page, 600, ImageType.RGB);
-                String fileName = pdfPath.replace(".pdf", "") + "-" + page + ".jpg";
-                File imageFile = new File(resultFilePath, new File(fileName).getName());
+                String fileName = pdfPath.replace(".pdf", "") + "PDF-" + page + ".jpg";
+                File imageFile = new File(configLoader.resultFilePath, new File(fileName).getName());
                 ImageIO.write(bim, "jpg", imageFile);
                 extractedImages.add(imageFile);
+
                 log.info("PDF에서 이미지 추출 완료: {}", imageFile.getAbsolutePath());
             }
         } catch (IOException e) {
@@ -126,9 +125,16 @@ public class IMGFileIOService {
 
     // 파일 복사
     public void copyFiles(File[] files) throws IOException {
+
         for (File file : files) {
             Path sourcePath = file.toPath();
-            Path destinationPath = Paths.get(resultFilePath, file.getName());
+            Path destinationPath = Paths.get(configLoader.resultFilePath, file.getName());
+
+            // "PDF-"가 파일 이름에 포함된 경우 복사하지 않음
+            if (file.getName().contains("PDF-")) {
+                log.info("PDF에서 추출된 이미지는 복사하지 않음: {}", file.getName());
+                continue;
+            }
 
             // 동일한 이름의 파일이 이미 존재하는지 확인
             if (Files.exists(destinationPath)) {

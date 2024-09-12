@@ -16,7 +16,7 @@ public class ExcelService {
 
     private ConfigLoader configLoader = ConfigLoader.getInstance();
     String excelFilePath = configLoader.getExcelFilePath();
-    boolean dbDataUsageFlag = configLoader.isDbDataUsageFlag();
+//    boolean dbDataUsageFlag = configLoader.isDbDataUsageFlag();
 
     public String resultFolderPath;
 
@@ -24,6 +24,8 @@ public class ExcelService {
     public List<List<String>> resultList; // 각 변수로
     public List<List<String>> resultWord;
     public String docType="";
+
+    public String fileName;
 
     public List<String> documentType = new ArrayList<>();
 
@@ -138,7 +140,7 @@ public class ExcelService {
             // 각 파일 JSON Object로 저장
             String jsonFilePath = curFile.getPath();
 
-            String fileName = curFile.getName().substring(0, curFile.getName().lastIndexOf("."));
+            fileName = curFile.getName().substring(0, curFile.getName().lastIndexOf("."));
             String saveFilePath = resultFolderPath + "\\" + fileName + ".xlsx";
 
             JsonService jsonService = new JsonService(jsonFilePath);
@@ -241,7 +243,6 @@ public class ExcelService {
             log.info("단어 매치 결과와 가중치 비교 결과 불일치");
         }
 
-        log.info("문서 분류 결과: 국가코드({}), 문서양식({}), 가중치({})", jsonLocale, targetSheetData.get(matchIndex).get(0)[0], maxWeight);
 
         List<String> countryType = new ArrayList<>();
         countryType.add("국가");
@@ -289,6 +290,7 @@ public class ExcelService {
             for (int j = 0; j < resultList.get(i).size(); j++) {
                 Cell cell = row.createCell(j);
                 cell.setCellValue(resultList.get(i).get(j));
+                log.info("안녕 11 :{}  : {}",cell);
             }
 
             if (i == resultList.size() - 1) {
@@ -318,6 +320,12 @@ public class ExcelService {
                 }
             }
         }
+        Row thirdRow = sheet.createRow(2); // Create the 3rd row (index 2)
+        Cell fileNameCell = thirdRow.createCell(0); // A열에 해당
+        fileNameCell.setCellValue("파일이름: ");
+        Cell fileNameCell2 = thirdRow.createCell(1);
+        fileNameCell2.setCellValue(fileName.replace("_OCR_result",""));// A열에 해당
+
 
         try (FileOutputStream fileOut = new FileOutputStream(saveFilePath)) {
             workbook.write(fileOut);
