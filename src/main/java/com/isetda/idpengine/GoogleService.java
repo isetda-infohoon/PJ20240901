@@ -25,49 +25,24 @@ public class GoogleService {
     // 로그
     private static final Logger log = LogManager.getLogger(GoogleService.class);
     //환경변수 인스턴스 생성
-    private ConfigLoader configLoader = ConfigLoader.getInstance();
+    public ConfigLoader configLoader;
 
     private IMGFileIOService service = new IMGFileIOService();
 
     //json파일에 대한 이름을 가져올려고(어떻게 될 지 모르니까 일단 변수로 저장해 놓자 쓸 곳이 있겠찌??)
     private List<String> jsonFilePaths = new ArrayList<>();
 
-    // 환경 변수
-    public String PROJECT_ID;
-    public List<String> BUCKET_NAMES;
-    public String KEY_FILE_PATH;
-    public boolean DELETED_CHECK;
-    public String OCR_URL;
-    public String CLOUD_PLATFORM;
-    public String EXCEL_FILEPATH;
-    public String IMAGE_FOLDPATH;
-    public String RESULT_FILEPATH;
-
-
-    // 환경 변수 불러오기
-    // 생성자
-    public GoogleService() {
-        PROJECT_ID = configLoader.getProjectId();
-        BUCKET_NAMES = configLoader.getBucketNames();
-        KEY_FILE_PATH = configLoader.getKeyFilePath();
-        DELETED_CHECK = configLoader.isDeletedCheck();
-        OCR_URL = configLoader.getOcrUrl();
-        CLOUD_PLATFORM = configLoader.getCloudPlatform();
-        EXCEL_FILEPATH = configLoader.getExcelFilePath();
-        IMAGE_FOLDPATH = configLoader.getImageFolderPath();
-        RESULT_FILEPATH = configLoader.getResultFilePath();
-    }
 
     //구글 버킷에 이미지 올리기 및 ocr 진행
     public void uploadAndOCR(File[] filse) throws IOException {
         log.info("구글 버킷 업로드 및 OCR 처리 시작");
         File[] files = filse;
         Storage storage = getStorageService();
-        File localDir = new File(RESULT_FILEPATH);
+        File localDir = new File(configLoader.resultFilePath);
 
         if (!localDir.exists()) {
             localDir.mkdirs();
-            log.info("결과 디렉토리 생성: {}", RESULT_FILEPATH);
+            log.info("결과 디렉토리 생성: {}", configLoader.resultFilePath);
         }
         String accessToken = getAccessToken();
         OkHttpClient client = new OkHttpClient();
@@ -77,7 +52,7 @@ public class GoogleService {
 
         for (File file : files) {
             String objectName = file.getName();
-            BlobId blobId = BlobId.of(BUCKET_NAMES.get(0), objectName);
+            BlobId blobId = BlobId.of(configLoader.bucketNames.get(0), objectName);
 
             // 파일 처리 시작 로그
             log.info("{}번째 파일 처리 시작: {}", fileCounter, objectName);
@@ -85,6 +60,7 @@ public class GoogleService {
             // 버킷에 해당 파일이 있는 지 확인
             if (storage.get(blobId) != null) {
                 log.warn("이미지 파일이 이미 버킷에 존재: {}", objectName);
+                deleteFileInBucket(storage,blobId);
                 fileCounter++;
                 continue;  // 스킵
             }
@@ -106,7 +82,7 @@ public class GoogleService {
             String jsonRequest = new JSONObject().put("requests", new JSONArray().put(new JSONObject().put("image", new JSONObject().put("content", imgBase64)).put("features", new JSONArray().put(new JSONObject().put("type", "TEXT_DETECTION"))))).toString();
 
             RequestBody body = RequestBody.create(jsonRequest, MediaType.parse("application/json; charset=utf-8"));
-            Request request = new Request.Builder().url(OCR_URL).addHeader("Authorization", "Bearer " + accessToken).post(body).build();
+            Request request = new Request.Builder().url(configLoader.ocrUrl).addHeader("Authorization", "Bearer " + accessToken).post(body).build();
 
             try (Response response = client.newCall(request).execute()) {
                 if (!response.isSuccessful()) {
@@ -117,7 +93,7 @@ public class GoogleService {
 
                 String responseBody = response.body().string();
                 String outputFileName = file.getName().substring(0, file.getName().lastIndexOf("."));
-                String outputPath = RESULT_FILEPATH + "\\" + outputFileName + "_OCR_result.json";
+                String outputPath = configLoader.resultFilePath + "\\" + outputFileName + "_OCR_result.json";
                 try (FileWriter writer = new FileWriter(outputPath)) {
                     writer.write(responseBody);
                     jsonFilePaths.add(outputPath); // JSON 파일 경로 리스트에 추가
@@ -134,16 +110,16 @@ public class GoogleService {
 
     //구글 인증 토근 설정
     public String getAccessToken() throws IOException {
-        GoogleCredentials credentials = ServiceAccountCredentials.fromStream(new FileInputStream(KEY_FILE_PATH)).createScoped(CLOUD_PLATFORM);
+        GoogleCredentials credentials = ServiceAccountCredentials.fromStream(new FileInputStream(configLoader.keyFilePath)).createScoped(configLoader.cloudPlatform);
         //https://www.googleapis.com/auth/cloud-platform 이거 향후에 바뀔 수 있는 지 확인하기(환경파일로 빼기)
         credentials.refreshIfExpired();
         return credentials.getAccessToken().getTokenValue();
     }
     //구글 저장소 가져오기
     public Storage getStorageService() throws IOException {
-        System.out.println("111 :" + BUCKET_NAMES);
-        GoogleCredentials credentials = ServiceAccountCredentials.fromStream(new FileInputStream(KEY_FILE_PATH)).createScoped(CLOUD_PLATFORM);
-        return StorageOptions.newBuilder().setProjectId(PROJECT_ID).setCredentials(credentials).build().getService();
+        System.out.println("111 :" + configLoader.bucketNames);
+        GoogleCredentials credentials = ServiceAccountCredentials.fromStream(new FileInputStream(configLoader.keyFilePath)).createScoped(configLoader.cloudPlatform);
+        return StorageOptions.newBuilder().setProjectId(configLoader.projectId).setCredentials(credentials).build().getService();
     }
 
     //구글 버킷 파일 삭제

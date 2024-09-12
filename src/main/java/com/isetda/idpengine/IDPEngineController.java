@@ -18,7 +18,7 @@ public class IDPEngineController {
 
     private ExcelService excelService = new ExcelService();
 
-    String resultFilePath = configLoader.getResultFilePath();
+    String resultFilePath = configLoader.resultFilePath;
 
     File resultFolder = new File(resultFilePath);
 
@@ -30,20 +30,34 @@ public class IDPEngineController {
     public void onButton1Click(ActionEvent event) throws IOException {
         IMGFileIOService imgFileIOService = new IMGFileIOService();
         GoogleService googleService = new GoogleService();
-        processing();
+
+        if (inputImageFolderPath.getText().isEmpty()){
+            log.info("소스 폴더 경로(기본) : {}",configLoader.imageFolderPath);
+        }else {
+            configLoader.imageFolderPath = inputImageFolderPath.getText();
+            log.info("소스 폴더 경로(입력값) : {}",configLoader.imageFolderPath);
+        }
+        if (inputResultFolderPath.getText().isEmpty()){
+            log.info("결과 폴더 경로(기본) : {}",configLoader.resultFilePath);
+        }else {
+            configLoader.resultFilePath = inputResultFolderPath.getText();
+            log.info("결과 폴더 경로(입력값) : {}",configLoader.resultFilePath);
+        }
+
         imgFileIOService.configLoader = configLoader;
-//        if (!resultFolder.exists()) {
-//            boolean created = resultFolder.mkdirs(); // 여러 폴더도 생성 가능
-//            if (created) {
-//                log.info("폴더가 생성되었습니다: {}", resultFilePath);
-//            } else {
-//                log.error("폴더를 생성하는 데 실패했습니다: {}", resultFilePath);
-//            }
-//        }
-//        processing();
-        imageAndPdfFiles = imgFileIOService.getFilteredFiles(inputImageFolderPath.getText());
-        googleService.RESULT_FILEPATH = inputResultFolderPath.getText();
-//        dsa
+        googleService.configLoader =configLoader;
+
+        File resultFolder = new File(configLoader.resultFilePath);
+        if (!resultFolder.exists()) {
+            boolean created = resultFolder.mkdirs(); // 여러 폴더도 생성 가능
+            if (created) {
+                log.info("폴더가 생성되었습니다: {}", resultFilePath);
+            } else {
+                log.info("결과 폴더가 존재합니다 : {}",resultFilePath);
+            }
+        }
+        imageAndPdfFiles = imgFileIOService.getFilteredFiles();
+
         imgFileIOService.copyFiles(imageAndPdfFiles);
         log.info("이미지 파일 복사 개수 : {} 개", imageAndPdfFiles.length);
 
