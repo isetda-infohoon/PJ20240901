@@ -1,18 +1,15 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <Configuration status="WARN">
     <Appenders>
         <!-- 콘솔에 로그를 출력하는 Appender -->
         <Console name="CONSOLE" target="SYSTEM_OUT">
-            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss} [%-5level] %logger{36} - %msg%n"/>
+            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%-5level] %c{1}.%M(%L) - %msg%n" charset="UTF-8"/>
         </Console>
 
         <!-- 파일에 로그를 저장하는 Appender -->
         <RollingFile name="FILE"
-                     fileName="C:/Users/isetda/OneDrive/바탕 화면/LOG/${date:yyyy}/${date:MM}/IDPEngine.log"
-                     filePattern="C:/Users/isetda/OneDrive/바탕 화면/LOG/${date:yyyy}/${date:MM}/IDPEngine_%d{yyyy-MM-dd}.%i.log.gz">
-            <PatternLayout>
-                <Pattern>%d{yyyy-MM-dd HH:mm:ss} [%-5level] %logger{36} - %msg%n</Pattern>
-            </PatternLayout>
+                     fileName="LOG/${date:yyyy}/${date:MM}/IDPEngine.log"
+                     filePattern="LOG/${date:yyyy}/${date:MM}/IDPEngine_%d{yyyy-MM-dd}.%i.log.gz">
+            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%-5level] %c{1}.%M(%L) - %msg%n" charset="UTF-8"/>
             <Policies>
                 <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
                 <SizeBasedTriggeringPolicy size="10MB"/>
@@ -23,7 +20,7 @@
 
     <Loggers>
         <!-- 최상위 로그 설정 -->
-        <Root level="debug">
+        <Root level="info">
             <AppenderRef ref="CONSOLE"/>
             <AppenderRef ref="FILE"/> <!-- 파일로 로그 저장 -->
         </Root>

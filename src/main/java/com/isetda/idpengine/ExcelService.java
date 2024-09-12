@@ -12,17 +12,22 @@ import java.util.*;
 
 
 public class ExcelService {
-    private static final Logger log = LogManager.getLogger(IDPEngineController.class);
+    private static final Logger log = LogManager.getLogger(ExcelService.class);
 
     private ConfigLoader configLoader = ConfigLoader.getInstance();
     String excelFilePath = configLoader.getExcelFilePath();
-    boolean dbDataUsageFlag = configLoader.isDbDataUsageFlag();
+//    boolean dbDataUsageFlag = configLoader.isDbDataUsageFlag();
 
     public String resultFolderPath;
 
     public File[] jsonFiles;
     public List<List<String>> resultList; // 각 변수로
     public List<List<String>> resultWord;
+    public String docType="";
+
+    public String fileName;
+
+    public List<String> documentType = new ArrayList<>();
 
     // 폴더에서 JSON 파일 가져오기
     public void getFilteredJsonFiles() {
@@ -114,135 +119,20 @@ public class ExcelService {
         return excelData;
     }
 
-    public Map<String, List<List<String[]>>> getDBData() {
-        Map<String, List<List<String[]>>> dbData = new HashMap<>();
-
-        DBService dbService = new DBService();
-        List<Word> wordList = dbService.getWordData();
-
-        String currentCountry = "";
-
-        for (Word wordData : wordList) {
-            String countryCode = wordData.getCountryCode();
-            String documentType = wordData.getDocumentType();
-            String word = wordData.getWord();
-            String wordWeight = String.valueOf(wordData.getWordWeight());
-
-            // countryCode에 해당하는 리스트 가져오기
-            List<List<String[]>> documentList = dbData.getOrDefault(countryCode, new ArrayList<>());
-
-            if (!currentCountry.equals(countryCode)) {
-                log.info("국가코드: {}", countryCode);
-                currentCountry = countryCode;
-            }
-
-            // documentType에 해당하는 리스트 찾기
-            List<String[]> currentDocument = null;
-            for (List<String[]> doc : documentList) {
-                if (doc.get(0)[0].equals(documentType)) {
-                    currentDocument = doc;
-                    break;
-                }
-            }
-
-            // documentType에 해당하는 리스트가 없으면 새로 생성
-            if (currentDocument == null) {
-                currentDocument = new ArrayList<>();
-                currentDocument.add(new String[]{documentType, ""});
-                documentList.add(currentDocument);
-
-                log.info("H: {} ", documentType);
-            }
-
-            // 단어와 가중치를 리스트에 추가
-            currentDocument.add(new String[]{word, wordWeight});
-            log.info("W: {}, {}", word, wordWeight);
-
-            // 결과 Map에 업데이트
-            dbData.put(countryCode, documentList);
-        }
-
-        for (Map.Entry<String, List<List<String[]>>> entry : dbData.entrySet()) {
-            log.info("국가 코드: {}", entry.getKey());
-            for (List<String[]> column : entry.getValue()) {
-                log.info("DB 값: {}", column);
-            }
-        }
-
-        return dbData;
-    }
-
-    public Map<String, List<List<String[]>>> getJsonData() {
-        Map<String, List<List<String[]>>> jsonData = new HashMap<>();
-
-        String jsonFilePath = "C:\\Users\\suaah\\OneDrive\\바탕 화면\\식품안전관리 서류\\국가, 문서 양식별 추출 단어 리스트.json";
-
-        try (FileReader reader = new FileReader(new File(jsonFilePath))) {
-            // JSON 파일 읽기
-            StringBuilder sb = new StringBuilder();
-            int i;
-            while ((i = reader.read()) != -1) {
-                sb.append((char) i);
-            }
-
-            // JSON 파싱
-            JSONObject rootObject = new JSONObject(sb.toString());
-
-            System.out.println(rootObject);
-
-            for (String countryCode : rootObject.keySet()) {
-                JSONArray documents = rootObject.getJSONArray(countryCode);
-
-                Map<String, List<String[]>> tempMap = new HashMap<>();
-
-                for (int j = 0; j < documents.length(); j++) {
-                    JSONObject document = documents.getJSONObject(j);
-
-                    for (String documentType : document.keySet()) {
-                        if (!documentType.endsWith(" 가중치")) {
-                            String word = document.getString(documentType);
-                            double weight = document.getDouble(documentType + " 가중치");
-
-                            tempMap.putIfAbsent(documentType, new ArrayList<>());
-                            tempMap.get(documentType).add(new String[]{word, String.valueOf(weight)});
-                        }
-                    }
-                }
-
-                List<List<String[]>> documentList = new ArrayList<>();
-                for (Map.Entry<String, List<String[]>> entry : tempMap.entrySet()) {
-                    List<String[]> wordList = new ArrayList<>();
-                    wordList.add(new String[]{entry.getKey(), "empty"});
-                    wordList.addAll(entry.getValue());
-                    documentList.add(wordList);
-                }
-
-                jsonData.put(countryCode, documentList);
-            }
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        for (Map.Entry<String, List<List<String[]>>> entry : jsonData.entrySet()) {
-            log.info("국가 코드: {}", entry.getKey());
-            for (List<String[]> column : entry.getValue()) {
-                log.info("단어 값: {}", column);
-            }
-        }
-
-        return jsonData;
-    }
-
+//    public void getDatabase() {
+//        DBService databaseConnection = new DBService();
+//        Connection connection = databaseConnection.getConnection();
+//
+//        Map<String, List<List<String[]>>> database = new HashMap<>();
+//
+//
+//
+//    }
+    String folderPath = configLoader.getResultFilePath();
+    String jsonFolderPath = configLoader.getResultFilePath();
     // 폴더의 모든 파일(json)을 반복 (JSON Object로 저장 및 split, classifyDocuments 메소드로 분류 진행) (iterateFiles)
-    public void createFinalResultFile() {
-        Map<String, List<List<String[]>>> wordData;
-//        if (dbDataUsageFlag) {
-//            wordData = getDBData();
-//        } else {
-//            wordData = getExcelData();
-//        }
-        wordData = getJsonData();
+    public void createFinalResultFile() throws IOException {
+        Map<String, List<List<String[]>>> excelData = getExcelData();
 
         int cnt = 1;
         for (File curFile : jsonFiles) {
@@ -250,7 +140,7 @@ public class ExcelService {
             // 각 파일 JSON Object로 저장
             String jsonFilePath = curFile.getPath();
 
-            String fileName = curFile.getName().substring(0, curFile.getName().lastIndexOf("."));
+            fileName = curFile.getName().substring(0, curFile.getName().lastIndexOf("."));
             String saveFilePath = resultFolderPath + "\\" + fileName + ".xlsx";
 
             JsonService jsonService = new JsonService(jsonFilePath);
@@ -261,7 +151,12 @@ public class ExcelService {
                 allWords.append(item.get("description"));
             }
 
-            classifyDocuments(wordData, jsonService.jsonLocal, allWords.toString());
+            classifyDocuments(excelData, jsonService.jsonLocal, allWords.toString());
+            log.info("문서 타입 55 :{}",docType);
+            log.info("문서 타입 54 :{}",documentType);
+            log.info("문서 타입 56 :{}",resultList);
+
+            JsonService.processMarking(folderPath,jsonFolderPath,docType);
 
             try {
                 createExcel(saveFilePath);
@@ -348,7 +243,6 @@ public class ExcelService {
             log.info("단어 매치 결과와 가중치 비교 결과 불일치");
         }
 
-        log.info("문서 분류 결과: 국가코드({}), 문서양식({}), 가중치({})", jsonLocale, targetSheetData.get(matchIndex).get(0)[0], maxWeight);
 
         List<String> countryType = new ArrayList<>();
         countryType.add("국가");
@@ -357,8 +251,20 @@ public class ExcelService {
 
         List<String> documentType = new ArrayList<>();
         documentType.add("문서 양식");
-        documentType.add(targetSheetData.get(matchIndex).get(0)[0]);
+
+        if (matchIndex == -1 || weightIndex == -1) {
+            log.info("미분류 파일: {}", jsonDescription);
+            documentType.add("미분류");
+        } else {
+            log.info("문서 분류 결과: 국가코드({}), 문서양식({}), 가중치({})", jsonLocale, targetSheetData.get(matchIndex).get(0)[0], maxWeight);
+            documentType.add(targetSheetData.get(matchIndex).get(0)[0]);
+        }
         resultList.add(documentType);
+        log.info("엑셀 데이터 결과 : {}",resultList);
+        docType = resultList.get(1).get(1);
+
+
+
     }
     //</editor-fold>
 
@@ -384,6 +290,7 @@ public class ExcelService {
             for (int j = 0; j < resultList.get(i).size(); j++) {
                 Cell cell = row.createCell(j);
                 cell.setCellValue(resultList.get(i).get(j));
+                log.info("안녕 11 :{}  : {}",cell);
             }
 
             if (i == resultList.size() - 1) {
@@ -413,6 +320,12 @@ public class ExcelService {
                 }
             }
         }
+        Row thirdRow = sheet.createRow(2); // Create the 3rd row (index 2)
+        Cell fileNameCell = thirdRow.createCell(0); // A열에 해당
+        fileNameCell.setCellValue("파일이름: ");
+        Cell fileNameCell2 = thirdRow.createCell(1);
+        fileNameCell2.setCellValue(fileName.replace("_OCR_result",""));// A열에 해당
+
 
         try (FileOutputStream fileOut = new FileOutputStream(saveFilePath)) {
             workbook.write(fileOut);
@@ -420,9 +333,6 @@ public class ExcelService {
         }
         workbook.close();
     }
-
-
-
 
 }
 

@@ -59,35 +59,41 @@ public class GoogleService {
     }
 
     //구글 버킷에 이미지 올리기 및 ocr 진행
-    public void uploadAndOCR() throws IOException {
-        log.info("업로드 및 OCR 처리 시작");
-        File[] files = service.getFilteredFiles(IMAGE_FOLDPATH);
+    public void uploadAndOCR(File[] filse) throws IOException {
+        log.info("구글 버킷 업로드 및 OCR 처리 시작");
+        File[] files = filse;
         Storage storage = getStorageService();
         File localDir = new File(RESULT_FILEPATH);
 
         if (!localDir.exists()) {
             localDir.mkdirs();
-            log.info("결과 디렉토리 생성됨: {}", RESULT_FILEPATH);
+            log.info("결과 디렉토리 생성: {}", RESULT_FILEPATH);
         }
         String accessToken = getAccessToken();
         OkHttpClient client = new OkHttpClient();
+
+        // 파일 처리 카운터 변수
+        int fileCounter = 1;
 
         for (File file : files) {
             String objectName = file.getName();
             BlobId blobId = BlobId.of(BUCKET_NAMES.get(0), objectName);
 
+            // 파일 처리 시작 로그
+            log.info("{}번째 파일 처리 시작: {}", fileCounter, objectName);
+
             // 버킷에 해당 파일이 있는 지 확인
             if (storage.get(blobId) != null) {
-                log.warn("파일이 이미 버킷에 존재합니다: {}", objectName);
+                log.warn("이미지 파일이 이미 버킷에 존재: {}", objectName);
+                fileCounter++;
                 continue;  // 스킵
             }
             BlobInfo blobInfo = BlobInfo.newBuilder(blobId).build();
 
             // 버킷 업로드
             try { // 이미지 버킷에 업로드
-                log.info("파일을 버킷에 업로드 중: {}", objectName);
                 storage.create(blobInfo, Files.readAllBytes(file.toPath()));
-                log.info("파일 업로드 성공: {}", file.getName());
+                log.info("{} 파일 업로드 성공", file.getName());
             } catch (IOException e) {
                 log.error("파일 업로드 중 오류 발생: {}", file.getName(), e);
                 throw e;
@@ -102,10 +108,10 @@ public class GoogleService {
             RequestBody body = RequestBody.create(jsonRequest, MediaType.parse("application/json; charset=utf-8"));
             Request request = new Request.Builder().url(OCR_URL).addHeader("Authorization", "Bearer " + accessToken).post(body).build();
 
-            log.info("파일에 대한 OCR 요청 전송 중: {}", file.getName());
             try (Response response = client.newCall(request).execute()) {
                 if (!response.isSuccessful()) {
                     log.error("OCR 요청 실패: {}", response.message());
+                    fileCounter++; // 카운터 증가
                     continue;
                 }
 
@@ -114,11 +120,15 @@ public class GoogleService {
                 String outputPath = RESULT_FILEPATH + "\\" + outputFileName + "_OCR_result.json";
                 try (FileWriter writer = new FileWriter(outputPath)) {
                     writer.write(responseBody);
-                    log.info("OCR 결과 경로 :{}", outputPath);
                     jsonFilePaths.add(outputPath); // JSON 파일 경로 리스트에 추가
                 }
+                log.info("OCR 요청 성공");
                 deleteFileInBucket(storage, blobId);
             }
+            // 파일 처리 완료 로그
+            log.info("{}번째 파일 처리 완료: {}", fileCounter, objectName);
+            // 카운터 증가
+            fileCounter++;
         }
     }
 
@@ -140,9 +150,9 @@ public class GoogleService {
     public void deleteFileInBucket(Storage storage, BlobId blobId) {
         boolean deleted = storage.delete(blobId);
         if (deleted) {
-            log.info("{}버킷에서 삭제된 파일 :{} =", blobId.getBucket(), blobId.getName());
+            log.info("{}버킷에서 {} 파일 삭제완료", blobId.getBucket(), blobId.getName());
         } else {
-            log.error("{}버킷에서 삭제되지 않은 파일 :{} =", blobId.getBucket(), blobId.getName());
+            log.error("{}버킷에서 삭제되지 않은 파일 :{} ", blobId.getBucket(), blobId.getName());
         }
     }
 
