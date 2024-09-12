@@ -282,5 +282,8 @@ public class JsonService {
         log.info("이미지 및 JSON 파일 처리 완료");
     }
 
+    public void getJsonDictionary() {
+
+    }
 
 }
