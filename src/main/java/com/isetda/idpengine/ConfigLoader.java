@@ -22,6 +22,10 @@ public class ConfigLoader {
     public String excelFilePath;
     public String imageFolderPath;
     public String resultFilePath;
+    private String jdbcUrl;
+    private String username;
+    private String password;
+    private boolean dbDataUsageFlag;
 
     private String configFilePath = "Config.xml";
     //jar파일 만들 때 상대경로 config 파일 빼놓기 위한 경로
@@ -57,6 +61,10 @@ public class ConfigLoader {
             excelFilePath = root.getElementsByTagName("excelFilePath").item(0).getTextContent().trim();
             imageFolderPath = root.getElementsByTagName("imageFolderPath").item(0).getTextContent().trim();
             resultFilePath = root.getElementsByTagName("resultFilePath").item(0).getTextContent().trim();
+            jdbcUrl = root.getElementsByTagName("jdbcUrl").item(0).getTextContent().trim();
+            username = root.getElementsByTagName("username").item(0).getTextContent().trim();
+            password = root.getElementsByTagName("password").item(0).getTextContent().trim();
+            dbDataUsageFlag = Boolean.parseBoolean(root.getElementsByTagName("dbDataUsageFlag").item(0).getTextContent().trim());
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException("Failed to load configuration from " + configFilePath, e);

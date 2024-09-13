@@ -253,7 +253,6 @@ public class JsonService {
 
 
     public static void processMarking(Map<String, List<List<String[]>>> excelData, String folderPath, String jsonFolderPath, String documentType) throws IOException {
-
         log.info("이미지와 JSON 파일 처리 시작");
         File folder = new File(folderPath);
         if (!folder.exists() || !folder.isDirectory()) {
@@ -282,8 +281,66 @@ public class JsonService {
         log.info("이미지 및 JSON 파일 처리 완료");
     }
 
-    public void getJsonDictionary() {
+    public static void getJsonDictionary() {
+        String filePath = "C:\\Users\\suaah\\OneDrive\\바탕 화면\\식품안전관리 서류\\추출 단어 리스트.json";
+        Map<String, List<List<String[]>>> jsonDictionary = new HashMap<>();
 
+        try {
+            String content = FileUtils.readFileToString(new File(filePath), "UTF-8");
+            JSONObject jsonObject = new JSONObject(content);
+
+            JSONArray countryList = jsonObject.getJSONArray("국가 리스트");
+
+            for (int i = 0; i < countryList.length(); i++) {
+                JSONObject country = countryList.getJSONObject(i);
+                String countryName = country.getString("국가");
+
+                JSONArray forms = country.getJSONArray("양식");
+                List<List<String[]>> formList = new ArrayList<>();
+
+                for (int j = 0; j < forms.length(); j++) {
+                    JSONObject form = forms.getJSONObject(j);
+                    String formName = form.getString("양식명");
+                    String language = form.getString("언어");
+
+                    List<String[]> ruleList = new ArrayList<>();
+                    ruleList.add(new String[]{formName, language});
+
+                    JSONArray rules = form.getJSONArray("RULE");
+                    for (int k = 0; k < rules.length(); k++) {
+                        JSONObject rule = rules.getJSONObject(k);
+                        String word = rule.getString("단어");
+                        String weight = String.valueOf(rule.getDouble("가중치"));
+                        ruleList.add(new String[]{word, weight});
+                    }
+
+                    formList.add(ruleList);
+                }
+
+                jsonDictionary.put(countryName, formList);
+            }
+
+            // 결과 출력
+//            for (Map.Entry<String, List<List<String[]>>> entry : jsonDictionary.entrySet()) {
+//                String country = entry.getKey();
+//                List<List<String[]>> forms = entry.getValue();
+//                System.out.println("국가: " + country);
+//                for (List<String[]> form : forms) {
+//                    for (String[] details : form) {
+//                        System.out.print("[");
+//                        for (String detail : details) {
+//                            System.out.print(detail + ", ");
+//                        }
+//                        System.out.print("] ");
+//                    }
+//                    System.out.println();
+//                }
+//                System.out.println();
+//            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
 }
