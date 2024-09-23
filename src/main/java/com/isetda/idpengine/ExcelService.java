@@ -1,5 +1,8 @@
 package com.isetda.idpengine;
 
+
+
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.poi.ss.usermodel.*;
@@ -145,6 +148,7 @@ public class ExcelService {
             StringBuilder allWords = new StringBuilder();
 
             for (Map<String, Object> item : jsonService.jsonCollection) {
+                //TODO : Matching1 - 단어 리스트 합치지 않고 jsonCollection 리스트 값으로 매치
                 allWords.append(item.get("description"));
             }
 

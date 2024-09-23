@@ -3,7 +3,7 @@
     <Appenders>
         <!-- 콘솔에 로그를 출력하는 Appender -->
         <Console name="CONSOLE" target="SYSTEM_OUT">
-            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss,SSS} [%-5level] %c{1}.%M(%L) - %msg%n"/>
+            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss,SSS} [%-5level] %C{1}.%M(%L) - %msg%n"/>
         </Console>
 
         <!-- 파일에 로그를 저장하는 Appender -->
