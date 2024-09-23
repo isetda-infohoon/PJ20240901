@@ -21,10 +21,11 @@ public class JsonService {
     public String jsonLocal = "";
     public JSONObject jsonObject;
     public List<Map<String, Object>> jsonCollection;
+    public List<Map<String, Object>> jsonCollection2;
 
     private static final Logger log = LogManager.getLogger(JsonService.class);
 
-    // 생성자에서 JSON 데이터 로딩 및 처리
+    // 생성자에서 JSON 데이터 로딩 및 처리F
     public JsonService(String jsonFilePath) {
         try {
             this.jsonObject = new JSONObject(FileUtils.readFileToString(new File(jsonFilePath), "UTF-8"));
@@ -74,11 +75,22 @@ public class JsonService {
 
             // 중간 값을 기준으로 정렬
             jsonCollection.sort((a, b) -> {
-                int midY_a = (int) a.get("midY");
-                int midY_b = (int) b.get("midY");
+//                log.info("확인 절차 1 : {}",a);
+//                log.info("확인 절차 2 : {}",b);
+
+//                int midY_a = (int) a.get("midY");
+//                int midY_b = (int) b.get("midY");
+                int midY_a = ((int) a.get("minY") + (int) a.get("maxY")) / 2;
+                int midY_b = ((int) b.get("minY") + (int) b.get("maxY")) / 2;
+
+                int minY_b = (int) b.get("minY");
+                int maxY_b = (int) b.get("maxY");
+
+                int minY_a = (int) a.get("minY");
+                int maxY_a = (int) a.get("maxY");
 
                 // 오차 범위를 고려한 midY 정렬
-                if (Math.abs(midY_a - midY_b) <= 3) {
+                if ((midY_a>=minY_b && midY_a<=maxY_b) || (midY_b>=minY_a && midY_b<=maxY_a)) {
                     // midY가 비슷하면 minX로 정렬
                     return Integer.compare((int) a.get("minX"), (int) b.get("minX"));
                 } else {
@@ -100,7 +112,7 @@ public class JsonService {
                         .map(v -> String.format("(%d, %d)", v.getInt("x"), v.getInt("y")))
                         .collect(Collectors.joining(", "));
 
-                log.info(String.format("L: %-45s | Min X: %5d | Min Y: %5d | Max X: %5d | Max Y: %5d | W: %-20s ", verticesString, minX, minY, maxX, maxY, description));
+                log.info(String.format("L:%-45s|MinX:%5d|MinY:%5d|MaxX:%5d|MaxY:%5d|W:%-20s", verticesString, minX, minY, maxX, maxY, description));
             }
             log.info("단어 위치 추출 완료");
         } catch (Exception e) {
@@ -112,33 +124,34 @@ public class JsonService {
 
     private List<Map<String, Object>> findMatchingWords(List<Map<String, Object>> words, List<String> targetWords) {
         List<Map<String, Object>> results = new ArrayList<>();
+        jsonCollection2 = new ArrayList<>();
         int a = 0;
 
+        List<Map<String, Object>> checkText = null;
         for (int i = 0; i < words.size(); i++) {
-            a=0;
+            a = 0;
             StringBuilder currentText = new StringBuilder();
-            int startMaxX =(int) words.get(i).get("maxX");
-            int startMaxY =(int) words.get(i).get("maxY");
+            int startMaxX = (int) words.get(i).get("maxX");
+            int startMaxY = (int) words.get(i).get("maxY");
             int startX = (int) words.get(i).get("minX");
             int startY = (int) words.get(i).get("minY");
             int maxX = startX;
             int maxY = startY;
 
             // 단어 자체도 추가
-            List<Map<String, Object>> checkText = new ArrayList<>();
+            checkText = new ArrayList<>();
             Map<String, Object> singleWord = words.get(i);
             checkText.add(singleWord);
             currentText.append(singleWord.get("description"));
-//            log.info("안:{}",currentText);
 
             // 단일 단어 자체를 결과에 추가
             addToResults(results, checkText, currentText.toString().replace(" ", ""), startX, startY, startMaxX, startMaxY, targetWords);
-
+            addToCollection2(checkText, currentText.toString(), startX, startY, startMaxX, startMaxY);
             // 연속된 단어 조합 생성
             for (int j = i + 1; j < words.size(); j++) {
                 Map<String, Object> nextWord = words.get(j);
-                if (isOnSameLineByMidY(checkText.get(checkText.size() - 1), nextWord)) {
-                    log.info("연결 단어 : {}",currentText);
+                if (isOnSameLineByMidY2(checkText.get(checkText.size() - 1), nextWord)) {
+                    log.info("연결 단어:{}", currentText);
                     currentText.append(nextWord.get("description"));
                     a++;
                     checkText.add(nextWord);
@@ -147,13 +160,15 @@ public class JsonService {
 
                     // 현재 조합이 targetWords에 포함되는지 확인
                     addToResults(results, checkText, currentText.toString().replace(" ", ""), startX, startY, maxX, maxY, targetWords);
+                    addToCollection2(checkText, currentText.toString(), startX, startY, startMaxX, startMaxY);
                 } else {
-                    log.info("연결된 단어 전체 경우의 수: {}",a);
+                    log.info("연결된 단어 전체 경우의 수: {}", a);
                     break; // 동일한 라인이 아니면 중단
                 }
             }
         }
-        log.info("연결된 단어 전체 경우의 수: {}",a);
+        log.info("연결된 단어 전체 경우의 수: {}", a);
+//        log.info("안녕 @@@: {}", jsonCollection2);
 
         return results;
     }
@@ -173,6 +188,18 @@ public class JsonService {
             results.add(result);
         }
     }
+    private void addToCollection2(List<Map<String, Object>> checkText, String combinedText,
+                                  int startX, int startY, int maxX, int maxY) {
+        int minX = checkText.stream().mapToInt(w -> (int) w.get("minX")).min().orElse(startX);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("description", combinedText);
+        result.put("minX", minX);
+        result.put("minY", startY);
+        result.put("maxX", maxX);
+        result.put("maxY", maxY);
+        jsonCollection2.add(result);
+    }
 
     private boolean isOnSameLineByMidY(Map<String, Object> a, Map<String, Object> b) {
         int midY_a = ((int) a.get("minY") + (int) a.get("maxY")) / 2;
@@ -180,6 +207,14 @@ public class JsonService {
 
         return Math.abs(midY_a - midY_b) <= 3; // 중간 값의 차이가 3 이내면 같은 라인으로 간주
     }
+    private boolean isOnSameLineByMidY2(Map<String, Object> a, Map<String, Object> b) {
+        int midY_a = ((int) a.get("minY") + (int) a.get("maxY")) / 2;
+        int minY_b = (int) b.get("minY");
+        int maxY_b = (int) b.get("maxY");
+
+        return midY_a>=minY_b && midY_a<= maxY_b; // 중간 값의 차이가 3 이내면 같은 라인으로 간주
+    }
+
 
     public void drawMarking(File imageFile, List<Map<String, Object>> jsonCollection, Map<String, List<List<String[]>>> excelData ,String documentType ) throws IOException {
         log.info("이미지에 마킹을 추가하는 중: {}", imageFile.getAbsolutePath());
@@ -235,7 +270,7 @@ public class JsonService {
                 int maxX = (int) word.get("maxX");
                 int maxY = (int) word.get("maxY");
 
-                log.info("W: [{}] , L: Min X: {}, Min Y: {}, Max X: {}, Max Y: {}",
+                log.info("W:[{}],L:MinX:{},MinY:{},MaxX:{},MaxY:{}",
                         description, minX, minY, maxX, maxY);
 
                 g2d.drawRect(minX, minY, maxX - minX, maxY - minY);
@@ -252,24 +287,24 @@ public class JsonService {
     }
 
 
-    public static void processMarking(Map<String, List<List<String[]>>> excelData, String folderPath, String jsonFolderPath, String documentType) throws IOException {
+    public static void processMarking(Map<String, List<List<String[]>>> excelData, String resultfolderPath,String documentType) throws IOException {
 
         log.info("이미지와 JSON 파일 처리 시작");
-        File folder = new File(folderPath);
+        File folder = new File(resultfolderPath);
         if (!folder.exists() || !folder.isDirectory()) {
-            log.warn("유효하지 않은 폴더 경로입니다: {}", folderPath);
+            log.warn("유효하지 않은 폴더 경로입니다: {}", resultfolderPath);
             return;
         }
 
-        File[] imageFiles = folder.listFiles((dir, name) -> name.toLowerCase().endsWith(".jpg") || name.toLowerCase().endsWith(".png"));
+        File[] imageFiles = folder.listFiles((dir, name) -> name.toLowerCase().endsWith(".jpg") || name.toLowerCase().endsWith(".png") || name.toLowerCase().endsWith(".jpeg") && !name.toLowerCase().contains("_annotated.png"));
         if (imageFiles == null || imageFiles.length == 0) {
-            log.warn("폴더에 이미지 파일이 없습니다: {}", folderPath);
+            log.warn("폴더에 이미지 파일이 없습니다: {}", resultfolderPath);
             return;
         }
 
         for (File imageFile : imageFiles) {
             String baseName = imageFile.getName().substring(0, imageFile.getName().lastIndexOf('.'));
-            File jsonFile = new File(jsonFolderPath, baseName + "_OCR_result.json");
+            File jsonFile = new File(resultfolderPath, baseName + "_OCR_result.json");
 
             if (jsonFile.exists()) {
                 log.info("JSON 파일 경로: {}", jsonFile.getAbsolutePath());

@@ -125,24 +125,22 @@ public class IMGFileIOService {
     }
 
     // 파일 복사
-    public void copyFiles(File[] files) throws IOException {
+    public void copyFiles(File file) throws IOException {
 
-        for (File file : files) {
             Path sourcePath = file.toPath();
             Path destinationPath = Paths.get(configLoader.resultFilePath, file.getName());
 
             // "PDF-"가 파일 이름에 포함된 경우 복사하지 않음
             if (file.getName().contains("PDF-")) {
                 log.info("PDF에서 추출된 이미지는 복사하지 않음: {}", file.getName());
-                continue;
+                return;
             }
 
             // 동일한 이름의 파일이 이미 존재하는지 확인
             if (Files.exists(destinationPath)) {
                 log.info("이미지가 이미 존재: {}", destinationPath);
-                continue; // 파일 복사 건너뛰기
+                return;
             }
-
             try {
                 Files.copy(sourcePath, destinationPath);
                 // 파일 이름과 확장자만 로그에 출력
@@ -153,6 +151,5 @@ public class IMGFileIOService {
                 log.error("복사 중 오류 발생: 이름: {} -> 저장경로: {}, 오류: {}", fileName, destinationPath, e.getMessage(), e);
                 throw e; // 오류 발생 시 던지기
             }
-        }
     }
 }
