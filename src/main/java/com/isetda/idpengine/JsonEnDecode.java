@@ -11,8 +11,8 @@ import javax.crypto.spec.SecretKeySpec;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-public class JsonInDecode {
-    private static final Logger log = LogManager.getLogger(JsonInDecode.class);
+public class JsonEnDecode {
+    private static final Logger log = LogManager.getLogger(JsonEnDecode.class);
     public static String priKey = "iset2021!_1234567890a";
     public static String aesEncode(String plainText) throws Exception {
         String key = priKey;

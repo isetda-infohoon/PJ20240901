@@ -27,7 +27,7 @@ public class GoogleService {
     //환경변수 인스턴스 생성
     public ConfigLoader configLoader;
 
-    private IMGFileIOService service = new IMGFileIOService();
+    private IOService service = new IOService();
 
     //json파일에 대한 이름을 가져올려고(어떻게 될 지 모르니까 일단 변수로 저장해 놓자 쓸 곳이 있겠찌??)
     private List<String> jsonFilePaths = new ArrayList<>();

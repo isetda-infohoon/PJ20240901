@@ -133,6 +133,8 @@ public class ExcelService {
     // 폴더의 모든 파일(json)을 반복 (JSON Object로 저장 및 split, classifyDocuments 메소드로 분류 진행) (iterateFiles)
     public void createFinalResultFile() throws IOException {
         excelData = getExcelData();
+        IMGService imgService = new IMGService();
+
 
         int cnt = 1;
         for (File curFile : jsonFiles) {
@@ -144,7 +146,6 @@ public class ExcelService {
             String saveFilePath = configLoader.resultFilePath + "\\" + fileName + ".xlsx";
 
             JsonService jsonService = new JsonService(jsonFilePath);
-
             StringBuilder allWords = new StringBuilder();
 
             for (Map<String, Object> item : jsonService.jsonCollection) {
@@ -153,11 +154,8 @@ public class ExcelService {
             }
 
             classifyDocuments(excelData, jsonService.jsonLocal, allWords.toString());
-            log.info("문서 타입 55 :{}",docType);
-            log.info("문서 타입 54 :{}",documentType);
-            log.info("문서 타입 56 :{}",resultList);
 
-            JsonService.processMarking(excelData, configLoader.resultFilePath,configLoader.resultFilePath,docType);
+//            JsonService.processMarking(excelData,configLoader.resultFilePath,docType);
 
             try {
                 createExcel(saveFilePath);
@@ -169,7 +167,7 @@ public class ExcelService {
     }
 
     // 엑셀 데이터와 비교하여 국가 및 양식 분류
-    public void classifyDocuments(Map<String, List<List<String[]>>> excelData, String jsonLocale, String jsonDescription) {
+    public void classifyDocuments(Map<String, List<List<String[]>>> excelData, String jsonLocale, String jsonDescription) throws IOException {
         List<List<String[]>> targetSheetData = excelData.get(jsonLocale);
 
         if (targetSheetData == null) {
@@ -263,7 +261,9 @@ public class ExcelService {
         resultList.add(documentType);
         log.info("엑셀 데이터 결과 : {}",resultList);
         docType = resultList.get(1).get(1);
+        IMGService imgService =new IMGService();
 
+        imgService.processMarking(excelData, configLoader.resultFilePath, docType);
 
 
     }
