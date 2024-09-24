@@ -5,6 +5,11 @@ import org.w3c.dom.Element;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -108,4 +113,48 @@ public class ConfigLoader {
     public String getResultFilePath() {
         return resultFilePath;
     }
+    public String setImageFolderPath(String ImgPath) {
+        imageFolderPath = ImgPath;
+        return imageFolderPath;
+    }
+
+    public void saveConfig() {
+        try {
+            File configFile = new File(configFilePath);
+            DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+
+            // 공백 보존 설정
+            dbFactory.setIgnoringElementContentWhitespace(false);
+
+            DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+            Document doc = dBuilder.parse(configFile);
+
+            doc.getDocumentElement().normalize();
+
+            Element root = doc.getDocumentElement();
+
+            // 기존 태그 값 수정
+            root.getElementsByTagName("imageFolderPath").item(0).setTextContent(imageFolderPath);
+            root.getElementsByTagName("resultFilePath").item(0).setTextContent(resultFilePath);
+
+            // 변경된 내용을 XML 파일에 저장
+            TransformerFactory transformerFactory = TransformerFactory.newInstance();
+            Transformer transformer = transformerFactory.newTransformer();
+
+            // 불필요한 포맷 방지
+            transformer.setOutputProperty(OutputKeys.INDENT, "no"); // Indentation을 비활성화
+            transformer.setOutputProperty(OutputKeys.STANDALONE, "yes");
+            transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "no");
+
+            DOMSource source = new DOMSource(doc);
+            StreamResult result = new StreamResult(configFile);
+            transformer.transform(source, result);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Failed to save configuration to " + configFilePath, e);
+        }
+    }
+
+
 }

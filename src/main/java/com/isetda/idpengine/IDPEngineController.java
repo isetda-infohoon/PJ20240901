@@ -1,6 +1,7 @@
 package com.isetda.idpengine;
 
 import javafx.event.ActionEvent;
+import javafx.fxml.FXML;
 import javafx.scene.control.TextField;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -14,15 +15,18 @@ public class IDPEngineController {
     public TextField inputImageFolderPath;
     public TextField inputResultFolderPath;
 
-
-
     private ExcelService excelService = new ExcelService();
 
     String resultFilePath = configLoader.resultFilePath;
+    @FXML
+    public void initialize() {
+        lood();
+    }
 
-    File resultFolder = new File(resultFilePath);
-
-
+    public void lood(){
+        inputImageFolderPath.setText(configLoader.imageFolderPath);
+        inputResultFolderPath.setText(configLoader.resultFilePath);
+    }
 
     //분리된 이미지 저장 변수
     private File[] imageAndPdfFiles;
@@ -33,6 +37,7 @@ public class IDPEngineController {
 
         if (inputImageFolderPath.getText().isEmpty()){
             log.info("소스 폴더 경로(기본) : {}",configLoader.imageFolderPath);
+            inputImageFolderPath.setText(configLoader.imageFolderPath);
         }else {
             configLoader.imageFolderPath = inputImageFolderPath.getText();
             log.info("소스 폴더 경로(입력값) : {}",configLoader.imageFolderPath);
@@ -43,6 +48,8 @@ public class IDPEngineController {
             configLoader.resultFilePath = inputResultFolderPath.getText();
             log.info("결과 폴더 경로(입력값) : {}",configLoader.resultFilePath);
         }
+
+        configLoader.saveConfig(); // 변경된 경로를 XML 파일에 저장
 
         imgFileIOService.configLoader = configLoader;
         googleService.configLoader =configLoader;
@@ -57,11 +64,15 @@ public class IDPEngineController {
             }
         }
         imageAndPdfFiles = imgFileIOService.getFilteredFiles();
-
-        imgFileIOService.copyFiles(imageAndPdfFiles);
+        int a =1;
+        for(File file : imageAndPdfFiles){
+            log.info("{}번째 파일 처리 시작 : {}",a,file.getName());
+            imgFileIOService.copyFiles(file);
+            googleService.uploadAndOCR(file);
+            a++;
+        }
         log.info("이미지 파일 복사 개수 : {} 개", imageAndPdfFiles.length);
 
-        googleService.uploadAndOCR(imageAndPdfFiles);
 //        imgFileIOService.deleteFilesInFolder();
 //        JsonService.processMarking(folderPath, jsonFolderPath);
     }
@@ -100,5 +111,7 @@ public class IDPEngineController {
         // 전달 받은 폴더 경로의 json 파일 필터링
         excelService.getFilteredJsonFiles();
         excelService.createFinalResultFile();
+        JsonService.processMarking(excelService.getExcelData(), configLoader.resultFilePath, excelService.docType);
+
     }
 }
