@@ -3,9 +3,13 @@ package com.isetda.idpengine;
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.poi.ss.formula.functions.T;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import javax.imageio.ImageIO;
+import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
@@ -19,6 +23,7 @@ public class JsonService {
     public List<Map<String, Object>> jsonCollection;
     public static List<Map<String, Object>> jsonCollection3;
     public static List<Map<String, Object>> jsonCollection2;
+    public static ConfigLoader configLoader = ConfigLoader.getInstance();
 
     private static final Logger log = LogManager.getLogger(JsonService.class);
 
@@ -326,8 +331,8 @@ public class JsonService {
 //        log.info("이미지 및 JSON 파일 처리 완료");
 //    }
 
-    public static void getJsonDictionary() {
-        String filePath = "C:\\Users\\suaah\\OneDrive\\바탕 화면\\식품안전관리 서류\\추출 단어 리스트.json";
+    public static Map<String, List<List<String[]>>> getJsonDictionary() {
+        String filePath = configLoader.jsonFilePath;
         Map<String, List<List<String[]>>> jsonDictionary = new HashMap<>();
 
         try {
@@ -386,6 +391,8 @@ public class JsonService {
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+        return jsonDictionary;
     }
 
 }
