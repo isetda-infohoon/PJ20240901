@@ -21,6 +21,7 @@ public class JsonService {
     public String jsonLocal = "";
     public JSONObject jsonObject;
     public List<Map<String, Object>> jsonCollection;
+    public static ConfigLoader configLoader = ConfigLoader.getInstance();
 
     private static final Logger log = LogManager.getLogger(JsonService.class);
 
@@ -106,6 +107,8 @@ public class JsonService {
         } catch (Exception e) {
             log.error("단어 위치 추출 중 오류 발생: {}", e.getMessage(), e);
         }
+
+        System.out.println(jsonCollection);
     }
 
 
@@ -281,8 +284,8 @@ public class JsonService {
         log.info("이미지 및 JSON 파일 처리 완료");
     }
 
-    public static void getJsonDictionary() {
-        String filePath = "C:\\Users\\suaah\\OneDrive\\바탕 화면\\식품안전관리 서류\\추출 단어 리스트.json";
+    public static Map<String, List<List<String[]>>> getJsonDictionary() {
+        String filePath = configLoader.jsonFilePath;
         Map<String, List<List<String[]>>> jsonDictionary = new HashMap<>();
 
         try {
@@ -321,26 +324,28 @@ public class JsonService {
             }
 
             // 결과 출력
-//            for (Map.Entry<String, List<List<String[]>>> entry : jsonDictionary.entrySet()) {
-//                String country = entry.getKey();
-//                List<List<String[]>> forms = entry.getValue();
-//                System.out.println("국가: " + country);
-//                for (List<String[]> form : forms) {
-//                    for (String[] details : form) {
-//                        System.out.print("[");
-//                        for (String detail : details) {
-//                            System.out.print(detail + ", ");
-//                        }
-//                        System.out.print("] ");
-//                    }
-//                    System.out.println();
-//                }
-//                System.out.println();
-//            }
+            for (Map.Entry<String, List<List<String[]>>> entry : jsonDictionary.entrySet()) {
+                String country = entry.getKey();
+                List<List<String[]>> forms = entry.getValue();
+                System.out.println("국가: " + country);
+                for (List<String[]> form : forms) {
+                    for (String[] details : form) {
+                        System.out.print("[");
+                        for (String detail : details) {
+                            System.out.print(detail + ", ");
+                        }
+                        System.out.print("] ");
+                    }
+                    System.out.println();
+                }
+                System.out.println();
+            }
 
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+        return jsonDictionary;
     }
 
 }

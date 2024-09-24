@@ -29,6 +29,7 @@ public class ExcelService {
 
     public List<String> documentType = new ArrayList<>();
     public Map<String, List<List<String[]>>> excelData;
+    public Map<String, List<List<String[]>>> jsonData;
 
     // 폴더에서 JSON 파일 가져오기
     public void getFilteredJsonFiles() {
@@ -130,9 +131,31 @@ public class ExcelService {
 //
 //    }
 
+
+    public String getCountryFromSheetName(String sheetName) {
+        switch (sheetName) {
+            case "en":
+                return "미국";
+            case "zh":
+                return "중국";
+            case "ja":
+                return "일본";
+            case "fr":
+                return "프랑스";
+            case "vn":
+                return "베트남";
+            case "it":
+                return "이탈리아";
+            default:
+                return "존재하지 않는 국가 코드";
+        }
+    }
+
     // 폴더의 모든 파일(json)을 반복 (JSON Object로 저장 및 split, classifyDocuments 메소드로 분류 진행) (iterateFiles)
     public void createFinalResultFile() throws IOException {
         excelData = getExcelData();
+        //JsonService jsonService = new JsonService("C:\\Users\\suaah\\OneDrive\\바탕 화면\\test-folder\\result\\식품안전관리 인증서_OCR_result.json");
+        jsonData = JsonService.getJsonDictionary();
 
         int cnt = 1;
         for (File curFile : jsonFiles) {
@@ -152,12 +175,12 @@ public class ExcelService {
                 allWords.append(item.get("description"));
             }
 
-            classifyDocuments(excelData, jsonService.jsonLocal, allWords.toString());
+            classifyDocuments(jsonData, jsonService.jsonLocal, jsonService.jsonCollection, allWords.toString());
             log.info("문서 타입 55 :{}",docType);
             log.info("문서 타입 54 :{}",documentType);
             log.info("문서 타입 56 :{}",resultList);
 
-            JsonService.processMarking(excelData, configLoader.resultFilePath,configLoader.resultFilePath,docType);
+            JsonService.processMarking(jsonData, configLoader.resultFilePath,configLoader.resultFilePath,docType);
 
             try {
                 createExcel(saveFilePath);
@@ -169,10 +192,12 @@ public class ExcelService {
     }
 
     // 엑셀 데이터와 비교하여 국가 및 양식 분류
-    public void classifyDocuments(Map<String, List<List<String[]>>> excelData, String jsonLocale, String jsonDescription) {
-        List<List<String[]>> targetSheetData = excelData.get(jsonLocale);
+    public void classifyDocuments(Map<String, List<List<String[]>>> jsonData, String jsonLocale, List<Map<String, Object>> items, String jsonDescription) {
+        //List<List<String[]>> targetSheetData = excelData.get("국가");
+        String countryName = getCountryFromSheetName(jsonLocale);
+        List<List<String[]>> targetSheetData = jsonData.get(countryName);
 
-        if (targetSheetData == null) {
+        if (countryName == null || countryName.equals("존재하지 않는 국가 코드")) {
             // 일치하는 시트가 없을 경우
             log.info("일치 시트(국가) 없음");
         }
@@ -187,62 +212,75 @@ public class ExcelService {
         resultWord = new ArrayList<>();
 
         // null 처리
-        for (int col = 0; col < targetSheetData.size(); col++) {
-            List<String[]> columnData = targetSheetData.get(col);
 
-            double addWeight = 0;
+        Map<String, Integer> matchCount = new HashMap<>();
+        Map<String, Double> weightMap = new HashMap<>();
+        Map<String, Double> formWeightSum = new HashMap<>();
+        Map<String, Integer> formMatchCount = new HashMap<>();
+        String formWithMostMatches = null;
+        String formWithMostWeights = null;
 
-            int matches = 0;
+        for (List<String[]> sheetData : targetSheetData) {
+            String formName = sheetData.get(0)[0];
+            formWeightSum.put(formName, 0.0);
+            formMatchCount.put(formName, 0);
+
+            for (int i = 1; i < sheetData.size(); i++) {
+                String word = sheetData.get(i)[0];
+                double weight = Double.parseDouble(sheetData.get(i)[1]);
+                weightMap.put(word, weight);
+                matchCount.put(word, 0);
+            }
+
             List<String> matchingValues = new ArrayList<>();
+            matchingValues.add(sheetData.get(0)[0]);
 
-            matchingValues.add(columnData.getFirst()[0]);
+            for (Map<String, Object> item : items) {
+                String description = (String) item.get("description");
 
-            int cnt = 0;
-            for (int i = 1; i < columnData.size(); i++) {
-                String value = columnData.get(i)[0];
-                if (jsonDescription.contains(value)) {
-                    try {
-                        addWeight += Double.parseDouble(columnData.get(i)[1]);
-                    } catch (Exception e) {
-                        log.error("가중치 계산 실패: {}", e.getStackTrace()[0]);
+                for (int i = 1; i < sheetData.size(); i++) {
+                    if (description.equals(sheetData.get(i)[0])) {
+                        matchCount.put(description, matchCount.get(description) + 1);
+                        formWeightSum.put(formName, formWeightSum.get(formName) + weightMap.get(description));
+                        formMatchCount.put(formName, formMatchCount.get(formName) + 1);
+                        matchingValues.add(description + "(" + matchCount.get(description) + ")");
                     }
-
-                    matches++;
-                    cnt = countOccurrences(jsonDescription, value);
-                    matchingValues.add(value + "(" + cnt + ")");
-                } else {
-                    cnt = 0;
                 }
-                log.info("'{}' - 일치 횟수: {}, 가중치: {}", value, cnt, Double.parseDouble(columnData.get(i)[1]));
             }
 
-            //log.info("{} / {} = {}", addWeight, matches, addWeight / matches);
-            double weight = (double) Math.round(addWeight / matches * 10) / 10;
-
-            log.info("'{}' 양식 - 매치된 단어 수: {}/{}", columnData.get(0)[0], matches, columnData.size() - 1);
-            log.info("'{}' 양식 - 가중치 평균 값: {}", columnData.get(0)[0], weight);
-            log.info("'{}' 양식 - 매치 결과: {}", columnData.get(0)[0], matchingValues.subList(1, matchingValues.size()));
-
-
-            matchingValues.add(matches + ""); // 매치 단어 수 결과 리스트에 추가
-            resultWord.add(matchingValues);
-
-            if (matches > maxMatches) {
-                maxMatches = matches;
-                matchIndex = col;
+            for (int i = 1; i < sheetData.size(); i++) {
+                String word = sheetData.get(i)[0];
+                int count = matchCount.get(word);
+                double weight = weightMap.get(word);
+                log.info("'{}' - 일치 횟수: {}, 가중치: {}", word, count, weight);
             }
 
-            if (weight > maxWeight) {
-                maxWeight = weight;
-                weightIndex = col;
+            int totalWords = sheetData.size() - 1;
+            int matchedWords = formMatchCount.get(formName);
+            double totalWeight = formWeightSum.get(formName);
+            log.info("'{}' 양식 - 매치된 단어 수: {}/{}", formName, matchedWords, totalWords);
+            log.info("'{}' 양식 - 가중치 합계: {}", formName, totalWeight);
+            log.info("'{}' 양식 - 매치 결과: {}", formName, matchingValues);
+
+            if (totalWeight > maxWeight) {
+                maxWeight = totalWeight;
+                formWithMostWeights = formName;
+            }
+
+            if (matchedWords > maxMatches) {
+                maxMatches = matchedWords;
+                formWithMostMatches = formName;
             }
         }
 
-        if (matchIndex == weightIndex) {
-            log.info("단어 매치 결과와 가중치 비교 결과 일치");
-        } else {
-            log.info("단어 매치 결과와 가중치 비교 결과 불일치");
-        }
+        log.info("가장 일치 단어 개수가 많은 양식: '{}', 일치 단어 수: {}", formWithMostMatches, maxMatches);
+
+
+//        if (matchIndex == weightIndex) {
+//            log.info("단어 매치 결과와 가중치 비교 결과 일치");
+//        } else {
+//            log.info("단어 매치 결과와 가중치 비교 결과 불일치");
+//        }
 
 
         List<String> countryType = new ArrayList<>();
@@ -253,13 +291,14 @@ public class ExcelService {
         List<String> documentType = new ArrayList<>();
         documentType.add("문서 양식");
 
-        if (matchIndex == -1 || weightIndex == -1) {
-            log.info("미분류 파일: {}", jsonDescription);
+        if (formWithMostMatches != null || formWithMostWeights != null) {
+            log.info("미분류 파일: {}", items);
             documentType.add("미분류");
         } else {
-            log.info("문서 분류 결과: 국가코드({}), 문서양식({}), 가중치({})", jsonLocale, targetSheetData.get(matchIndex).get(0)[0], maxWeight);
-            documentType.add(targetSheetData.get(matchIndex).get(0)[0]);
+            log.info("문서 분류 결과: 국가코드({}), 문서양식({}), 가중치({})", jsonLocale, formWithMostMatches, maxWeight);
+            documentType.add(formWithMostMatches);
         }
+
         resultList.add(documentType);
         log.info("엑셀 데이터 결과 : {}",resultList);
         docType = resultList.get(1).get(1);

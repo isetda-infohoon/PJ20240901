@@ -20,6 +20,7 @@ public class ConfigLoader {
     public String cloudPlatform;
     public String ocrUrl;
     public String excelFilePath;
+    public String jsonFilePath;
     public String imageFolderPath;
     public String resultFilePath;
     private String jdbcUrl;
@@ -59,6 +60,7 @@ public class ConfigLoader {
             cloudPlatform = root.getElementsByTagName("cloudPlatform").item(0).getTextContent().trim();
             ocrUrl = root.getElementsByTagName("ocrUrl").item(0).getTextContent().trim();
             excelFilePath = root.getElementsByTagName("excelFilePath").item(0).getTextContent().trim();
+            jsonFilePath = root.getElementsByTagName("jsonFilePath").item(0).getTextContent().trim();
             imageFolderPath = root.getElementsByTagName("imageFolderPath").item(0).getTextContent().trim();
             resultFilePath = root.getElementsByTagName("resultFilePath").item(0).getTextContent().trim();
             jdbcUrl = root.getElementsByTagName("jdbcUrl").item(0).getTextContent().trim();
