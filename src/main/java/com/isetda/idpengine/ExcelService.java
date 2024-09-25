@@ -1,18 +1,10 @@
 package com.isetda.idpengine;
-
-
-
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.json.JSONArray;
-import org.json.JSONObject;
-
 import java.io.*;
 import java.util.*;
-
 
 public class ExcelService {
     private static final Logger log = LogManager.getLogger(ExcelService.class);
@@ -54,72 +46,72 @@ public class ExcelService {
     }
 
 
-    // 엑셀의 단어 리스트 가져오기
-    public Map<String, List<List<String[]>>> getExcelData() {
-        Map<String, List<List<String[]>>> excelData = new HashMap<>();
-
-        try (FileInputStream fis = new FileInputStream(configLoader.excelFilePath);
-             Workbook workbook = new XSSFWorkbook(fis)) {
-
-            for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
-                Sheet sheet = workbook.getSheetAt(i);
-                List<List<String[]>> sheetData = new ArrayList<>();
-
-                log.info("시트명: {}", sheet.getSheetName());
-
-                int maxColumns = 0;
-                for (Row row : sheet) {
-                    if (row.getLastCellNum() > maxColumns) {
-                        maxColumns = row.getLastCellNum();
-                    }
-                }
-
-                // 단어 리스트가 있는 열을 반복
-                for (int col = 0; col < maxColumns; col+=2) {
-                    List<String[]> columnData = new ArrayList<>();
-                    boolean isFirstIteration = true;
-
-                    // 각 단어와 가중치 값을 가져와 배열로 함께 저장
-                    for (Row row : sheet) {
-                        String[] value = new String[2];
-                        Cell cell = row.getCell(col);
-
-                        if (cell != null && !cell.toString().isEmpty()) {
-                            value[0] = cell.toString();
-                            value[1] = row.getCell(col+1).toString();
-                            columnData.add(value);
-
-                            if (isFirstIteration) {
-                                log.info("H: {}, {}", value[0], value[1]);
-                                isFirstIteration = false;
-                            } else {
-                                log.info("W: {}, {}", value[0], value[1]);
-                            }
-                        }
-                    }
-                    if (!columnData.isEmpty()) {
-                        sheetData.add(columnData);
-                    }
-                }
-
-                excelData.put(sheet.getSheetName(), sheetData);
-            }
-
-            log.info("엑셀 단어 리스트 추출 완료");
-
-        } catch (IOException e) {
-            log.error("엑셀 단어 리스트 추출 실패: {}", e.getStackTrace()[0]);
-        }
-
-        // 엑셀 데이터 출력 (테스트용)
-        for (Map.Entry<String, List<List<String[]>>> entry : excelData.entrySet()) {
-            log.info("엑셀 시트: {}", entry.getKey());
-            for (List<String[]> column : entry.getValue()) {
-                log.info("엑셀 값: {}", column);
-            }
-        }
-        return excelData;
-    }
+//    // 엑셀의 단어 리스트 가져오기
+//    public Map<String, List<List<String[]>>> getExcelData() {
+//        Map<String, List<List<String[]>>> excelData = new HashMap<>();
+//
+//        try (FileInputStream fis = new FileInputStream(configLoader.excelFilePath);
+//             Workbook workbook = new XSSFWorkbook(fis)) {
+//
+//            for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
+//                Sheet sheet = workbook.getSheetAt(i);
+//                List<List<String[]>> sheetData = new ArrayList<>();
+//
+//                log.info("시트명: {}", sheet.getSheetName());
+//
+//                int maxColumns = 0;
+//                for (Row row : sheet) {
+//                    if (row.getLastCellNum() > maxColumns) {
+//                        maxColumns = row.getLastCellNum();
+//                    }
+//                }
+//
+//                // 단어 리스트가 있는 열을 반복
+//                for (int col = 0; col < maxColumns; col+=2) {
+//                    List<String[]> columnData = new ArrayList<>();
+//                    boolean isFirstIteration = true;
+//
+//                    // 각 단어와 가중치 값을 가져와 배열로 함께 저장
+//                    for (Row row : sheet) {
+//                        String[] value = new String[2];
+//                        Cell cell = row.getCell(col);
+//
+//                        if (cell != null && !cell.toString().isEmpty()) {
+//                            value[0] = cell.toString();
+//                            value[1] = row.getCell(col+1).toString();
+//                            columnData.add(value);
+//
+//                            if (isFirstIteration) {
+//                                log.info("H: {}, {}", value[0], value[1]);
+//                                isFirstIteration = false;
+//                            } else {
+//                                log.info("W: {}, {}", value[0], value[1]);
+//                            }
+//                        }
+//                    }
+//                    if (!columnData.isEmpty()) {
+//                        sheetData.add(columnData);
+//                    }
+//                }
+//
+//                excelData.put(sheet.getSheetName(), sheetData);
+//            }
+//
+//            log.info("엑셀 단어 리스트 추출 완료");
+//
+//        } catch (IOException e) {
+//            log.error("엑셀 단어 리스트 추출 실패: {}", e.getStackTrace()[0]);
+//        }
+//
+//        // 엑셀 데이터 출력 (테스트용)
+//        for (Map.Entry<String, List<List<String[]>>> entry : excelData.entrySet()) {
+//            log.info("엑셀 시트: {}", entry.getKey());
+//            for (List<String[]> column : entry.getValue()) {
+//                log.info("엑셀 값: {}", column);
+//            }
+//        }
+//        return excelData;
+//    }
 
 //    public void getDatabase() {
 //        DBService databaseConnection = new DBService();
@@ -153,12 +145,12 @@ public class ExcelService {
 
     // 폴더의 모든 파일(json)을 반복 (JSON Object로 저장 및 split, classifyDocuments 메소드로 분류 진행) (iterateFiles)
     public void createFinalResultFile() throws IOException {
-        excelData = getExcelData();
+//        excelData = getExcelData();
         IMGService imgService = new IMGService();
 
         //JsonService jsonService = new JsonService("C:\\Users\\suaah\\OneDrive\\바탕 화면\\test-folder\\result\\식품안전관리 인증서_OCR_result.json");
         jsonData = JsonService.getJsonDictionary();
-
+        log.info("jsonData :{}",jsonData);
         int cnt = 1;
         for (File curFile : jsonFiles) {
             log.info("{}번째 JSON 파일 작업 시작", cnt);
@@ -176,8 +168,12 @@ public class ExcelService {
                 //TODO : Matching1 - 단어 리스트 합치지 않고 jsonCollection 리스트 값으로 매치
                 allWords.append(item.get("description"));
             }
+            //match1
+//            classifyDocuments(jsonData, jsonService.jsonLocal, jsonService.jsonCollection, allWords.toString());
+            JsonService.findMatchingWords(jsonService.jsonCollection);
+            classifyDocuments(jsonData, jsonService.jsonLocal,JsonService.jsonCollection2, allWords.toString());
 
-            classifyDocuments(jsonData, jsonService.jsonLocal, jsonService.jsonCollection, allWords.toString());
+
             log.info("문서 타입 55 :{}",docType);
             log.info("문서 타입 54 :{}",documentType);
             log.info("문서 타입 56 :{}",resultList);
@@ -194,7 +190,7 @@ public class ExcelService {
     }
 
     // 엑셀 데이터와 비교하여 국가 및 양식 분류
-    public void classifyDocuments(Map<String, List<List<String[]>>> jsonData, String jsonLocale, List<Map<String, Object>> items, String jsonDescription) {
+    public void classifyDocuments(Map<String, List<List<String[]>>> jsonData, String jsonLocale, List<Map<String, Object>> items, String jsonDescription) throws IOException {
         //List<List<String[]>> targetSheetData = excelData.get("국가");
         String countryName = getCountryFromSheetName(jsonLocale);
         List<List<String[]>> targetSheetData = jsonData.get(countryName);
@@ -241,7 +237,10 @@ public class ExcelService {
                 String description = (String) item.get("description");
 
                 for (int i = 1; i < sheetData.size(); i++) {
+//                    log.info("안녕 @@@@ :{}",description);
+//                    log.info("안녕 @@@@2 :{}",sheetData.get(i)[0]);
                     if (description.equals(sheetData.get(i)[0])) {
+                        log.info("같음");
                         matchCount.put(description, matchCount.get(description) + 1);
                         formWeightSum.put(formName, formWeightSum.get(formName) + weightMap.get(description));
                         formMatchCount.put(formName, formMatchCount.get(formName) + 1);
@@ -293,8 +292,8 @@ public class ExcelService {
         List<String> documentType = new ArrayList<>();
         documentType.add("문서 양식");
 
-        if (formWithMostMatches != null || formWithMostWeights != null) {
-            log.info("미분류 파일: {}", items);
+        if (formWithMostMatches == null || formWithMostWeights == null) {
+//            log.info("미분류 파일: {}", items);
             documentType.add("미분류");
         } else {
             log.info("문서 분류 결과: 국가코드({}), 문서양식({}), 가중치({})", jsonLocale, formWithMostMatches, maxWeight);
@@ -305,7 +304,9 @@ public class ExcelService {
         log.info("엑셀 데이터 결과 : {}",resultList);
         docType = resultList.get(1).get(1);
 
+        IMGService imgService =new IMGService();
 
+        imgService.processMarking(jsonData, configLoader.resultFilePath, docType);
 
     }
     //</editor-fold>
@@ -332,7 +333,6 @@ public class ExcelService {
             for (int j = 0; j < resultList.get(i).size(); j++) {
                 Cell cell = row.createCell(j);
                 cell.setCellValue(resultList.get(i).get(j));
-                log.info("안녕 11 :{}  : {}",cell);
             }
 
             if (i == resultList.size() - 1) {

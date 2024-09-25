@@ -20,8 +20,11 @@ import java.util.stream.IntStream;
 public class JsonService {
     public String jsonLocal = "";
     public JSONObject jsonObject;
+    //그냥 기본으로 오는 단어 구조 match1
     public List<Map<String, Object>> jsonCollection;
-    public static List<Map<String, Object>> jsonCollection3;
+    //단어 리스트와 일치하는 match2의 단어 값
+    public static List<Map<String, Object>> jsonCollection3 = new ArrayList<>();
+    //y축 기준 경우의 수 그룹화 단어 match2
     public static List<Map<String, Object>> jsonCollection2;
     public static ConfigLoader configLoader = ConfigLoader.getInstance();
 
@@ -31,10 +34,10 @@ public class JsonService {
     public JsonService(String jsonFilePath) {
         try {
             this.jsonObject = new JSONObject(FileUtils.readFileToString(new File(jsonFilePath), "UTF-8"));
-            log.info("JSON 데이터 로딩 성공");
+            log.info("JSON data loading successful");
             getWordPosition();
         } catch (IOException e) {
-            log.error("JSON 파일 읽던 중 에러", e);
+            log.error("Error reading json file", e);
         }
     }
     //json에서 단어, 위치 가져와서 정렬 (1차)
@@ -44,9 +47,9 @@ public class JsonService {
             JSONObject responsesObject = jsonObject.getJSONArray("responses").getJSONObject(0);
             JSONArray textAnnotationsArray = responsesObject.getJSONArray("textAnnotations");
             jsonLocal = textAnnotationsArray.getJSONObject(0).getString("locale");
-            log.info("언어 코드: {}", jsonLocal);
+            log.info("language code: {}", jsonLocal);
 
-            log.info("단어 위치 추출 시작");
+            log.info("Start word position extraction");
 
             for (int i = 1; i < textAnnotationsArray.length(); i++) {
                 Map<String, Object> data = new HashMap<>();
@@ -96,24 +99,24 @@ public class JsonService {
                 }
             });
 
-//            for (Map<String, Object> item : jsonCollection) {
-//                String description = (String) item.get("description");
-//                List<JSONObject> vertices = (List<JSONObject>) item.get("vertices");
-//                int minX = (int) item.get("minX");
-//                int minY = (int) item.get("minY");
-//                int maxX = (int) item.get("maxX");
-//                int maxY = (int) item.get("maxY");
-//
-//                // 로그 쌓기 위한 것
-//                String verticesString = vertices.stream()
-//                        .map(v -> String.format("(%d, %d)", v.getInt("x"), v.getInt("y")))
-//                        .collect(Collectors.joining(", "));
-//
-//                log.info(String.format("L:%-45s|MinX:%5d|MinY:%5d|MaxX:%5d|MaxY:%5d|W:%-20s", verticesString, minX, minY, maxX, maxY, description));
-//            }
-            log.info("단어 위치 추출 완료");
+            for (Map<String, Object> item : jsonCollection) {
+                String description = (String) item.get("description");
+                List<JSONObject> vertices = (List<JSONObject>) item.get("vertices");
+                int minX = (int) item.get("minX");
+                int minY = (int) item.get("minY");
+                int maxX = (int) item.get("maxX");
+                int maxY = (int) item.get("maxY");
+
+                // 로그 쌓기 위한 것
+                String verticesString = vertices.stream()
+                        .map(v -> String.format("(%d, %d)", v.getInt("x"), v.getInt("y")))
+                        .collect(Collectors.joining(", "));
+
+                log.info(String.format("안녕 L:%-45s|MinX:%5d|MinY:%5d|MaxX:%5d|MaxY:%5d|W:%-20s", verticesString, minX, minY, maxX, maxY, description));
+            }
+            log.info("Word position extraction successful");
         } catch (Exception e) {
-            log.error("단어 위치 추출 중 오류 발생: {}", e.getMessage(), e);
+            log.error("Error extracting word location: {}", e.getMessage(), e);
         }
     }
 
@@ -126,7 +129,7 @@ public class JsonService {
 
         List<Map<String, Object>> checkText = null;
         for (int i = 0; i < words.size(); i++) {
-            a = 0;
+            a = 1;
             StringBuilder currentText = new StringBuilder();
             int startMaxX = (int) words.get(i).get("maxX");
             int startMaxY = (int) words.get(i).get("maxY");
@@ -140,6 +143,7 @@ public class JsonService {
             Map<String, Object> singleWord = words.get(i);
             checkText.add(singleWord);
             currentText.append(singleWord.get("description"));
+            log.info("The first word :{}",currentText);
 
             // 단일 단어 자체를 결과에 추가
 //            addToResults(results, checkText, currentText.toString().replace(" ", ""), startX, startY, startMaxX, startMaxY, targetWords);
@@ -147,9 +151,11 @@ public class JsonService {
             // 연속된 단어 조합 생성
             for (int j = i + 1; j < words.size(); j++) {
                 Map<String, Object> nextWord = words.get(j);
+//                log.info("체크 단어 : {}",checkText);
+//                log.info("다음 단어 : {}",nextWord);
                 if (isOnSameLineByMidY2(checkText.get(checkText.size() - 1), nextWord)) {
-                    log.info("연결 단어:{}", currentText);
                     currentText.append(nextWord.get("description"));
+                    log.info("Group words:{}", currentText);
                     a++;
                     checkText.add(nextWord);
                     maxX = Math.max(maxX, (int) nextWord.get("maxX"));
@@ -161,46 +167,49 @@ public class JsonService {
                     addToCollection2(checkText, currentText.toString(), startX, startY, maxX, maxY);
 
                 } else {
-                    log.info("연결된 단어 전체 경우의 수: {}", a);
+                    log.info("Connected words: {}", a);
                     break; // 동일한 라인이 아니면 중단
                 }
             }
         }
-        log.info("연결된 단어 전체 경우의 수: {}", a);
+        log.info("Total connected words: {}", a);
 //        log.info("안녕 @@@: {}", jsonCollection2);
 
 //        return jsonCollection2;
         return results;
     }
-
+    //TODO 아직 더 수정해야 됨 match2에서 단어 리스트와 동일한 것의 값을 가져오면서 그에 해당하는 좌표를 가져와야 함
     public static List<Map<String, Object>>findtheword(Set<String> targetWords){
+        jsonCollection3 = new ArrayList<>();
         for (Map<String, Object> item : jsonCollection2) {
             String description = (String) item.get("description");
             if (targetWords.contains(description)) {
-                jsonCollection3 = jsonCollection2;
+                log.info("확인 : {}",item);
+                jsonCollection3.add(item);
             }
         }
+        log.info("jsonCollection3 :{}",jsonCollection3);
         return jsonCollection3;
     }
 
-    //엑셀 단어와 매칭된 결과만 저장
-    private static void addToResults(List<Map<String, Object>> results, List<Map<String, Object>> checkText,
-                                     String combinedText, int startX, int startY, int maxX, int maxY, List<String> targetWords) {
-        // 조합된 텍스트가 targetWords에 포함되는지 확인
-        Map<String, Object> result = new HashMap<>();
-        for (Map<String, Object> item : jsonCollection2) {
-                String description = (String) item.get("description");
-            if (targetWords.contains(description)) {
-                int minX = jsonCollection2.stream().mapToInt(w -> (int) w.get("minX")).min().orElse(startX);
-                result.put("description", description);
-                result.put("minX", minX);
-                result.put("minY", startY);
-                result.put("maxX", maxX);
-                result.put("maxY", maxY);
-                results.add(result);
-            }
-        }
-    }
+//    //엑셀 단어와 매칭된 결과만 저장
+//    private static void addToResults(List<Map<String, Object>> results, List<Map<String, Object>> checkText,
+//                                     String combinedText, int startX, int startY, int maxX, int maxY, List<String> targetWords) {
+//        // 조합된 텍스트가 targetWords에 포함되는지 확인
+//        Map<String, Object> result = new HashMap<>();
+//        for (Map<String, Object> item : jsonCollection2) {
+//                String description = (String) item.get("description");
+//            if (targetWords.contains(description)) {
+//                int minX = jsonCollection2.stream().mapToInt(w -> (int) w.get("minX")).min().orElse(startX);
+//                result.put("description", description);
+//                result.put("minX", minX);
+//                result.put("minY", startY);
+//                result.put("maxX", maxX);
+//                result.put("maxY", maxY);
+//                results.add(result);
+//            }
+//        }
+//    }
     //모든 연속된 단어을 저장하는 것
     private static void addToCollection2(List<Map<String, Object>> checkText, String combinedText,
                                          int startX, int startY, int maxX, int maxY) {
@@ -215,18 +224,12 @@ public class JsonService {
         jsonCollection2.add(result);
     }
 
-//    private boolean isOnSameLineByMidY(Map<String, Object> a, Map<String, Object> b) {
-//        int midY_a = ((int) a.get("minY") + (int) a.get("maxY")) / 2;
-//        int midY_b = ((int) b.get("minY") + (int) b.get("maxY")) / 2;
-//
-//        return Math.abs(midY_a - midY_b) <= 3; // 중간 값의 차이가 3 이내면 같은 라인으로 간주
-//    }
     private static boolean isOnSameLineByMidY2(Map<String, Object> a, Map<String, Object> b) {
         int midY_a = ((int) a.get("minY") + (int) a.get("maxY")) / 2;
         int minY_b = (int) b.get("minY");
         int maxY_b = (int) b.get("maxY");
 
-        return midY_a>=minY_b && midY_a<= maxY_b; // 중간 값의 차이가 3 이내면 같은 라인으로 간주
+        return midY_a>=minY_b && midY_a<= maxY_b; //
     }
 
 

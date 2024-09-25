@@ -8,59 +8,59 @@ import org.json.JSONObject;
 import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Base64;
 
 public class JsonEnDecode {
     private static final Logger log = LogManager.getLogger(JsonEnDecode.class);
-    public static String priKey = "iset2021!_1234567890a";
-    public static String aesEncode(String plainText) throws Exception {
-        String key = priKey;
-        SecretKeySpec keySpec = new SecretKeySpec(key.getBytes("UTF-8"),"AES");
-        IvParameterSpec ivParameterSpec = new IvParameterSpec(key.getBytes("UTF-8"));
+    private static final String ALGORITHM = "AES/CBC/PKCS5Padding";
+    private static final String KEY = "iset2021!1234567890abcdefghijkln";
+    private static final String IV = "0987654321abcdef";
 
-        Cipher c = Cipher.getInstance("AES/CBC/PKCS5Padding");
-        c.init(Cipher.ENCRYPT_MODE,keySpec,ivParameterSpec);
-        byte[] enBytes = c.doFinal(plainText.getBytes("UTF-8"));
-
-        return Hex.encodeHexString(enBytes);
-    }
-    public static String aesDecode(String encryptedText) throws Exception {
-        String key = priKey;
-        SecretKeySpec keySpec = new SecretKeySpec(key.getBytes("UTF-8"), "AES");
-        IvParameterSpec ivParameterSpec = new IvParameterSpec(key.getBytes("UTF-8")); // 동일한 IV 사용
-
-        Cipher c = Cipher.getInstance("AES/CBC/PKCS5Padding");
-        c.init(Cipher.DECRYPT_MODE, keySpec, ivParameterSpec);
-
-        // Hex 문자열을 바이트 배열로 변환
-        byte[] encryptedBytes = Hex.decodeHex(encryptedText.toCharArray());
-        byte[] decryptedBytes = c.doFinal(encryptedBytes);
-
-        return new String(decryptedBytes, "UTF-8");
+    private static SecretKeySpec getSecretKeySpec() {
+        byte[] keyBytes = KEY.getBytes(StandardCharsets.UTF_8);
+        return new SecretKeySpec(keyBytes, "AES");
     }
 
-    public void JsonEncoding2() throws Exception {
-        String outputFile = "encoding.json";
-        String jsonFilePath = "국가, 문서 양식별 추출 단어 리스트.json";
-        String jsonText = new String(Files.readAllBytes(Paths.get(jsonFilePath)));
+    private static IvParameterSpec getIvParameterSpec() {
+        return new IvParameterSpec(IV.getBytes(StandardCharsets.UTF_8));
+    }
 
-        System.out.println("안녕1 :"+jsonText);
-        // JSON 파싱
-        String encData = aesEncode(jsonText);
+    public String aesEncode(String plainText, String aesKey) throws Exception {
+        if (!aesKey.contains("iset2021")) {
+            log.info("Encoding key is invalid.");
+//            errorLabel.setText("key is wrong");
+            return null;
 
+        }
 
-        log.info("인코딩 텍스트 : {}",encData);
-        JSONObject jsonObject = new JSONObject();
-        // 인코딩된 내용을 JSON 객체에 추가
-        jsonObject.put("", encData);
+        SecretKeySpec keySpec = getSecretKeySpec();
+        IvParameterSpec ivSpec = getIvParameterSpec();
 
+        Cipher cipher = Cipher.getInstance(ALGORITHM);
+        cipher.init(Cipher.ENCRYPT_MODE, keySpec, ivSpec);
+        byte[] encrypted = cipher.doFinal(plainText.getBytes(StandardCharsets.UTF_8));
 
-        // 수정된 JSON을 파일에 쓰기
-        Files.write(Paths.get(outputFile), jsonObject.toString().getBytes());
+        return Base64.getEncoder().encodeToString(encrypted);
+    }
 
-        log.info("JSON 파일이 성공적으로 인코딩되어 저장되었습니다.");
-        String decodedText = aesDecode(encData);
-        System.out.println("복호화된 텍스트: " + decodedText);
+    public String aesDecode(String encryptedText, String aesKey) throws Exception {
+        if (!aesKey.contains("iset2021")) {
+            log.info("Decoding key is invalid");
+//            errorLabel.setText("key is wrong");
+            return null;
+
+        }
+
+        SecretKeySpec keySpec = getSecretKeySpec();
+        IvParameterSpec ivSpec = getIvParameterSpec();
+
+        Cipher cipher = Cipher.getInstance(ALGORITHM);
+        cipher.init(Cipher.DECRYPT_MODE, keySpec, ivSpec);
+        byte[] decrypted = cipher.doFinal(Base64.getDecoder().decode(encryptedText));
+
+        return new String(decrypted, StandardCharsets.UTF_8);
     }
 }
