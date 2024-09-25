@@ -318,19 +318,21 @@ public class JsonService {
         log.info("이미지 및 JSON 파일 처리 완료");
     }
 
-    public static Map<String, List<List<String[]>>> getJsonDictionary() {
-        String filePath = configLoader.jsonFilePath;
+    public static Map<String, List<List<String[]>>> getJsonDictionary(String decodeText) throws Exception {
+        //String filePath = configLoader.jsonFilePath;
         Map<String, List<List<String[]>>> jsonDictionary = new HashMap<>();
 
         try {
-            String content = FileUtils.readFileToString(new File(filePath), "UTF-8");
-            JSONObject jsonObject = new JSONObject(content);
+            //String content = FileUtils.readFileToString(new File(filePath), "UTF-8");
+            JSONObject jsonObject = new JSONObject(decodeText);
 
             JSONArray countryList = jsonObject.getJSONArray("국가 리스트");
 
             for (int i = 0; i < countryList.length(); i++) {
                 JSONObject country = countryList.getJSONObject(i);
                 String countryName = country.getString("국가");
+
+                log.info("국가명: {}", countryName);
 
                 JSONArray forms = country.getJSONArray("양식");
                 List<List<String[]>> formList = new ArrayList<>();
@@ -339,6 +341,8 @@ public class JsonService {
                     JSONObject form = forms.getJSONObject(j);
                     String formName = form.getString("양식명");
                     String language = form.getString("언어");
+
+                    log.info("H: {}, {}", formName, language);
 
                     List<String[]> ruleList = new ArrayList<>();
                     ruleList.add(new String[]{formName, language});
@@ -349,6 +353,8 @@ public class JsonService {
                         String word = rule.getString("단어");
                         String weight = String.valueOf(rule.getDouble("가중치"));
                         ruleList.add(new String[]{word, weight});
+
+                        log.info("W: {}, {}", word, weight);
                     }
 
                     formList.add(ruleList);
@@ -356,6 +362,7 @@ public class JsonService {
 
                 jsonDictionary.put(countryName, formList);
             }
+            log.info("JSON 단어 리스트 추출 완료");
 
             // 결과 출력
 //            for (Map.Entry<String, List<List<String[]>>> entry : jsonDictionary.entrySet()) {
@@ -376,7 +383,7 @@ public class JsonService {
 //            }
 
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("JSON 단어 리스트 추출 실패: {}", e.getStackTrace()[0]);
         }
 
         return jsonDictionary;

@@ -2,9 +2,11 @@ package com.isetda.idpengine;
 
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.w3c.dom.Text;
 
 import java.io.File;
 import java.io.IOException;
@@ -14,8 +16,13 @@ public class IDPEngineController {
     public ConfigLoader configLoader = ConfigLoader.getInstance();
     public TextField inputImageFolderPath;
     public TextField inputResultFolderPath;
+    public TextField EncodingKey;
+    public Label errorLabel;
+
 
     private ExcelService excelService = new ExcelService();
+    private DocumentService documentService = new DocumentService();
+    private JsonInDecode jsonInDecode = new JsonInDecode();
 
     String resultFilePath = configLoader.resultFilePath;
     @FXML
@@ -52,7 +59,8 @@ public class IDPEngineController {
         configLoader.saveConfig(); // 변경된 경로를 XML 파일에 저장
 
         imgFileIOService.configLoader = configLoader;
-        googleService.configLoader =configLoader;
+        googleService.configLoader = configLoader;
+        documentService.configLoader = configLoader;
 
         File resultFolder = new File(configLoader.resultFilePath);
         if (!resultFolder.exists()) {
@@ -77,10 +85,13 @@ public class IDPEngineController {
 //        JsonService.processMarking(folderPath, jsonFolderPath);
     }
 
-    public void onButton2Click(ActionEvent event) throws IOException {
+    public void onButton2Click(ActionEvent event) throws Exception {
+        jsonInDecode.EncodingKey = EncodingKey;
+        jsonInDecode.errorLabel = errorLabel;
+        documentService.jsonData = JsonService.getJsonDictionary(jsonInDecode.JsonEncoding2(configLoader.jsonFilePath));
         classificationDocument();
-//        JsonService.processMarking(folderPath, jsonFolderPath);
 
+//        JsonService.processMarking(folderPath, jsonFolderPath);
     }
 
     public void processing() {
@@ -104,14 +115,16 @@ public class IDPEngineController {
     }
 
     // 문서 분류
-    public void classificationDocument() throws IOException {
+    public void classificationDocument() throws Exception {
         processing();
         excelService.configLoader = configLoader;
 
         // 전달 받은 폴더 경로의 json 파일 필터링
-        excelService.getFilteredJsonFiles();
-        excelService.createFinalResultFile();
+        documentService.jsonFiles = excelService.getFilteredJsonFiles();
+        documentService.createFinalResultFile();
         JsonService.processMarking(excelService.getExcelData(), configLoader.resultFilePath, excelService.docType);
 
     }
+
+
 }
