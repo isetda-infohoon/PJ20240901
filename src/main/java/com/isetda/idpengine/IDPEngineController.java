@@ -2,9 +2,11 @@ package com.isetda.idpengine;
 
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.w3c.dom.Text;
 
 import java.io.File;
 import java.io.IOException;
@@ -14,8 +16,13 @@ public class IDPEngineController {
     public ConfigLoader configLoader = ConfigLoader.getInstance();
     public TextField inputImageFolderPath;
     public TextField inputResultFolderPath;
+    public TextField EncodingKey;
+    public Label errorLabel;
+
 
     private ExcelService excelService = new ExcelService();
+    private DocumentService documentService = new DocumentService();
+    private JsonEnDecode jsonEnDecode = new JsonEnDecode();
 
     String resultFilePath = configLoader.resultFilePath;
     @FXML
@@ -51,6 +58,8 @@ public class IDPEngineController {
 
         configLoader.saveConfig(); // 변경된 경로를 XML 파일에 저장
 
+        googleService.configLoader = configLoader;
+        documentService.configLoader = configLoader;
         IOService.configLoader = configLoader;
         googleService.configLoader =configLoader;
 
@@ -77,7 +86,10 @@ public class IDPEngineController {
 //        JsonService.processMarking(folderPath, jsonFolderPath);
     }
 
-    public void onButton2Click(ActionEvent event) throws IOException {
+    public void onButton2Click(ActionEvent event) throws Exception {
+        jsonEnDecode.EncodingKey = EncodingKey;
+        jsonEnDecode.errorLabel = errorLabel;
+        documentService.jsonData = JsonService.getJsonDictionary(jsonEnDecode.JsonEncoding2(configLoader.jsonFilePath));
         classificationDocument();
 //        JsonService.processMarking(folderPath, jsonFolderPath);
 
@@ -104,15 +116,14 @@ public class IDPEngineController {
     }
 
     // 문서 분류
-    public void classificationDocument() throws IOException {
+    public void classificationDocument() throws Exception {
         IMGService imgService =new IMGService();
         processing();
         excelService.configLoader = configLoader;
 
         // 전달 받은 폴더 경로의 json 파일 필터링
-        excelService.getFilteredJsonFiles();
-        excelService.createFinalResultFile();
-//        imgService.processMarking(excelService.getExcelData(), configLoader.resultFilePath, excelService.docType);
-
+        documentService.jsonFiles = excelService.getFilteredJsonFiles();
+        documentService.createFinalResultFile();
+        imgService.processMarking(excelService.getExcelData(), configLoader.resultFilePath, excelService.docType);
     }
 }
