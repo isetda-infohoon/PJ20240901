@@ -15,6 +15,7 @@ public class DocumentService {
     public ConfigLoader configLoader;
 
     public ExcelService excelService = new ExcelService();
+    public IMGService imgService = new IMGService();
 
     public File[] jsonFiles;
     public List<List<String>> resultList; // 각 변수로
@@ -76,7 +77,7 @@ public class DocumentService {
             log.info("문서 타입 54 :{}",documentType);
             log.info("문서 타입 56 :{}",resultList);
 
-            JsonService.processMarking(jsonData, configLoader.resultFilePath, docType);
+            imgService.processMarking(jsonData, configLoader.resultFilePath, docType);
 
             try {
                 excelService.createExcel(resultList, resultWord, fileName, saveFilePath);

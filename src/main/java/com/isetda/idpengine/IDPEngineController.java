@@ -22,7 +22,7 @@ public class IDPEngineController {
 
     private ExcelService excelService = new ExcelService();
     private DocumentService documentService = new DocumentService();
-    private JsonInDecode jsonInDecode = new JsonInDecode();
+    private JsonEnDecode jsonEnDecode = new JsonEnDecode();
 
     String resultFilePath = configLoader.resultFilePath;
     @FXML
@@ -58,7 +58,6 @@ public class IDPEngineController {
 
         configLoader.saveConfig(); // 변경된 경로를 XML 파일에 저장
 
-        imgFileIOService.configLoader = configLoader;
         googleService.configLoader = configLoader;
         documentService.configLoader = configLoader;
         IOService.configLoader = configLoader;
@@ -88,9 +87,9 @@ public class IDPEngineController {
     }
 
     public void onButton2Click(ActionEvent event) throws Exception {
-        jsonInDecode.EncodingKey = EncodingKey;
-        jsonInDecode.errorLabel = errorLabel;
-        documentService.jsonData = JsonService.getJsonDictionary(jsonInDecode.JsonEncoding2(configLoader.jsonFilePath));
+        jsonEnDecode.EncodingKey = EncodingKey;
+        jsonEnDecode.errorLabel = errorLabel;
+        documentService.jsonData = JsonService.getJsonDictionary(jsonEnDecode.JsonEncoding2(configLoader.jsonFilePath));
         classificationDocument();
 //        JsonService.processMarking(folderPath, jsonFolderPath);
 
@@ -118,13 +117,13 @@ public class IDPEngineController {
 
     // 문서 분류
     public void classificationDocument() throws Exception {
+        IMGService imgService =new IMGService();
         processing();
         excelService.configLoader = configLoader;
 
         // 전달 받은 폴더 경로의 json 파일 필터링
         documentService.jsonFiles = excelService.getFilteredJsonFiles();
         documentService.createFinalResultFile();
-        JsonService.processMarking(excelService.getExcelData(), configLoader.resultFilePath, excelService.docType);
-
+        imgService.processMarking(excelService.getExcelData(), configLoader.resultFilePath, excelService.docType);
     }
 }
