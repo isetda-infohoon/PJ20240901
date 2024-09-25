@@ -39,7 +39,7 @@ public class IDPEngineController {
     private File[] imageAndPdfFiles;
 
     public void onButton1Click(ActionEvent event) throws IOException {
-        IMGFileIOService imgFileIOService = new IMGFileIOService();
+        IOService IOService = new IOService();
         GoogleService googleService = new GoogleService();
 
         if (inputImageFolderPath.getText().isEmpty()){
@@ -61,6 +61,8 @@ public class IDPEngineController {
         imgFileIOService.configLoader = configLoader;
         googleService.configLoader = configLoader;
         documentService.configLoader = configLoader;
+        IOService.configLoader = configLoader;
+        googleService.configLoader =configLoader;
 
         File resultFolder = new File(configLoader.resultFilePath);
         if (!resultFolder.exists()) {
@@ -71,11 +73,11 @@ public class IDPEngineController {
                 log.info("결과 폴더가 존재합니다 : {}",resultFilePath);
             }
         }
-        imageAndPdfFiles = imgFileIOService.getFilteredFiles();
+        imageAndPdfFiles = IOService.getFilteredFiles();
         int a =1;
         for(File file : imageAndPdfFiles){
             log.info("{}번째 파일 처리 시작 : {}",a,file.getName());
-            imgFileIOService.copyFiles(file);
+            IOService.copyFiles(file);
             googleService.uploadAndOCR(file);
             a++;
         }
@@ -90,8 +92,8 @@ public class IDPEngineController {
         jsonInDecode.errorLabel = errorLabel;
         documentService.jsonData = JsonService.getJsonDictionary(jsonInDecode.JsonEncoding2(configLoader.jsonFilePath));
         classificationDocument();
-
 //        JsonService.processMarking(folderPath, jsonFolderPath);
+
     }
 
     public void processing() {
@@ -125,6 +127,4 @@ public class IDPEngineController {
         JsonService.processMarking(excelService.getExcelData(), configLoader.resultFilePath, excelService.docType);
 
     }
-
-
 }

@@ -16,8 +16,8 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
-public class IMGFileIOService {
-    private static final Logger log = LogManager.getLogger(IMGFileIOService.class);
+public class IOService {
+    private static final Logger log = LogManager.getLogger(IOService.class);
     public ConfigLoader configLoader;
 //    String resultFilePath;
 //왜 이래

@@ -15,8 +15,8 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Base64;
 
-public class JsonInDecode {
-    private static final Logger log = LogManager.getLogger(JsonInDecode.class);
+public class JsonEnDecode {
+    private static final Logger log = LogManager.getLogger(JsonEnDecode.class);
     public static String priKey = "iset2021!_1234567890a";
 
     public Label errorLabel;
