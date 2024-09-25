@@ -10,15 +10,14 @@ import org.w3c.dom.Text;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 public class IDPEngineController {
     private static final Logger log = LogManager.getLogger(IDPEngineController.class);
     public ConfigLoader configLoader = ConfigLoader.getInstance();
     public TextField inputImageFolderPath;
     public TextField inputResultFolderPath;
-    public TextField EncodingKey;
-    public Label errorLabel;
-
 
     private ExcelService excelService = new ExcelService();
     private DocumentService documentService = new DocumentService();
@@ -87,12 +86,10 @@ public class IDPEngineController {
     }
 
     public void onButton2Click(ActionEvent event) throws Exception {
-        jsonEnDecode.EncodingKey = EncodingKey;
-        jsonEnDecode.errorLabel = errorLabel;
-        documentService.jsonData = JsonService.getJsonDictionary(jsonEnDecode.JsonEncoding2(configLoader.jsonFilePath));
+        byte[] jsonToByte = Files.readAllBytes(Paths.get(configLoader.jsonFilePath));
+        documentService.jsonData = JsonService.getJsonDictionary(jsonEnDecode.aesDecode(jsonToByte));
         classificationDocument();
 //        JsonService.processMarking(folderPath, jsonFolderPath);
-
     }
 
     public void processing() {

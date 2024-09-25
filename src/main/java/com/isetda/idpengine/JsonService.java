@@ -345,7 +345,7 @@ public class JsonService {
                 JSONObject country = countryList.getJSONObject(i);
                 String countryName = country.getString("국가");
 
-                log.info("국가명: {}", countryName);
+                log.info("Country: {}", countryName);
 
                 JSONArray forms = country.getJSONArray("양식");
                 List<List<String[]>> formList = new ArrayList<>();
