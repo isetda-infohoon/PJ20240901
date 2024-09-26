@@ -32,6 +32,7 @@ public class ConfigLoader {
     private String username;
     private String password;
     private boolean dbDataUsageFlag;
+    public boolean fullTextClassify;
 
     private String configFilePath = "Config.xml";
     //jar파일 만들 때 상대경로 config 파일 빼놓기 위한 경로
@@ -72,6 +73,7 @@ public class ConfigLoader {
             username = root.getElementsByTagName("username").item(0).getTextContent().trim();
             password = root.getElementsByTagName("password").item(0).getTextContent().trim();
             dbDataUsageFlag = Boolean.parseBoolean(root.getElementsByTagName("dbDataUsageFlag").item(0).getTextContent().trim());
+            fullTextClassify = Boolean.parseBoolean(root.getElementsByTagName("fullTextClassify").item(0).getTextContent().trim());
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException("Failed to load configuration from " + configFilePath, e);
