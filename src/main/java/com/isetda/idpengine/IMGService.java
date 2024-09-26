@@ -13,10 +13,11 @@ import java.util.List;
 
 public class IMGService {
     private static final Logger log = LogManager.getLogger(IMGService.class);
+    public ConfigLoader configLoader;
 
-    public void drawMarking(File imageFile, List<Map<String, Object>> jsonCollection, Map<String, List<List<String[]>>> jsonData , String documentType,String jsonLocal ) throws IOException {
+    public void drawMarking(File imageFile, List<Map<String, Object>> jsonCollection) throws IOException {
         log.info("Adding marking to image: {}", imageFile.getAbsolutePath());
-        ExcelService excelService = new ExcelService();
+        DocumentService documentService = new DocumentService();
 
         BufferedImage image = ImageIO.read(imageFile);
         if (image == null) {
@@ -29,46 +30,46 @@ public class IMGService {
         g2d.setStroke(new java.awt.BasicStroke(1)); // 박스의 두께
 
         //나라 이름
-        String countryName = excelService.getCountryFromSheetName(jsonLocal);
+//        String countryName = documentService.getCountryFromSheetName(jsonLocal);
 
-        // json 데이터에서 해당 나라 문서 데이터만 추출
-        List<List<String[]>> jsonWord = jsonData.get(countryName);
-        if (jsonWord == null) {
-            log.warn("No JSON data corresponding: {}", jsonLocal);
-            return;
-        }
-        //안녕22
-
-        Set<String> excelWords = new HashSet<>();
-
-        // "사업자등록증(영업허가증)" 또는 다른 문서 양식 이름에 해당하는 데이터를 가져오기
-        // 또는 다른 문서 양식 이름으로 변경 가능
-        log.info("DocumentType : {}",documentType);
-        for (List<String[]> row : jsonWord) {
-            if (row.size() > 0 && documentType.equals(row.get(0)[0])) {
-                for (int i = 1; i < row.size(); i++) {
-                    excelWords.add(row.get(i)[0]);
-                }
-            }
-        }
-
-        if (excelWords.isEmpty()) {
-            log.warn("No words corresponding to document form '{}.", documentType);
-            return;
-        }
-
-        log.info("words extracted from Json: {}", excelWords);
-
-        //연속되는 단어들
-//        List<Map<String, Object>> matchedWords = JsonService.findMatchingWords(jsonCollection);
-        JsonService.findMatchingWords(jsonCollection);
-//        log.info("확인 작업 : {}", JsonService.jsonCollection2);
-        List<Map<String, Object>> matchedWords = JsonService.findtheword(excelWords);
-        log.info("matchedWords : {}",matchedWords);
-
-        for (Map<String, Object> word : matchedWords) {
+//        // json 데이터에서 해당 나라 문서 데이터만 추출
+//        List<List<String[]>> jsonWord = jsonData.get(countryName);
+//        if (jsonWord == null) {
+//            log.warn("No JSON data corresponding: {}", jsonLocal);
+//            return;
+//        }
+//        //안녕22
+//
+//        Set<String> excelWords = new HashSet<>();
+//
+//        // "사업자등록증(영업허가증)" 또는 다른 문서 양식 이름에 해당하는 데이터를 가져오기
+//        // 또는 다른 문서 양식 이름으로 변경 가능
+//        log.info("DocumentType : {}",documentType);
+//        for (List<String[]> row : jsonWord) {
+//            if (row.size() > 0 && documentType.equals(row.get(0)[0])) {
+//                for (int i = 1; i < row.size(); i++) {
+//                    excelWords.add(row.get(i)[0]);
+//                }
+//            }
+//        }
+//
+//        if (excelWords.isEmpty()) {
+//            log.warn("No words corresponding to document form '{}.", documentType);
+//            return;
+//        }
+//
+//        log.info("words extracted from Json: {}", excelWords);
+//
+//        //연속되는 단어들
+////        List<Map<String, Object>> matchedWords = JsonService.findMatchingWords(jsonCollection);
+//        JsonService.findMatchingWords(jsonCollection);
+////        log.info("확인 작업 : {}", JsonService.jsonCollection2);
+//        List<Map<String, Object>> matchedWords = JsonService.findtheword(excelWords);
+//        log.info("matchedWords : {}",matchedWords);
+            log.info("jsonCollection 2: {}",jsonCollection);
+        for (Map<String, Object> word : jsonCollection) {
             String description = (String) word.get("description");
-
+            log.info("word : {}",word);
 
                 int minX = (int) word.get("minX");
                 int minY = (int) word.get("minY");
@@ -79,7 +80,6 @@ public class IMGService {
                         description, minX, minY, maxX, maxY);
 
                 g2d.drawRect(minX, minY, maxX - minX, maxY - minY);
-                log.info("11");
         }
         g2d.dispose();
 
@@ -92,33 +92,43 @@ public class IMGService {
     }
 
 
-    public void processMarking(Map<String, List<List<String[]>>> excelData, String resultfolderPath, String documentType) throws IOException {
-
+    public void processMarking(List<Map<String, Object>> jsonCollection, String resultFilePath, String targetFileName) throws IOException {
         log.info("Start processing images and JSON files");
-        File folder = new File(resultfolderPath);
+
+        File folder = new File(resultFilePath);
         if (!folder.exists() || !folder.isDirectory()) {
-            log.warn("Invalid folder path: {}", resultfolderPath);
+            log.warn("Invalid folder path: {}", resultFilePath);
             return;
         }
 
-        File[] imageFiles = folder.listFiles((dir, name) -> name.toLowerCase().endsWith(".jpg") || name.toLowerCase().endsWith(".png") || name.toLowerCase().endsWith(".jpeg") && !name.toLowerCase().contains("_annotated.png"));
-        if (imageFiles == null || imageFiles.length == 0) {
-            log.warn("No image file in folder: {}", resultfolderPath);
-            return;
-        }
+        // 확장자가 무엇인지 모르는 상황에서 jpg, png, jpeg를 모두 확인
+        String[] extensions = {".jpg", ".png", ".jpeg"};
+        File imageFile = null;
 
-        for (File imageFile : imageFiles) {
-            String baseName = imageFile.getName().substring(0, imageFile.getName().lastIndexOf('.'));
-            File jsonFile = new File(resultfolderPath, baseName + "_result.json");
-
-            if (jsonFile.exists()) {
-                log.info("JSON file path: {}", jsonFile.getAbsolutePath());
-                JsonService jsonService = new JsonService(jsonFile.getAbsolutePath());
-                this.drawMarking(imageFile, jsonService.jsonCollection, excelData,documentType,jsonService.jsonLocal);
-            } else {
-                log.warn("JSON file not found for image: {}", imageFile.getName());
+        for (String ext : extensions) {
+            File tempFile = new File(resultFilePath, targetFileName + ext);
+            if (tempFile.exists() && tempFile.isFile()) {
+                imageFile = tempFile;
+                break;
             }
         }
+
+        if (imageFile == null) {
+            log.warn("Image file not found: {}.jpg, {}.png, or {}.jpeg", targetFileName, targetFileName, targetFileName);
+            return;
+        }
+
+        log.info("imageFile : {}", imageFile.getName());
+        String baseName = imageFile.getName().substring(0, imageFile.getName().lastIndexOf('.'));
+        File jsonFile = new File(resultFilePath, baseName + "_result.json");
+
+        if (jsonFile.exists()) {
+            log.info("JSON file path: {}", jsonFile.getAbsolutePath());
+            this.drawMarking(imageFile, jsonCollection);
+        } else {
+            log.warn("JSON file not found for image: {}", imageFile.getName());
+        }
+
         log.info("Image and JSON file processing completed");
     }
 }

@@ -51,7 +51,7 @@ public class JsonService {
 
             log.info("Start word position extraction");
 
-            for (int i = 1; i < textAnnotationsArray.length(); i++) {
+            for (int i = 0; i < textAnnotationsArray.length(); i++) {
                 Map<String, Object> data = new HashMap<>();
                 JSONObject textAnnotation = textAnnotationsArray.getJSONObject(i);
 
@@ -112,7 +112,7 @@ public class JsonService {
                         .map(v -> String.format("(%d, %d)", v.getInt("x"), v.getInt("y")))
                         .collect(Collectors.joining(", "));
 
-                log.info(String.format("안녕 L:%-45s|MinX:%5d|MinY:%5d|MaxX:%5d|MaxY:%5d|W:%-20s", verticesString, minX, minY, maxX, maxY, description));
+                log.info(String.format("L:%-45s|MinX:%5d|MinY:%5d|MaxX:%5d|MaxY:%5d|W:%-20s", verticesString, minX, minY, maxX, maxY, description));
             }
             log.info("Word position extraction successful");
         } catch (Exception e) {
@@ -184,11 +184,11 @@ public class JsonService {
         for (Map<String, Object> item : jsonCollection2) {
             String description = (String) item.get("description");
             if (targetWords.contains(description)) {
-                log.info("확인 : {}",item);
+//                log.info("확인 : {}",item);
                 jsonCollection3.add(item);
             }
         }
-        log.info("jsonCollection3 :{}",jsonCollection3);
+//        log.info("jsonCollection3 :{}",jsonCollection3);
         return jsonCollection3;
     }
 

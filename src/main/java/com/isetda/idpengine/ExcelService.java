@@ -134,7 +134,7 @@ public class ExcelService {
             for (int j = 0; j < resultList.get(i).size(); j++) {
                 Cell cell = row.createCell(j);
                 cell.setCellValue(resultList.get(i).get(j));
-                log.info("안녕 11 :{}  : {}",cell);
+//                log.info("안녕 11 :{}  : {}",cell);
             }
 
             if (i == resultList.size() - 1) {
