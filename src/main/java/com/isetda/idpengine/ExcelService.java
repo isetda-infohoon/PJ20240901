@@ -128,56 +128,116 @@ public class ExcelService {
 //
 //    }
 
-
-
-
     // 엑셀에 결과 값 쓰기
     public void createExcel(List<List<String>> resultList, List<List<String>> resultWord, String fileName, String saveFilePath) throws IOException {
-        Workbook workbook = new XSSFWorkbook();
-        Sheet sheet = workbook.createSheet("Sheet1");
+        File file = new File(saveFilePath);
+        Workbook workbook;
+        Sheet sheet;
 
-        // Writing resultList
-        for (int i = 0; i < resultList.size(); i++) {
-            Row row = sheet.createRow(i);
-            for (int j = 0; j < resultList.get(i).size(); j++) {
-                Cell cell = row.createCell(j);
-                cell.setCellValue(resultList.get(i).get(j));
-                log.info("안녕 11 :{}  : {}",cell);
+        // 이미 생성된 파일이 있는지 확인
+        if (file.exists()) {
+            // 생성된 파일이 있는 경우 기존 파일에 이어서 결과 작성
+            log.info("{} File exists. Continuing from the existing file.", fileName);
+
+            try (FileInputStream fileIn = new FileInputStream(file)) {
+                workbook = new XSSFWorkbook(fileIn);
             }
+            sheet = workbook.getSheetAt(0);
 
-            if (i == resultList.size() - 1) {
-                // Writing resultWord
-                int colNum = 2; // 3열부터 시작 (C열에 해당)
+            int startRow = sheet.getLastRowNum();
+            for (int i = 1; i < resultList.size(); i++) {
+                Row row = sheet.createRow(startRow + i);
+                for (int j = 0; j < resultList.get(i).size(); j++) {
+                    Cell cell = row.createCell(j);
+                    cell.setCellValue(resultList.get(i).get(j));
+                    log.info("안녕 11 :{}  : {}", cell);
+                }
 
-                for (List<String> rowData : resultWord) {
-                    Cell cell = row.createCell(colNum); // 2열에 해당
+                if (i == resultList.size() - 1) {
+                    // Writing resultWord
+                    int colNum = 2; // 3열부터 시작 (C열에 해당)
 
-                    StringBuilder cellValue = new StringBuilder(rowData.getFirst());
-                    cellValue.append(" (");
+                    for (List<String> rowData : resultWord) {
+                        Cell cell = row.createCell(colNum); // 2열에 해당
 
-                    for (int j = 1; j < rowData.size() - 1; j++) {
-                        cellValue.append(rowData.get(j));
-                        if (j < rowData.size() - 2) {
-                            cellValue.append(", ");
+                        StringBuilder cellValue = new StringBuilder(rowData.get(0));
+                        cellValue.append(" (");
+
+                        for (int j = 1; j < rowData.size() - 1; j++) {
+                            cellValue.append(rowData.get(j));
+                            if (j < rowData.size() - 2) {
+                                cellValue.append(", ");
+                            }
                         }
+
+                        cellValue.append(")");
+                        cell.setCellValue(cellValue.toString());
+                        colNum++;
+
+                        Cell cell2 = row.createCell(colNum);
+                        cell2.setCellValue(rowData.get(0) + " (" + rowData.get(rowData.size() - 1) + ")");
+                        colNum++;
                     }
 
-                    cellValue.append(")");
-                    cell.setCellValue(cellValue.toString());
-                    colNum++;
+                    // cd1, cd2, cd3 .. 분류 유형에 따라 파일 이름 작성
+                    Cell cell3 = row.createCell(colNum);
+                    cell3.setCellValue(fileName + " (cd2)");
+                }
+            }
+        } else {
+            // 생성된 파일이 없는 경우 새 파일 생성
+            workbook = new XSSFWorkbook();
+            sheet = workbook.createSheet("Sheet1");
 
-                    Cell cell2 = row.createCell(colNum);
-                    cell2.setCellValue(rowData.getFirst() + " (" + rowData.getLast() + ")");
-                    colNum++;
+            // 첫 번째 행에 파일 이름 삽입
+            Row firstRow = sheet.createRow(0);
+            Cell fileNameCell = firstRow.createCell(0); // A열에 해당
+            fileNameCell.setCellValue("파일이름");
+            Cell fileNameCell2 = firstRow.createCell(1);
+            fileNameCell2.setCellValue(fileName.replace("_OCR_result", "")); // B열에 해당
+
+            // Writing resultList
+            int startRow = sheet.getLastRowNum() + 1;
+            for (int i = 0; i < resultList.size(); i++) {
+                Row row = sheet.createRow(startRow + i);
+                for (int j = 0; j < resultList.get(i).size(); j++) {
+                    Cell cell = row.createCell(j);
+                    cell.setCellValue(resultList.get(i).get(j));
+                    log.info("안녕 11 :{}  : {}", cell);
+                }
+
+                if (i == resultList.size() - 1) {
+                    // Writing resultWord
+                    int colNum = 2; // 3열부터 시작 (C열에 해당)
+
+                    for (List<String> rowData : resultWord) {
+                        Cell cell = row.createCell(colNum); // 2열에 해당
+
+                        StringBuilder cellValue = new StringBuilder(rowData.get(0));
+                        cellValue.append(" (");
+
+                        for (int j = 1; j < rowData.size() - 1; j++) {
+                            cellValue.append(rowData.get(j));
+                            if (j < rowData.size() - 2) {
+                                cellValue.append(", ");
+                            }
+                        }
+
+                        cellValue.append(")");
+                        cell.setCellValue(cellValue.toString());
+                        colNum++;
+
+                        Cell cell2 = row.createCell(colNum);
+                        cell2.setCellValue(rowData.get(0) + " (" + rowData.get(rowData.size() - 1) + ")");
+                        colNum++;
+                    }
+
+                    // cd1, cd2, cd3 .. 분류 유형에 따라 파일 이름 작성
+                    Cell cell3 = row.createCell(colNum);
+                    cell3.setCellValue(fileName + " (cd1)");
                 }
             }
         }
-        Row thirdRow = sheet.createRow(2); // Create the 3rd row (index 2)
-        Cell fileNameCell = thirdRow.createCell(0); // A열에 해당
-        fileNameCell.setCellValue("파일이름: ");
-        Cell fileNameCell2 = thirdRow.createCell(1);
-        fileNameCell2.setCellValue(fileName.replace("_OCR_result",""));// A열에 해당
-
 
         try (FileOutputStream fileOut = new FileOutputStream(saveFilePath)) {
             workbook.write(fileOut);

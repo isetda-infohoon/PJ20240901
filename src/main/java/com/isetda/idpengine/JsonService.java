@@ -32,49 +32,54 @@ public class JsonService {
         try {
             this.jsonObject = new JSONObject(FileUtils.readFileToString(new File(jsonFilePath), "UTF-8"));
             log.info("JSON 데이터 로딩 성공");
-            getWordPosition();
+            getOcrResultJson();
         } catch (IOException e) {
             log.error("JSON 파일 읽던 중 에러", e);
         }
     }
+
+    public void getOcrResultJson() {
+        jsonCollection = new ArrayList<>();
+
+        JSONObject responsesObject = jsonObject.getJSONArray("responses").getJSONObject(0);
+        JSONArray textAnnotationsArray = responsesObject.getJSONArray("textAnnotations");
+        jsonLocal = textAnnotationsArray.getJSONObject(0).getString("locale");
+        log.info("언어 코드: {}", jsonLocal);
+
+        log.info("단어 위치 추출 시작");
+
+        for (int i = 0; i < textAnnotationsArray.length(); i++) {
+            Map<String, Object> data = new HashMap<>();
+            JSONObject textAnnotation = textAnnotationsArray.getJSONObject(i);
+
+            String description = textAnnotation.getString("description");
+            JSONArray verticesArray = textAnnotation.getJSONObject("boundingPoly").getJSONArray("vertices");
+
+            List<JSONObject> vertices = IntStream.range(0, verticesArray.length()).mapToObj(verticesArray::getJSONObject).collect(Collectors.toList());
+
+            int minX = vertices.stream().mapToInt(v -> v.getInt("x")).min().orElse(0);
+            int minY = vertices.stream().mapToInt(v -> v.getInt("y")).min().orElse(0);
+            int maxX = vertices.stream().mapToInt(v -> v.getInt("x")).max().orElse(0);
+            int maxY = vertices.stream().mapToInt(v -> v.getInt("y")).max().orElse(0);
+
+            int midY = (minY + maxY) / 2; // MinY와 MaxY의 중간 값 계산
+
+            data.put("description", description);
+            data.put("vertices", vertices);
+            data.put("minX", minX);
+            data.put("minY", minY);
+            data.put("maxX", maxX);
+            data.put("maxY", maxY);
+            data.put("midY", midY); // 중간 값 저장
+
+            jsonCollection.add(data);
+        }
+    }
+
     //json에서 단어, 위치 가져와서 정렬 (1차)
     public void getWordPosition() {
         jsonCollection = new ArrayList<>();
         try {
-            JSONObject responsesObject = jsonObject.getJSONArray("responses").getJSONObject(0);
-            JSONArray textAnnotationsArray = responsesObject.getJSONArray("textAnnotations");
-            jsonLocal = textAnnotationsArray.getJSONObject(0).getString("locale");
-            log.info("언어 코드: {}", jsonLocal);
-
-            log.info("단어 위치 추출 시작");
-
-            for (int i = 1; i < textAnnotationsArray.length(); i++) {
-                Map<String, Object> data = new HashMap<>();
-                JSONObject textAnnotation = textAnnotationsArray.getJSONObject(i);
-
-                String description = textAnnotation.getString("description");
-                JSONArray verticesArray = textAnnotation.getJSONObject("boundingPoly").getJSONArray("vertices");
-
-                List<JSONObject> vertices = IntStream.range(0, verticesArray.length()).mapToObj(verticesArray::getJSONObject).collect(Collectors.toList());
-
-                int minX = vertices.stream().mapToInt(v -> v.getInt("x")).min().orElse(0);
-                int minY = vertices.stream().mapToInt(v -> v.getInt("y")).min().orElse(0);
-                int maxX = vertices.stream().mapToInt(v -> v.getInt("x")).max().orElse(0);
-                int maxY = vertices.stream().mapToInt(v -> v.getInt("y")).max().orElse(0);
-
-                int midY = (minY + maxY) / 2; // MinY와 MaxY의 중간 값 계산
-
-                data.put("description", description);
-                data.put("vertices", vertices);
-                data.put("minX", minX);
-                data.put("minY", minY);
-                data.put("maxX", maxX);
-                data.put("maxY", maxY);
-                data.put("midY", midY); // 중간 값 저장
-
-                jsonCollection.add(data);
-            }
-
             // 중간 값을 기준으로 정렬
             jsonCollection.sort((a, b) -> {
                 int midY_a = ((int) a.get("minY") + (int) a.get("maxY")) / 2;
