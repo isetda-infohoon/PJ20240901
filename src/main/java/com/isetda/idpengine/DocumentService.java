@@ -288,7 +288,7 @@ public class DocumentService {
         List<String> documentType = new ArrayList<>();
         documentType.add("문서 양식");
 
-        if (formWithMostMatches != null || formWithMostWeights != null) {
+        if (formWithMostMatches == null || formWithMostWeights == null) {
             log.info("Unclassified File: {}", items);
             documentType.add("미분류");
         } else {
