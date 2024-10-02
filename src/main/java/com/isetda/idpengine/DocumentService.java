@@ -177,7 +177,10 @@ public class DocumentService {
         documentType.add("문서 양식");
 
         if (matchIndex == -1 || weightIndex == -1) {
-            log.info("Unclassified File: {}", jsonDescription);
+            log.info("Unclassified File, Reason: No document matching classification result");
+            documentType.add("미분류");
+        } else if (maxWeight <= 0.5) {
+            log.info("Unclassified File, Reason: Underweight");
             documentType.add("미분류");
         } else {
             log.info("Document classification results: Country Code({}), Document Type({}), Weight({})", jsonLocale, targetSheetData.get(matchIndex).get(0)[0], maxWeight);
@@ -270,7 +273,7 @@ public class DocumentService {
             }
         }
 
-        log.info("가장 일치 단어 개수가 많은 양식: '{}', 일치 단어 수: {}", formWithMostMatches, maxMatches);
+        //log.info("가장 일치 단어 개수가 많은 양식: '{}', 일치 단어 수: {}", formWithMostMatches, maxMatches);
 
 
 //        if (matchIndex == weightIndex) {
@@ -288,8 +291,12 @@ public class DocumentService {
         List<String> documentType = new ArrayList<>();
         documentType.add("문서 양식");
 
+
         if (formWithMostMatches == null || formWithMostWeights == null) {
-            log.info("Unclassified File: {}", items);
+            log.info("Unclassified File, Reason: No document matching classification result");
+            documentType.add("미분류");
+        } else if (maxWeight <= 0.5) {
+            log.info("Unclassified File, Reason: Underweight");
             documentType.add("미분류");
         } else {
             log.info("Document classification results: Country Code({}), Document Type({}), Weight({})", jsonLocale, formWithMostMatches, maxWeight);

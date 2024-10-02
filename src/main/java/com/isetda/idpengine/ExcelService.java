@@ -213,7 +213,7 @@ public class ExcelService {
                     for (List<String> rowData : resultWord) {
                         Cell cell = row.createCell(colNum); // 2열에 해당
 
-                        StringBuilder cellValue = new StringBuilder(rowData.get(0));
+                        StringBuilder cellValue = new StringBuilder(rowData.get(0) + " 일치 단어 리스트");
                         cellValue.append(" (");
 
                         for (int j = 1; j < rowData.size() - 1; j++) {
@@ -228,7 +228,7 @@ public class ExcelService {
                         colNum++;
 
                         Cell cell2 = row.createCell(colNum);
-                        cell2.setCellValue(rowData.get(0) + " (" + rowData.get(rowData.size() - 1) + ")");
+                        cell2.setCellValue(rowData.get(0) + " 일치 단어 전체 개수 (" + rowData.get(rowData.size() - 1) + ")");
                         colNum++;
                     }
 
