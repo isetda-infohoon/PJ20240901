@@ -17,6 +17,7 @@ import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
@@ -41,6 +42,13 @@ public class GoogleService {
             localDir.mkdirs();
             log.info("Create a resulting directory: {}", configLoader.resultFilePath);
         }
+
+        // PDF 파일 제외
+        if (file.getName().toLowerCase().endsWith(".pdf")) {
+            log.info("Skipping PDF file: {}", file.getName());
+            return;
+        }
+
         String accessToken = getAccessToken();
         OkHttpClient client = new OkHttpClient();
 
@@ -88,9 +96,20 @@ public class GoogleService {
                 String outputFileName = file.getName().substring(0, file.getName().lastIndexOf("."));
                 String outputPath = configLoader.resultFilePath + "\\" + outputFileName + "_result.json";
                 try (FileWriter writer = new FileWriter(outputPath)) {
+                    //인코딩 디코딩 하는 메서드 ---------------------
+//                    byte[] encData = JsonService.aesEncode(responseBody);
+//                    Files.write(Paths.get(outputPath),encData);
+//
+//                    byte[] fileContent = Files.readAllBytes(Paths.get(outputPath));
+//                    String decodedText = JsonService.aesDecode(fileContent);
+//                    log.info("Decoding text: {}", decodedText);
+//                    ------------------------------------------------------------------
                     writer.write(responseBody);
+                    log.info("responseBody:{}",responseBody);
                     jsonFilePaths.add(outputPath); // JSON 파일 경로 리스트에 추가
                     log.info("JSON file download successful");
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
                 }
                 log.info("OCR request successful");
                 deleteFileInBucket(storage, blobId);

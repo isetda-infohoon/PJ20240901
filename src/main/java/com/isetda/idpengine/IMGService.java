@@ -15,7 +15,7 @@ public class IMGService {
     private static final Logger log = LogManager.getLogger(IMGService.class);
     public ConfigLoader configLoader;
 
-    public void drawMarking(File imageFile, List<Map<String, Object>> jsonCollection) throws IOException {
+    public void drawMarking(File imageFile, List<Map<String, Object>> jsonCollection ,int a) throws IOException {
         log.info("Adding marking to image: {}", imageFile.getAbsolutePath());
         DocumentService documentService = new DocumentService();
 
@@ -84,7 +84,7 @@ public class IMGService {
         g2d.dispose();
 
         // 이미지 파일의 이름을 PNG 확장자로 변경
-        String outputImagePath = imageFile.getParent() + File.separator + imageFile.getName().substring(0, imageFile.getName().lastIndexOf('.')) + "_annotated.png";
+        String outputImagePath = imageFile.getParent() + File.separator + imageFile.getName().substring(0, imageFile.getName().lastIndexOf('.')) + "_annotated"+a+".png";
         File outputImageFile = new File(outputImagePath);
         ImageIO.write(image, "png", outputImageFile);
 
@@ -92,7 +92,7 @@ public class IMGService {
     }
 
 
-    public void processMarking(List<Map<String, Object>> jsonCollection, String resultFilePath, String targetFileName) throws IOException {
+    public void processMarking(List<Map<String, Object>> jsonCollection, String resultFilePath, String targetFileName, int a) throws IOException {
         log.info("Start processing images and JSON files");
 
         File folder = new File(resultFilePath);
@@ -124,7 +124,7 @@ public class IMGService {
 
         if (jsonFile.exists()) {
             log.info("JSON file path: {}", jsonFile.getAbsolutePath());
-            this.drawMarking(imageFile, jsonCollection);
+            this.drawMarking(imageFile, jsonCollection,a);
         } else {
             log.warn("JSON file not found for image: {}", imageFile.getName());
         }
