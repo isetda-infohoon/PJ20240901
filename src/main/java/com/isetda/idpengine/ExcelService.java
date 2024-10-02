@@ -129,7 +129,7 @@ public class ExcelService {
 //    }
 
     // 엑셀에 결과 값 쓰기
-    public void createExcel(List<List<String>> resultList, List<List<String>> resultWord, String fileName, String saveFilePath) throws IOException {
+    public void createExcel(List<List<String>> resultList, List<List<String>> resultWord, String fileName, String saveFilePath ,int a) throws IOException {
         File file = new File(saveFilePath);
         Workbook workbook;
         Sheet sheet;
@@ -150,7 +150,7 @@ public class ExcelService {
                 for (int j = 0; j < resultList.get(i).size(); j++) {
                     Cell cell = row.createCell(j);
                     cell.setCellValue(resultList.get(i).get(j));
-                    log.info("안녕 11 :{}  : {}", cell);
+//                    log.info("안녕 11 :{}  : {}", cell);
                 }
 
                 if (i == resultList.size() - 1) {
@@ -181,7 +181,7 @@ public class ExcelService {
 
                     // cd1, cd2, cd3 .. 분류 유형에 따라 파일 이름 작성
                     Cell cell3 = row.createCell(colNum);
-                    cell3.setCellValue(fileName + " (cd2)");
+                    cell3.setCellValue(fileName + " (cd"+a+")");
                 }
             }
         } else {
@@ -203,7 +203,6 @@ public class ExcelService {
                 for (int j = 0; j < resultList.get(i).size(); j++) {
                     Cell cell = row.createCell(j);
                     cell.setCellValue(resultList.get(i).get(j));
-                    log.info("안녕 11 :{}  : {}", cell);
                 }
 
                 if (i == resultList.size() - 1) {
@@ -230,6 +229,10 @@ public class ExcelService {
                         Cell cell2 = row.createCell(colNum);
                         cell2.setCellValue(rowData.get(0) + " 일치 단어 전체 개수 (" + rowData.get(rowData.size() - 1) + ")");
                         colNum++;
+                        log.info("안녕 11 :{}  : {}", cell);
+                        log.info("안녕 22 :{}  : {}", cell2);
+
+
                     }
 
                     // cd1, cd2, cd3 .. 분류 유형에 따라 파일 이름 작성

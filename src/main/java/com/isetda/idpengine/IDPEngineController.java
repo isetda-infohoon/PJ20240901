@@ -42,17 +42,17 @@ public class IDPEngineController {
         GoogleService googleService = new GoogleService();
 
         if (inputImageFolderPath.getText().isEmpty()){
-            log.info("소스 폴더 경로(기본) : {}",configLoader.imageFolderPath);
+            log.info("Source folder path(default): {}",configLoader.imageFolderPath);
             inputImageFolderPath.setText(configLoader.imageFolderPath);
         }else {
             configLoader.imageFolderPath = inputImageFolderPath.getText();
-            log.info("소스 폴더 경로(입력값) : {}",configLoader.imageFolderPath);
+            log.info("Source folder path(input): {}",configLoader.imageFolderPath);
         }
         if (inputResultFolderPath.getText().isEmpty()){
-            log.info("결과 폴더 경로(기본) : {}",configLoader.resultFilePath);
+            log.info("Result folder path(default): {}",configLoader.resultFilePath);
         }else {
             configLoader.resultFilePath = inputResultFolderPath.getText();
-            log.info("결과 폴더 경로(입력값) : {}",configLoader.resultFilePath);
+            log.info("Result folder path(input): {}",configLoader.resultFilePath);
         }
 
         configLoader.saveConfig(); // 변경된 경로를 XML 파일에 저장
@@ -66,20 +66,20 @@ public class IDPEngineController {
         if (!resultFolder.exists()) {
             boolean created = resultFolder.mkdirs(); // 여러 폴더도 생성 가능
             if (created) {
-                log.info("폴더가 생성되었습니다: {}", resultFilePath);
+                log.info("Folder created: {}", resultFilePath);
             } else {
-                log.info("결과 폴더가 존재합니다 : {}",resultFilePath);
+                log.info("Result folder exists: {}",resultFilePath);
             }
         }
         imageAndPdfFiles = IOService.getFilteredFiles();
         int a =1;
         for(File file : imageAndPdfFiles){
-            log.info("{}번째 파일 처리 시작 : {}",a,file.getName());
+            log.info("{} Start processing files: {}",a,file.getName());
             IOService.copyFiles(file);
             googleService.uploadAndOCR(file);
             a++;
         }
-        log.info("이미지 파일 복사 개수 : {} 개", imageAndPdfFiles.length);
+        log.info("Number of image file copies: {}", imageAndPdfFiles.length);
 
 //        imgFileIOService.deleteFilesInFolder();
 //        JsonService.processMarking(folderPath, jsonFolderPath);
@@ -87,7 +87,7 @@ public class IDPEngineController {
 
     public void onButton2Click(ActionEvent event) throws Exception {
         byte[] jsonToByte = Files.readAllBytes(Paths.get(configLoader.jsonFilePath));
-        documentService.jsonData = JsonService.getJsonDictionary(jsonEnDecode.aesDecode(jsonToByte));
+        documentService.jsonData = JsonService.getJsonDictionary(JsonService.aesDecode(jsonToByte));
         classificationDocument();
 //        JsonService.processMarking(folderPath, jsonFolderPath);
     }
@@ -121,6 +121,6 @@ public class IDPEngineController {
         // 전달 받은 폴더 경로의 json 파일 필터링
         documentService.jsonFiles = excelService.getFilteredJsonFiles();
         documentService.createFinalResultFile();
-        imgService.processMarking(excelService.getExcelData(), configLoader.resultFilePath, excelService.docType);
+//        imgService.processMarking(documentService.matchjsonWord, configLoader.resultFilePath,);
     }
 }

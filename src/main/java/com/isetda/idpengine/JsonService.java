@@ -7,11 +7,15 @@ import org.apache.poi.ss.formula.functions.T;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import javax.crypto.Cipher;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -20,8 +24,11 @@ import java.util.stream.IntStream;
 public class JsonService {
     public String jsonLocal = "";
     public JSONObject jsonObject;
+    //그냥 기본으로 오는 단어 구조 match1
     public List<Map<String, Object>> jsonCollection;
-    public static List<Map<String, Object>> jsonCollection3;
+    //단어 리스트와 일치하는 match2의 단어 값
+    public static List<Map<String, Object>> jsonCollection3 = new ArrayList<>();
+    //y축 기준 경우의 수 그룹화 단어 match2
     public static List<Map<String, Object>> jsonCollection2;
     public static ConfigLoader configLoader = ConfigLoader.getInstance();
 
@@ -31,95 +38,104 @@ public class JsonService {
     public JsonService(String jsonFilePath) {
         try {
             this.jsonObject = new JSONObject(FileUtils.readFileToString(new File(jsonFilePath), "UTF-8"));
-            log.info("JSON 데이터 로딩 성공");
-            getOcrResultJson();
+            log.info("JSON data loading successful");
+            getWordPosition();
         } catch (IOException e) {
-            log.error("JSON 파일 읽던 중 에러", e);
+            log.error("Error reading json file", e);
         }
     }
-
-    public void getOcrResultJson() {
-        jsonCollection = new ArrayList<>();
-
-        JSONObject responsesObject = jsonObject.getJSONArray("responses").getJSONObject(0);
-        JSONArray textAnnotationsArray = responsesObject.getJSONArray("textAnnotations");
-        jsonLocal = textAnnotationsArray.getJSONObject(0).getString("locale");
-        log.info("언어 코드: {}", jsonLocal);
-
-        log.info("단어 위치 추출 시작");
-
-        for (int i = 0; i < textAnnotationsArray.length(); i++) {
-            Map<String, Object> data = new HashMap<>();
-            JSONObject textAnnotation = textAnnotationsArray.getJSONObject(i);
-
-            String description = textAnnotation.getString("description");
-            JSONArray verticesArray = textAnnotation.getJSONObject("boundingPoly").getJSONArray("vertices");
-
-            List<JSONObject> vertices = IntStream.range(0, verticesArray.length()).mapToObj(verticesArray::getJSONObject).collect(Collectors.toList());
-
-            int minX = vertices.stream().mapToInt(v -> v.getInt("x")).min().orElse(0);
-            int minY = vertices.stream().mapToInt(v -> v.getInt("y")).min().orElse(0);
-            int maxX = vertices.stream().mapToInt(v -> v.getInt("x")).max().orElse(0);
-            int maxY = vertices.stream().mapToInt(v -> v.getInt("y")).max().orElse(0);
-
-            int midY = (minY + maxY) / 2; // MinY와 MaxY의 중간 값 계산
-
-            data.put("description", description);
-            data.put("vertices", vertices);
-            data.put("minX", minX);
-            data.put("minY", minY);
-            data.put("maxX", maxX);
-            data.put("maxY", maxY);
-            data.put("midY", midY); // 중간 값 저장
-
-            jsonCollection.add(data);
-        }
-    }
-
     //json에서 단어, 위치 가져와서 정렬 (1차)
     public void getWordPosition() {
         jsonCollection = new ArrayList<>();
         try {
-            // 중간 값을 기준으로 정렬
-            jsonCollection.sort((a, b) -> {
-                int midY_a = ((int) a.get("minY") + (int) a.get("maxY")) / 2;
-                int midY_b = ((int) b.get("minY") + (int) b.get("maxY")) / 2;
+            JSONObject responsesObject = jsonObject.getJSONArray("responses").getJSONObject(0);
+            JSONArray textAnnotationsArray = responsesObject.getJSONArray("textAnnotations");
+            jsonLocal = textAnnotationsArray.getJSONObject(0).getString("locale");
+            log.info("language code: {}", jsonLocal);
 
-                int minY_b = (int) b.get("minY");
-                int maxY_b = (int) b.get("maxY");
+            log.info("Start word position extraction");
 
-                int minY_a = (int) a.get("minY");
-                int maxY_a = (int) a.get("maxY");
+            // 첫 번째 description(전체 텍스트)을 별도로 처리
+            JSONObject firstAnnotation = textAnnotationsArray.getJSONObject(0);
+            Map<String, Object> firstData = processAnnotation(firstAnnotation);
+            jsonCollection.add(firstData);
 
-                // 오차 범위를 고려한 midY 정렬
-                if ((midY_a>=minY_b && midY_a<=maxY_b) || (midY_b>=minY_a && midY_b<=maxY_a)) {
-                    // midY가 비슷하면 minX로 정렬
-                    return Integer.compare((int) a.get("minX"), (int) b.get("minX"));
-                } else {
-                    // midY로 정렬
-                    return Integer.compare(midY_a, midY_b);
-                }
-            });
+            // 나머지 annotations 처리
+            for (int i = 1; i < textAnnotationsArray.length(); i++) {
+                JSONObject textAnnotation = textAnnotationsArray.getJSONObject(i);
+                Map<String, Object> data = processAnnotation(textAnnotation);
+                jsonCollection.add(data);
+            }
 
-//            for (Map<String, Object> item : jsonCollection) {
-//                String description = (String) item.get("description");
-//                List<JSONObject> vertices = (List<JSONObject>) item.get("vertices");
-//                int minX = (int) item.get("minX");
-//                int minY = (int) item.get("minY");
-//                int maxX = (int) item.get("maxX");
-//                int maxY = (int) item.get("maxY");
-//
-//                // 로그 쌓기 위한 것
-//                String verticesString = vertices.stream()
-//                        .map(v -> String.format("(%d, %d)", v.getInt("x"), v.getInt("y")))
-//                        .collect(Collectors.joining(", "));
-//
-//                log.info(String.format("L:%-45s|MinX:%5d|MinY:%5d|MaxX:%5d|MaxY:%5d|W:%-20s", verticesString, minX, minY, maxX, maxY, description));
-//            }
-            log.info("단어 위치 추출 완료");
+            // 첫 번째 항목을 제외한 나머지 항목들에 대해 정렬 수행
+            List<Map<String, Object>> remainingItems = jsonCollection.subList(1, jsonCollection.size());
+
+            // midY를 기준으로 정렬
+            remainingItems.sort(Comparator.comparingInt(a -> {
+                        Integer midY = (Integer) ((Map<String, Object>) a).get("midY");
+                        return midY != null ? midY : Integer.MAX_VALUE; // null인 경우 최대값으로 처리
+                    })
+                    .thenComparingInt(a -> {
+                        Integer minX = (Integer) ((Map<String, Object>) a).get("minX");
+                        return minX != null ? minX : Integer.MAX_VALUE; // null인 경우 최대값으로 처리
+                    })); // midY가 같으면 minX로 추가 정렬
+
+
+            // 정렬된 결과를 jsonCollection에 다시 설정
+            jsonCollection = new ArrayList<>();
+            jsonCollection.add(firstData); // 첫 번째 항목 추가
+            jsonCollection.addAll(remainingItems); // 나머지 항목 추가
+
+            for (Map<String, Object> item : jsonCollection) {
+                logItemInfo(item);
+            }
+            log.info("Word position extraction successful");
         } catch (Exception e) {
-            log.error("단어 위치 추출 중 오류 발생: {}", e.getMessage(), e);
+            log.error("Error extracting word location: {}", e.getMessage(), e);
         }
+    }
+
+    private Map<String, Object> processAnnotation(JSONObject textAnnotation) {
+        Map<String, Object> data = new HashMap<>();
+        String description = textAnnotation.getString("description");
+        JSONArray verticesArray = textAnnotation.getJSONObject("boundingPoly").getJSONArray("vertices");
+
+        List<JSONObject> vertices = IntStream.range(0, verticesArray.length())
+                .mapToObj(verticesArray::getJSONObject)
+                .collect(Collectors.toList());
+
+        int minX = vertices.stream().mapToInt(v -> v.optInt("x", 0)).min().orElse(0);
+        int minY = vertices.stream().mapToInt(v -> v.optInt("y", 0)).min().orElse(0);
+        int maxX = vertices.stream().mapToInt(v -> v.optInt("x", 0)).max().orElse(0);
+        int maxY = vertices.stream().mapToInt(v -> v.optInt("y", 0)).max().orElse(0);
+        int midY = (minY + maxY) / 2;
+
+        data.put("description", description);
+        data.put("vertices", vertices);
+        data.put("minX", minX);
+        data.put("minY", minY);
+        data.put("maxX", maxX);
+        data.put("maxY", maxY);
+        data.put("midY", midY);
+
+        return data;
+    }
+
+    private void logItemInfo(Map<String, Object> item) {
+        String description = (String) item.get("description");
+        List<JSONObject> vertices = (List<JSONObject>) item.get("vertices");
+        int minX = (int) item.get("minX");
+        int minY = (int) item.get("minY");
+        int maxX = (int) item.get("maxX");
+        int maxY = (int) item.get("maxY");
+        int midY = (int) item.get("midY");
+
+        String verticesString = vertices.stream()
+                .map(v -> String.format("(%d, %d)", v.optInt("x", 0), v.optInt("y", 0)))
+                .collect(Collectors.joining(", "));
+
+        log.debug(String.format("L:%-45s|MinX:%5d|MinY:%5d|MaxX:%5d|MaxY:%5d|MidY:%5d|W:%-20s",
+                verticesString, minX, minY, maxX, maxY, midY, description));
     }
 
 
@@ -131,7 +147,7 @@ public class JsonService {
 
         List<Map<String, Object>> checkText = null;
         for (int i = 0; i < words.size(); i++) {
-            a = 0;
+            a = 1;
             StringBuilder currentText = new StringBuilder();
             int startMaxX = (int) words.get(i).get("maxX");
             int startMaxY = (int) words.get(i).get("maxY");
@@ -145,6 +161,7 @@ public class JsonService {
             Map<String, Object> singleWord = words.get(i);
             checkText.add(singleWord);
             currentText.append(singleWord.get("description"));
+            log.debug("The first word :{}",currentText);
 
             // 단일 단어 자체를 결과에 추가
 //            addToResults(results, checkText, currentText.toString().replace(" ", ""), startX, startY, startMaxX, startMaxY, targetWords);
@@ -152,9 +169,11 @@ public class JsonService {
             // 연속된 단어 조합 생성
             for (int j = i + 1; j < words.size(); j++) {
                 Map<String, Object> nextWord = words.get(j);
+//                log.info("체크 단어 : {}",checkText);
+//                log.info("다음 단어 : {}",nextWord);
                 if (isOnSameLineByMidY2(checkText.get(checkText.size() - 1), nextWord)) {
-                    log.info("연결 단어:{}", currentText);
                     currentText.append(nextWord.get("description"));
+                    log.debug("Group words:{}", currentText);
                     a++;
                     checkText.add(nextWord);
                     maxX = Math.max(maxX, (int) nextWord.get("maxX"));
@@ -166,46 +185,49 @@ public class JsonService {
                     addToCollection2(checkText, currentText.toString(), startX, startY, maxX, maxY);
 
                 } else {
-                    log.info("연결된 단어 전체 경우의 수: {}", a);
+                    log.debug("Connected words: {}", a);
                     break; // 동일한 라인이 아니면 중단
                 }
             }
         }
-        log.info("연결된 단어 전체 경우의 수: {}", a);
+        log.debug("Total connected words: {}", a);
 //        log.info("안녕 @@@: {}", jsonCollection2);
 
 //        return jsonCollection2;
         return results;
     }
-
+    //TODO 아직 더 수정해야 됨 match2에서 단어 리스트와 동일한 것의 값을 가져오면서 그에 해당하는 좌표를 가져와야 함
     public static List<Map<String, Object>>findtheword(Set<String> targetWords){
+        jsonCollection3 = new ArrayList<>();
         for (Map<String, Object> item : jsonCollection2) {
             String description = (String) item.get("description");
             if (targetWords.contains(description)) {
-                jsonCollection3 = jsonCollection2;
+//                log.info("확인 : {}",item);
+                jsonCollection3.add(item);
             }
         }
+//        log.info("jsonCollection3 :{}",jsonCollection3);
         return jsonCollection3;
     }
 
-    //엑셀 단어와 매칭된 결과만 저장
-    private static void addToResults(List<Map<String, Object>> results, List<Map<String, Object>> checkText,
-                                     String combinedText, int startX, int startY, int maxX, int maxY, List<String> targetWords) {
-        // 조합된 텍스트가 targetWords에 포함되는지 확인
-        Map<String, Object> result = new HashMap<>();
-        for (Map<String, Object> item : jsonCollection2) {
-                String description = (String) item.get("description");
-            if (targetWords.contains(description)) {
-                int minX = jsonCollection2.stream().mapToInt(w -> (int) w.get("minX")).min().orElse(startX);
-                result.put("description", description);
-                result.put("minX", minX);
-                result.put("minY", startY);
-                result.put("maxX", maxX);
-                result.put("maxY", maxY);
-                results.add(result);
-            }
-        }
-    }
+//    //엑셀 단어와 매칭된 결과만 저장
+//    private static void addToResults(List<Map<String, Object>> results, List<Map<String, Object>> checkText,
+//                                     String combinedText, int startX, int startY, int maxX, int maxY, List<String> targetWords) {
+//        // 조합된 텍스트가 targetWords에 포함되는지 확인
+//        Map<String, Object> result = new HashMap<>();
+//        for (Map<String, Object> item : jsonCollection2) {
+//                String description = (String) item.get("description");
+//            if (targetWords.contains(description)) {
+//                int minX = jsonCollection2.stream().mapToInt(w -> (int) w.get("minX")).min().orElse(startX);
+//                result.put("description", description);
+//                result.put("minX", minX);
+//                result.put("minY", startY);
+//                result.put("maxX", maxX);
+//                result.put("maxY", maxY);
+//                results.add(result);
+//            }
+//        }
+//    }
     //모든 연속된 단어을 저장하는 것
     private static void addToCollection2(List<Map<String, Object>> checkText, String combinedText,
                                          int startX, int startY, int maxX, int maxY) {
@@ -220,18 +242,16 @@ public class JsonService {
         jsonCollection2.add(result);
     }
 
-//    private boolean isOnSameLineByMidY(Map<String, Object> a, Map<String, Object> b) {
-//        int midY_a = ((int) a.get("minY") + (int) a.get("maxY")) / 2;
-//        int midY_b = ((int) b.get("minY") + (int) b.get("maxY")) / 2;
-//
-//        return Math.abs(midY_a - midY_b) <= 3; // 중간 값의 차이가 3 이내면 같은 라인으로 간주
-//    }
     private static boolean isOnSameLineByMidY2(Map<String, Object> a, Map<String, Object> b) {
         int midY_a = ((int) a.get("minY") + (int) a.get("maxY")) / 2;
         int minY_b = (int) b.get("minY");
         int maxY_b = (int) b.get("maxY");
+        //추가 정다현
+        int maxX_a = (int) a.get("maxX");
+        int minX_b = (int) b.get("minX");
 
-        return midY_a>=minY_b && midY_a<= maxY_b; // 중간 값의 차이가 3 이내면 같은 라인으로 간주
+
+        return midY_a>=minY_b && midY_a<= maxY_b && minX_b - maxX_a <100; //
     }
 
 
@@ -415,5 +435,46 @@ public class JsonService {
 
         return jsonDictionary;
     }
+//    인코딩 디코딩 하는 코드 옮김 -정다현-
+    private static final String ALGORITHM = "AES/CBC/ISO10126Padding";
+    private static final String KEY = "iset2021!1234567890abcdefghijkln";
+    private static final String IV = "0987654321abcdef";
+
+    private static SecretKeySpec getSecretKeySpec() {
+        byte[] keyBytes = KEY.getBytes(StandardCharsets.UTF_8);
+        return new SecretKeySpec(keyBytes, "AES");
+    }
+
+    private static IvParameterSpec getIvParameterSpec() {
+        return new IvParameterSpec(IV.getBytes(StandardCharsets.UTF_8));
+    }
+
+    public static byte[] aesEncode(String plainText) throws Exception {
+
+        SecretKeySpec keySpec = getSecretKeySpec();
+        IvParameterSpec ivSpec = getIvParameterSpec();
+
+        Cipher cipher = Cipher.getInstance(ALGORITHM);
+        cipher.init(Cipher.ENCRYPT_MODE, keySpec, ivSpec);
+
+        // 평문을 바이트 배열로 변환 후 암호화
+        return cipher.doFinal(plainText.getBytes(StandardCharsets.UTF_8));
+    }
+
+    public static String aesDecode(byte[] encryptedBytes) throws Exception {
+        SecretKeySpec keySpec = getSecretKeySpec();
+        IvParameterSpec ivSpec = getIvParameterSpec();
+
+        Cipher cipher = Cipher.getInstance(ALGORITHM);
+        cipher.init(Cipher.DECRYPT_MODE, keySpec, ivSpec);
+
+        // 암호화된 바이트 배열을 복호화
+        byte[] decrypted = cipher.doFinal(encryptedBytes);
+
+        // 복호화된 바이트 배열을 문자열로 변환하여 반환
+        return new String(decrypted, StandardCharsets.UTF_8);
+    }
+
+
 
 }

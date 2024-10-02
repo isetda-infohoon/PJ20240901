@@ -17,6 +17,7 @@ import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
@@ -27,22 +28,27 @@ public class GoogleService {
     //환경변수 인스턴스 생성
     public ConfigLoader configLoader;
 
-    private IOService service = new IOService();
-
     //json파일에 대한 이름을 가져올려고(어떻게 될 지 모르니까 일단 변수로 저장해 놓자 쓸 곳이 있겠찌??)
     private List<String> jsonFilePaths = new ArrayList<>();
 
 
     //구글 버킷에 이미지 올리기 및 ocr 진행
     public void uploadAndOCR(File file) throws IOException {
-        log.info("구글 버킷 업로드 및 OCR 처리 시작");
+        log.info("Start Upload and OCR");
         Storage storage = getStorageService();
         File localDir = new File(configLoader.resultFilePath);
 
         if (!localDir.exists()) {
             localDir.mkdirs();
-            log.info("결과 디렉토리 생성: {}", configLoader.resultFilePath);
+            log.info("Create a resulting directory: {}", configLoader.resultFilePath);
         }
+
+        // PDF 파일 제외
+        if (file.getName().toLowerCase().endsWith(".pdf")) {
+            log.info("Skipping PDF file: {}", file.getName());
+            return;
+        }
+
         String accessToken = getAccessToken();
         OkHttpClient client = new OkHttpClient();
 
@@ -55,7 +61,7 @@ public class GoogleService {
 
             // 버킷에 해당 파일이 있는 지 확인
             if (storage.get(blobId) != null) {
-                log.warn("이미지 파일이 이미 버킷에 존재: {}", objectName);
+                log.warn("Image file already exists in bucket: {}", objectName);
                 deleteFileInBucket(storage,blobId);
 //                fileCounter++;
 //                continue;  // 스킵
@@ -65,9 +71,9 @@ public class GoogleService {
             // 버킷 업로드
             try { // 이미지 버킷에 업로드
                 storage.create(blobInfo, Files.readAllBytes(file.toPath()));
-                log.info("{} 파일 업로드 성공", file.getName());
+                log.info("{} File upload successful", file.getName());
             } catch (IOException e) {
-                log.error("파일 업로드 중 오류 발생: {}", file.getName(), e);
+                log.error("Error uploading file: {}", file.getName(), e);
                 throw e;
             }
 
@@ -82,8 +88,7 @@ public class GoogleService {
 
             try (Response response = client.newCall(request).execute()) {
                 if (!response.isSuccessful()) {
-                    log.error("OCR 요청 실패: {}", response.message());
-//                    fileCounter++; // 카운터 증가
+                    log.error("OCR fail: {}", response.message());
                     return;
                 }
 
@@ -91,11 +96,22 @@ public class GoogleService {
                 String outputFileName = file.getName().substring(0, file.getName().lastIndexOf("."));
                 String outputPath = configLoader.resultFilePath + "\\" + outputFileName + "_result.json";
                 try (FileWriter writer = new FileWriter(outputPath)) {
+                    //인코딩 디코딩 하는 메서드 ---------------------
+//                    byte[] encData = JsonService.aesEncode(responseBody);
+//                    Files.write(Paths.get(outputPath),encData);
+//
+//                    byte[] fileContent = Files.readAllBytes(Paths.get(outputPath));
+//                    String decodedText = JsonService.aesDecode(fileContent);
+//                    log.info("Decoding text: {}", decodedText);
+//                    ------------------------------------------------------------------
                     writer.write(responseBody);
+                    log.info("responseBody:{}",responseBody);
                     jsonFilePaths.add(outputPath); // JSON 파일 경로 리스트에 추가
-                    log.info("JSON파일 다운로드 성공");
+                    log.info("JSON file download successful");
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
                 }
-                log.info("OCR 요청 성공");
+                log.info("OCR request successful");
                 deleteFileInBucket(storage, blobId);
             }
             // 파일 처리 완료 로그
@@ -121,9 +137,9 @@ public class GoogleService {
     public void deleteFileInBucket(Storage storage, BlobId blobId) {
         boolean deleted = storage.delete(blobId);
         if (deleted) {
-            log.info("{}버킷에서 {} 파일 삭제완료", blobId.getBucket(), blobId.getName());
+            log.info("{}From the bucket {} File Deletion Completed", blobId.getBucket(), blobId.getName());
         } else {
-            log.error("{}버킷에서 삭제되지 않은 파일 :{} ", blobId.getBucket(), blobId.getName());
+            log.error("File not deleted from {}bucket: {} ", blobId.getBucket(), blobId.getName());
         }
     }
 
