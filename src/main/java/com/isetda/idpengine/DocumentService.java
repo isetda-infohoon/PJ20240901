@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 public class DocumentService {
     private static final Logger log = LogManager.getLogger(DocumentService.class);
@@ -96,8 +97,9 @@ public class DocumentService {
 //        log.info("문서 타입 54 :{}",documentType);
 //        log.info("문서 타입 56 :{}",resultList);
 
-            imgService.processMarking(matchjsonWord, configLoader.resultFilePath,imgFileName,a);
-            log.info("matchjsonWord : {}",matchjsonWord);
+        excelService.configLoader = configLoader;
+        imgService.processMarking(matchjsonWord, configLoader.resultFilePath,imgFileName,a);
+        log.info("matchjsonWord : {}",matchjsonWord);
 
         try {
             excelService.createExcel(resultList, resultWord, fileName, saveFilePath,a);
@@ -345,13 +347,11 @@ public class DocumentService {
 
     // 단어 카운트
     public static int countOccurrences(String input, String word) {
-        int count = 0;
-        int index = input.indexOf(word);
-        while (index != -1) {
-            count++;
-            index = input.indexOf(word, index + 1);
+        if (word.isEmpty()) {
+            return 0;
         }
-        return count;
+        String[] parts = input.split(Pattern.quote(word));
+        return parts.length - 1;
     }
 
     //정다현 추가 내용
@@ -474,6 +474,9 @@ public class DocumentService {
 
         if (formWithMostMatches == null || formWithMostWeights == null) {
             log.info("Unclassified File: {}", items);
+            documentType.add("미분류");
+        } else if (maxWeight <= 0.5) {
+            log.info("Unclassified File, Reason: Underweight");
             documentType.add("미분류");
         } else {
             log.info("Document classification results: Country Code({}), Document Type({}), Weight({})", jsonLocale, formWithMostMatches, maxWeight);
