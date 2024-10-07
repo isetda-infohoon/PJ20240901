@@ -66,7 +66,6 @@ public class ConfigLoader {
             deletedCheck = Boolean.parseBoolean(root.getElementsByTagName("deletedCheck").item(0).getTextContent().trim());
             cloudPlatform = root.getElementsByTagName("cloudPlatform").item(0).getTextContent().trim();
             ocrUrl = root.getElementsByTagName("ocrUrl").item(0).getTextContent().trim();
-            excelFilePath = root.getElementsByTagName("excelFilePath").item(0).getTextContent().trim();
             jsonFilePath = root.getElementsByTagName("jsonFilePath").item(0).getTextContent().trim();
             imageFolderPath = root.getElementsByTagName("imageFolderPath").item(0).getTextContent().trim();
             resultFilePath = root.getElementsByTagName("resultFilePath").item(0).getTextContent().trim();
