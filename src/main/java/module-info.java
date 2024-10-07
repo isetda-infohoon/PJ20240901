@@ -27,6 +27,7 @@ module com.isetda.idpengine {
     requires org.apache.pdfbox;
     requires log4j;
     requires org.apache.commons.codec;
+    requires com.google.api.client;
 
     opens com.isetda.idpengine to javafx.fxml;
     exports com.isetda.idpengine;

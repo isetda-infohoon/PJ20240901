@@ -357,7 +357,7 @@ public class JsonService {
 //    }
 
     public static Map<String, List<List<String[]>>> getJsonDictionary(String decodeText) throws Exception {
-        //String filePath = configLoader.jsonFilePath;
+//        String filePath = configLoader.jsonFilePath;
         Map<String, List<List<String[]>>> jsonDictionary = new HashMap<>();
 
         try {
@@ -385,17 +385,26 @@ public class JsonService {
                     List<String[]> ruleList = new ArrayList<>();
                     ruleList.add(new String[]{formName, language});
 
+                    int count = 0;
+
                     JSONArray rules = form.getJSONArray("RULE");
                     for (int k = 0; k < rules.length(); k++) {
                         JSONObject rule = rules.getJSONObject(k);
                         String word = rule.getString("단어");
-                        String weight = String.valueOf(rule.getDouble("가중치"));
-                        ruleList.add(new String[]{word, weight});
 
-                        log.info("W: {}, {}", word, weight);
+                        if (!word.isEmpty()) {
+                            String weight = String.valueOf(rule.getDouble("가중치"));
+                            ruleList.add(new String[]{word, weight});
+
+                            count += 1;
+                            log.info("W: {}, {}", word, weight);
+                        } else {
+                            log.info("Word is empty.");
+                        }
                     }
 
                     formList.add(ruleList);
+                    log.info("Number of words imported: {}", count);
                 }
 
                 jsonDictionary.put(countryName, formList);
