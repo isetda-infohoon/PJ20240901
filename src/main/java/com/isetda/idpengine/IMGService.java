@@ -66,10 +66,10 @@ public class IMGService {
 ////        log.info("확인 작업 : {}", JsonService.jsonCollection2);
 //        List<Map<String, Object>> matchedWords = JsonService.findtheword(excelWords);
 //        log.info("matchedWords : {}",matchedWords);
-            log.info("jsonCollection 2: {}",jsonCollection);
+//            log.info("jsonCollection 2: {}",jsonCollection);
         for (Map<String, Object> word : jsonCollection) {
             String description = (String) word.get("description");
-            log.info("word : {}",word);
+//            log.info("word:{}",word);
 
                 int minX = (int) word.get("minX");
                 int minY = (int) word.get("minY");
