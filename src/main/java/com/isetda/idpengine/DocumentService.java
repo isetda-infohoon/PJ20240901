@@ -111,71 +111,70 @@ public class DocumentService {
 
     // 합쳐진 추출 단어(description)로 일치 단어 비교
     public void classifyDocuments1(Map<String, List<List<String[]>>> jsonData, String jsonLocale, String jsonDescription) {
-        String countryName = getCountryFromSheetName(jsonLocale);
-        List<List<String[]>> targetSheetData = jsonData.get(countryName);
-
-        if (targetSheetData == null) {
-            // 일치하는 시트가 없을 경우
-            log.info("No matching country");
-        }
-
         int maxMatches = 0;
         int matchIndex = -1;
+        String matchCountry = "";
 
         double maxWeight = 0;
         int weightIndex = -1;
 
         resultList = new ArrayList<>();
         resultWord = new ArrayList<>();
+        //List<String> matchedCountries = new ArrayList<>();
 
-        // null 처리
-        for (int col = 0; col < targetSheetData.size(); col++) {
-            List<String[]> columnData = targetSheetData.get(col);
+        for (String countryName : jsonData.keySet()) {
+            List<List<String[]>> forms = jsonData.get(countryName);
 
-            double addWeight = 0;
+            if (forms == null) {
+                log.info("No matching country for {}", countryName);
+                continue;
+            }
 
-            int matches = 0;
-            List<String> matchingValues = new ArrayList<>();
+            for (int col = 0; col < forms.size(); col++) {
+                List<String[]> form = forms.get(col);
 
-            matchingValues.add(columnData.getFirst()[0]);
+                double addWeight = 0;
+                int matches = 0;
+                List<String> matchingValues = new ArrayList<>();
 
-            int cnt = 0;
-            for (int i = 1; i < columnData.size(); i++) {
-                String value = columnData.get(i)[0];
-                if (jsonDescription.contains(value)) {
-                    try {
-                        addWeight += Double.parseDouble(columnData.get(i)[1]);
-                    } catch (Exception e) {
-                        log.error("Weight calculation failed: {}", e.getStackTrace()[0]);
+                matchingValues.add(form.get(0)[0]);
+
+                int cnt = 0;
+                for (int i = 1; i < form.size(); i++) {
+                    String value = form.get(i)[0];
+                    if (jsonDescription.contains(value)) {
+                        try {
+                            addWeight += Double.parseDouble(form.get(i)[1]);
+                        } catch (Exception e) {
+                            log.error("Weight calculation failed: {}", e.getStackTrace()[0]);
+                        }
+
+                        matches++;
+                        cnt = countOccurrences(jsonDescription, value);
+                        matchingValues.add(value + "(" + cnt + ")");
+                    } else {
+                        cnt = 0;
                     }
-
-                    matches++;
-                    cnt = countOccurrences(jsonDescription, value);
-                    matchingValues.add(value + "(" + cnt + ")");
-                } else {
-                    cnt = 0;
+                    log.info("'{}' - MC: {}, WT: {}", value, cnt, Double.parseDouble(form.get(i)[1]));
                 }
-                log.info("'{}' - MC: {}, WT: {}", value, cnt, Double.parseDouble(columnData.get(i)[1]));
-            }
 
-            //log.info("{} / {} = {}", addWeight, matches, addWeight / matches);
-            //double weight = (double) Math.round(addWeight / matches * 10) / 10;
+                log.info("'{}' Document Type - Number of matching word: {}/{}", form.get(0)[0], matches, form.size() - 1);
+                log.info("'{}' Document Type - Weight sum: {}", form.get(0)[0], addWeight);
+                log.info("'{}' Document Type - Match result: {}", form.get(0)[0], matches != 0 ? matchingValues.subList(1, matchingValues.size()) : "");
 
-            log.info("'{}' Document Type - Number of matching word: {}/{}", columnData.get(0)[0], matches, columnData.size() - 1);
-            log.info("'{}' Document Type - Weight sum: {}", columnData.get(0)[0], addWeight);
-            log.info("'{}' Document Type - Match result: {}", columnData.get(0)[0], matches != 0 ? matchingValues.subList(1, matchingValues.size()) : "");
+                matchingValues.add(matches + ""); // 매치 단어 수 결과 리스트에 추가
+                resultWord.add(matchingValues);
 
-            matchingValues.add(matches + ""); // 매치 단어 수 결과 리스트에 추가
-            resultWord.add(matchingValues);
+                if (matches > maxMatches) {
+                    maxMatches = matches;
+                    matchIndex = col;
+                    matchCountry = countryName;
+                }
 
-            if (matches > maxMatches) {
-                maxMatches = matches;
-                matchIndex = col;
-            }
-
-            if (addWeight > maxWeight) {
-                maxWeight = addWeight;
-                weightIndex = col;
+                if (addWeight > maxWeight) {
+                    maxWeight = addWeight;
+                    weightIndex = col;
+                }
             }
         }
 
@@ -185,49 +184,48 @@ public class DocumentService {
             log.info("Discrepancies between word match results and weight comparison results");
         }
 
-
         List<String> countryType = new ArrayList<>();
         countryType.add("국가");
-        countryType.add(jsonLocale);
-        resultList.add(countryType);
+
+        List<String> languageCode = new ArrayList<>();
+        languageCode.add("언어");
 
         List<String> documentType = new ArrayList<>();
         documentType.add("문서 양식");
 
         if (matchIndex == -1 || weightIndex == -1) {
             log.info("Unclassified File, Reason: No document matching classification result");
+            countryType.add("미분류");
+            languageCode.add("미분류");
             documentType.add("미분류");
         } else if (maxWeight <= 0.5) {
             log.info("Unclassified File, Reason: Underweight");
+            countryType.add("미분류");
+            languageCode.add("미분류");
             documentType.add("미분류");
         } else {
-            log.info("Document classification results: Country Code({}), Document Type({}), Weight({})", jsonLocale, targetSheetData.get(matchIndex).get(0)[0], maxWeight);
-            documentType.add(targetSheetData.get(matchIndex).get(0)[0]);
+            log.info("Document classification results: Country({}), Language Code({}), Document Type({}), Weight({})", matchCountry, jsonData.get(matchCountry).get(matchIndex).get(0)[1], jsonData.get(matchCountry).get(matchIndex).get(0)[0], maxWeight);
+            countryType.add(matchCountry);
+            languageCode.add(jsonData.get(matchCountry).get(matchIndex).get(0)[1]);
+            documentType.add(jsonData.get(matchCountry).get(matchIndex).get(0)[0]);
         }
+        resultList.add(countryType);
+        resultList.add(languageCode);
         resultList.add(documentType);
+
         log.info("Excel Data Results: {}", resultList);
         docType = resultList.get(1).get(1);
     }
 
-    // 엑셀 데이터와 비교하여 국가 및 양식 분류
-    // 쪼개어진 추출 단어 리스트로 일치 단어 비교
     public void classifyDocuments2(Map<String, List<List<String[]>>> jsonData, String jsonLocale, List<Map<String, Object>> items) {
-        String countryName = getCountryFromSheetName(jsonLocale);
-        List<List<String[]>> targetSheetData = jsonData.get(countryName);
-
         //정다혀 추가
         Map<String, List<Map<String, Object>>> formMatchedWords = new HashMap<>();
 
-        if (countryName == null || countryName.equals("존재하지 않는 국가 코드")) {
-            // 일치하는 시트가 없을 경우
-            log.info("No matching country");
-        }
-
         int maxMatches = 0;
-        int matchIndex = -1;
+        String matchCountry = "";
+        String matchLanguage = "";
 
         double maxWeight = 0;
-        int weightIndex = -1;
 
         resultList = new ArrayList<>();
         resultWord = new ArrayList<>();
@@ -238,69 +236,78 @@ public class DocumentService {
         Map<String, Double> weightMap = new HashMap<>();
         Map<String, Double> formWeightSum = new HashMap<>();
         Map<String, Integer> formMatchCount = new HashMap<>();
+
         String formWithMostMatches = null;
         String formWithMostWeights = null;
 
-        for (List<String[]> sheetData : targetSheetData) {
-            int totalMatches = 0; // 전체 매치된 단어의 수
-            String formName = sheetData.get(0)[0];
-            formWeightSum.put(formName, 0.0);
-            formMatchCount.put(formName, 0);
+        for (String countryName : jsonData.keySet()) {
+            List<List<String[]>> forms = jsonData.get(countryName);
 
-            for (int i = 1; i < sheetData.size(); i++) {
-                String word = sheetData.get(i)[0];
-                double weight = Double.parseDouble(sheetData.get(i)[1]);
-                weightMap.put(word, weight);
-                matchCount.put(word, 0);
+            if (forms == null) {
+                log.info("No matching country for {}", countryName);
+                continue;
             }
 
-            List<String> matchingValues = new ArrayList<>();
-            matchingValues.add(sheetData.get(0)[0]);
+            for (List<String[]> form : forms) {
+                int totalMatches = 0; // 전체 매치된 단어의 수
+                String formName = form.get(0)[0];
+                String formLanguage = form.get(0)[1];
+                formWeightSum.put(formName, 0.0);
+                formMatchCount.put(formName, 0);
 
-//            for (int i = 1; i < items.size(); i++) {
-//                String description = (String) items.get(i).get("description");
-            //정다현 추가
-            for (Map<String, Object> item : items) {
+                for (int i = 1; i < form.size(); i++) {
+                    String word = form.get(i)[0];
+                    double weight = Double.parseDouble(form.get(i)[1]);
+                    weightMap.put(word, weight);
+                    matchCount.put(word, 0);
+                }
 
-                String description = (String) item.get("description");
+                List<String> matchingValues = new ArrayList<>();
+                matchingValues.add(form.get(0)[0]);
 
-                for (int j = 1; j < sheetData.size(); j++) {
-                    if (description.equals(sheetData.get(j)[0])) {
-                        matchCount.put(description, matchCount.get(description) + 1);
-                        formWeightSum.put(formName, formWeightSum.get(formName) + weightMap.get(description));
-                        formMatchCount.put(formName, formMatchCount.get(formName) + 1);
-                        totalMatches++; // 전체 매치 수 증가
-                        matchingValues.add(description + "(" + matchCount.get(description) + ")");
-                        formMatchedWords.computeIfAbsent(formName, k -> new ArrayList<>()).add(item);
+                for (Map<String, Object> item : items) {
+                    String description = (String) item.get("description");
+
+                    for (int j = 1; j < form.size(); j++) {
+                        if (description.equals(form.get(j)[0])) {
+                            matchCount.put(description, matchCount.get(description) + 1);
+                            formWeightSum.put(formName, formWeightSum.get(formName) + weightMap.get(description));
+                            formMatchCount.put(formName, formMatchCount.get(formName) + 1);
+                            totalMatches++; // 전체 매치 수 증가
+                            matchingValues.add(description + "(" + matchCount.get(description) + ")");
+                            formMatchedWords.computeIfAbsent(formName, k -> new ArrayList<>()).add(item);
+                        }
                     }
                 }
-            }
 
-            for (int i = 1; i < sheetData.size(); i++) {
-                String word = sheetData.get(i)[0];
-                int count = matchCount.get(word);
-                double weight = weightMap.get(word);
-                log.info("'{}' - MC: {}, WT: {}", word, count, weight);
-            }
+                for (int i = 1; i < form.size(); i++) {
+                    String word = form.get(i)[0];
+                    int count = matchCount.get(word);
+                    double weight = weightMap.get(word);
+                    log.info("'{}' - MC: {}, WT: {}", word, count, weight);
+                }
 
-            int totalWords = sheetData.size() - 1;
-            int matchedWords = formMatchCount.get(formName);
-            double totalWeight = formWeightSum.get(formName);
-            log.info("'{}' Document Type - Number of matching word: {}/{}", formName, matchedWords, totalWords);
-            log.info("'{}' Document Type - Weight sum: {}", formName, totalWeight);
-            log.info("'{}' Document Type - Match result: {}", formName, matchedWords != 0 ? matchingValues : "");
+                int totalWords = form.size() - 1;
+                int matchedWords = formMatchCount.get(formName);
+                double totalWeight = formWeightSum.get(formName);
+                log.info("'{}' Document Type - Number of matching word: {}/{}", formName, matchedWords, totalWords);
+                log.info("'{}' Document Type - Weight sum: {}", formName, totalWeight);
+                log.info("'{}' Document Type - Match result: {}", formName, matchedWords != 0 ? matchingValues : "");
 
-            matchingValues.add(totalMatches + ""); // 매치 단어 수 결과 리스트에 추가
-            resultWord.add(matchingValues);
+                matchingValues.add(totalMatches + ""); // 매치 단어 수 결과 리스트에 추가
+                resultWord.add(matchingValues);
 
-            if (totalWeight > maxWeight) {
-                maxWeight = totalWeight;
-                formWithMostWeights = formName;
-            }
+                if (totalWeight > maxWeight) {
+                    maxWeight = totalWeight;
+                    formWithMostWeights = formName;
+                }
 
-            if (matchedWords > maxMatches) {
-                maxMatches = matchedWords;
-                formWithMostMatches = formName;
+                if (matchedWords > maxMatches) {
+                    maxMatches = matchedWords;
+                    formWithMostMatches = formName;
+                    matchLanguage = formLanguage;
+                    matchCountry = countryName;
+                }
             }
         }
         if (formWithMostMatches != null) {
@@ -319,30 +326,38 @@ public class DocumentService {
 //            log.info("단어 매치 결과와 가중치 비교 결과 불일치");
 //        }
 
-
         List<String> countryType = new ArrayList<>();
         countryType.add("국가");
-        countryType.add(jsonLocale);
-        resultList.add(countryType);
+
+        List<String> languageCode = new ArrayList<>();
+        languageCode.add("언어");
 
         List<String> documentType = new ArrayList<>();
         documentType.add("문서 양식");
 
         if (formWithMostMatches == null || formWithMostWeights == null) {
             log.info("Unclassified File, Reason: No document matching classification result");
+            countryType.add("미분류");
+            languageCode.add("미분류");
             documentType.add("미분류");
         } else if (maxWeight <= 0.5) {
             log.info("Unclassified File, Reason: Underweight");
+            countryType.add("미분류");
+            languageCode.add("미분류");
             documentType.add("미분류");
         } else {
-            log.info("Document classification results: Country Code({}), Document Type({}), Weight({})", jsonLocale, formWithMostMatches, maxWeight);
+            log.info("Document classification results: Country({}), Language Code({}), Document Type({}), Weight({})", matchCountry, matchLanguage, formWithMostMatches, maxWeight);
+            countryType.add(matchCountry);
+            languageCode.add(matchLanguage);
             documentType.add(formWithMostMatches);
         }
 
+        resultList.add(countryType);
+        resultList.add(languageCode);
         resultList.add(documentType);
+
         log.info("Excel Data Results: {}", resultList);
         docType = resultList.get(1).get(1);
-
     }
 
     // 단어 카운트
@@ -356,22 +371,14 @@ public class DocumentService {
 
     //정다현 추가 내용
     public void classifyDocuments3(Map<String, List<List<String[]>>> jsonData, String jsonLocale, List<Map<String, Object>> items) {
-        String countryName = getCountryFromSheetName(jsonLocale);
-        log.debug("countryName : {}", countryName);
-        List<List<String[]>> targetSheetData = jsonData.get(countryName);
-        log.debug("targetSheetData : {}", targetSheetData);
         //정다현 추가
 //        List<Map<String, Object>> matchjsonWord2 = new ArrayList<>();
         //정다혀 추가
         Map<String, List<Map<String, Object>>> formMatchedWords = new HashMap<>();
 
-
-        if (countryName == null || countryName.equals("존재하지 않는 국가 코드")) {
-            // 일치하는 시트가 없을 경우
-            log.info("일치 시트(국가) 없음");
-        }
-
         int maxMatches = 0;
+        String matchCountry = "";
+        String matchLanguage = "";
 
         double maxWeight = 0;
 
@@ -384,68 +391,79 @@ public class DocumentService {
         Map<String, Double> weightMap = new HashMap<>();
         Map<String, Double> formWeightSum = new HashMap<>();
         Map<String, Integer> formMatchCount = new HashMap<>();
+
         String formWithMostMatches = null;
         String formWithMostWeights = null;
 
-        for (List<String[]> sheetData : targetSheetData) {
-            int totalMatches = 0; // 전체 매치된 단어의 수
-            String formName = sheetData.get(0)[0];
-            formWeightSum.put(formName, 0.0);
-            formMatchCount.put(formName, 0);
-            formMatchedWords.put(formName, new ArrayList<>()); // 여기서 빈 리스트를 초기화
+        for (String countryName : jsonData.keySet()) {
+            List<List<String[]>> forms = jsonData.get(countryName);
 
-            for (int i = 1; i < sheetData.size(); i++) {
-                String word = sheetData.get(i)[0];
-                double weight = Double.parseDouble(sheetData.get(i)[1]);
-                weightMap.put(word, weight);
-                matchCount.put(word, 0);
+            if (forms == null) {
+                log.info("No matching country for {}", countryName);
+                continue;
             }
 
-            List<String> matchingValues = new ArrayList<>();
-            matchingValues.add(sheetData.get(0)[0]);
+            for (List<String[]> form : forms) {
+                int totalMatches = 0; // 전체 매치된 단어의 수
+                String formName = form.get(0)[0];
+                String formLanguage = form.get(0)[1];
+                formWeightSum.put(formName, 0.0);
+                formMatchCount.put(formName, 0);
+                formMatchedWords.put(formName, new ArrayList<>()); // 여기서 빈 리스트를 초기화
 
-            for (Map<String, Object> item : items) {
-                String description = (String) item.get("description");
+                for (int i = 1; i < form.size(); i++) {
+                    String word = form.get(i)[0];
+                    double weight = Double.parseDouble(form.get(i)[1]);
+                    weightMap.put(word, weight);
+                    matchCount.put(word, 0);
+                }
 
-                for (int i = 1; i < sheetData.size(); i++) {
-                    if (description.equals(sheetData.get(i)[0])) {
-                        matchCount.put(description, matchCount.get(description) + 1);
-                        formWeightSum.put(formName, formWeightSum.get(formName) + weightMap.get(description));
-                        formMatchCount.put(formName, formMatchCount.get(formName) + 1);
-                        totalMatches++; // 전체 매치된 단어의 수 ++
-                        matchingValues.add(description + "(" + matchCount.get(description) + ")");
-                        formMatchedWords.computeIfAbsent(formName, k -> new ArrayList<>()).add(item);
+                List<String> matchingValues = new ArrayList<>();
+                matchingValues.add(form.get(0)[0]);
+
+                for (Map<String, Object> item : items) {
+                    String description = (String) item.get("description");
+
+                    for (int j = 1; j < form.size(); j++) {
+                        if (description.equals(form.get(j)[0])) {
+                            matchCount.put(description, matchCount.get(description) + 1);
+                            formWeightSum.put(formName, formWeightSum.get(formName) + weightMap.get(description));
+                            formMatchCount.put(formName, formMatchCount.get(formName) + 1);
+                            totalMatches++; // 전체 매치 수 증가
+                            matchingValues.add(description + "(" + matchCount.get(description) + ")");
+                            formMatchedWords.computeIfAbsent(formName, k -> new ArrayList<>()).add(item);
+                        }
                     }
                 }
-            }
 
-            for (int i = 1; i < sheetData.size(); i++) {
-                String word = sheetData.get(i)[0];
-                int count = matchCount.get(word);
-                double weight = weightMap.get(word);
-                log.info("'{}' - MC: {}, WT: {}", word, count, weight);
-            }
+                for (int i = 1; i < form.size(); i++) {
+                    String word = form.get(i)[0];
+                    int count = matchCount.get(word);
+                    double weight = weightMap.get(word);
+                    log.info("'{}' - MC: {}, WT: {}", word, count, weight);
+                }
 
-            int totalWords = sheetData.size() - 1;
-            int matchedWords = formMatchCount.get(formName);
-            double totalWeight = formWeightSum.get(formName);
-            log.info("'{}' Document Type - Number of matching word: {}/{}", formName, matchedWords, totalWords);
-            log.info("'{}' Document Type - Weight sum: {}", formName, totalWeight);
-            log.info("'{}' Document Type - Match result: {}", formName, matchedWords != 0 ? matchingValues : "");
+                int totalWords = form.size() - 1;
+                int matchedWords = formMatchCount.get(formName);
+                double totalWeight = formWeightSum.get(formName);
+                log.info("'{}' Document Type - Number of matching word: {}/{}", formName, matchedWords, totalWords);
+                log.info("'{}' Document Type - Weight sum: {}", formName, totalWeight);
+                log.info("'{}' Document Type - Match result: {}", formName, matchedWords != 0 ? matchingValues : "");
 
-            matchingValues.add(totalMatches + ""); // 매치 단어 수 결과 리스트에 추가
-            resultWord.add(matchingValues);
-//            log.info("matchingValues2 {}",matchingValues);
+                matchingValues.add(totalMatches + ""); // 매치 단어 수 결과 리스트에 추가
+                resultWord.add(matchingValues);
 
+                if (totalWeight > maxWeight) {
+                    maxWeight = totalWeight;
+                    formWithMostWeights = formName;
+                }
 
-            if (totalWeight > maxWeight) {
-                maxWeight = totalWeight;
-                formWithMostWeights = formName;
-            }
-
-            if (matchedWords > maxMatches) {
-                maxMatches = matchedWords;
-                formWithMostMatches = formName;
+                if (matchedWords > maxMatches) {
+                    maxMatches = matchedWords;
+                    formWithMostMatches = formName;
+                    matchLanguage = formLanguage;
+                    matchCountry = countryName;
+                }
             }
         }
         if (formWithMostMatches != null) {
@@ -454,36 +472,40 @@ public class DocumentService {
             matchjsonWord = new ArrayList<>(); // 일치하는 양식이 없을 경우 빈 리스트
         }
 
-        log.info("가장 일치 단어 개수가 많은 양식: '{}', 일치 단어 수: {}", formWithMostMatches, maxMatches);
-        log.info("일치하는 단어와 좌표: {}", matchjsonWord);
-
-//        if (matchIndex == weightIndex) {
-//            log.info("단어 매치 결과와 가중치 비교 결과 일치");
-//        } else {
-//            log.info("단어 매치 결과와 가중치 비교 결과 불일치");
-//        }
-
+        log.debug("가장 일치 단어 개수가 많은 양식: '{}', 일치 단어 수: {}", formWithMostMatches, maxMatches);
+        log.debug("일치하는 단어와 좌표: {}", matchjsonWord);
 
         List<String> countryType = new ArrayList<>();
         countryType.add("국가");
-        countryType.add(wordLocal);
-        resultList.add(countryType);
+
+        List<String> languageCode = new ArrayList<>();
+        languageCode.add("언어");
 
         List<String> documentType = new ArrayList<>();
         documentType.add("문서 양식");
 
         if (formWithMostMatches == null || formWithMostWeights == null) {
             log.info("Unclassified File: {}", items);
+            countryType.add("미분류");
+            languageCode.add("미분류");
             documentType.add("미분류");
         } else if (maxWeight <= 0.5) {
             log.info("Unclassified File, Reason: Underweight");
+            countryType.add("미분류");
+            languageCode.add("미분류");
             documentType.add("미분류");
         } else {
-            log.info("Document classification results: Country Code({}), Document Type({}), Weight({})", jsonLocale, formWithMostMatches, maxWeight);
+            log.info("Document classification results: Country({}), Language Code({}), Document Type({}), Weight({})", matchCountry, matchLanguage, formWithMostMatches, maxWeight);
+            countryType.add(matchCountry);
+            //countryType.add(wordLocal);
+            languageCode.add(matchLanguage);
             documentType.add(formWithMostMatches);
         }
 
+        resultList.add(countryType);
+        resultList.add(languageCode);
         resultList.add(documentType);
+
         log.debug("엑셀 데이터 결과 : {}", resultList);
         docType = resultList.get(1).get(1);
 

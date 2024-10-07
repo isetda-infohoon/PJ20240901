@@ -105,7 +105,7 @@ public class GoogleService {
 //                    log.info("Decoding text: {}", decodedText);
 //                    ------------------------------------------------------------------
                     writer.write(responseBody);
-                    log.info("responseBody:{}",responseBody);
+                    //log.info("responseBody:{}",responseBody);
                     jsonFilePaths.add(outputPath); // JSON 파일 경로 리스트에 추가
                     log.info("JSON file download successful");
                 } catch (Exception e) {
