@@ -23,6 +23,7 @@ import java.util.Base64;
 import java.util.List;
 
 public class GoogleService {
+    public boolean encode = false;
     // 로그
     private static final Logger log = LogManager.getLogger(GoogleService.class);
     //환경변수 인스턴스 생성
@@ -96,15 +97,20 @@ public class GoogleService {
                 String outputFileName = file.getName().substring(0, file.getName().lastIndexOf("."));
                 String outputPath = configLoader.resultFilePath + "\\" + outputFileName + "_result.json";
                 try (FileWriter writer = new FileWriter(outputPath)) {
-                    //인코딩 디코딩 하는 메서드 ---------------------
-//                    byte[] encData = JsonService.aesEncode(responseBody);
-//                    Files.write(Paths.get(outputPath),encData);
-//
-//                    byte[] fileContent = Files.readAllBytes(Paths.get(outputPath));
-//                    String decodedText = JsonService.aesDecode(fileContent);
-//                    log.info("Decoding text: {}", decodedText);
+
+                    if(configLoader.encodingCheck==true){
+                        //인코딩 디코딩 하는 메서드 ---------------------
+                        byte[] encData = JsonService.aesEncode(responseBody);
+                        Files.write(Paths.get(outputPath),encData);
+
+                        byte[] fileContent = Files.readAllBytes(Paths.get(outputPath));
+                        String decodedText = JsonService.aesDecode(fileContent);
+                        log.debug("Decoding text: {}", decodedText);
 //                    ------------------------------------------------------------------
-                    writer.write(responseBody);
+                    }
+                    if (!configLoader.encodingCheck==true){
+                        writer.write(responseBody);
+                    }
                     jsonFilePaths.add(outputPath); // JSON 파일 경로 리스트에 추가
                     log.info("JSON file download successful");
                 } catch (Exception e) {

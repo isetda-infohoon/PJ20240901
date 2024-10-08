@@ -37,11 +37,20 @@ public class JsonService {
     // 생성자에서 JSON 데이터 로딩 및 처리
     public JsonService(String jsonFilePath) {
         try {
-            this.jsonObject = new JSONObject(FileUtils.readFileToString(new File(jsonFilePath), "UTF-8"));
+            if (configLoader.encodingCheck){
+                byte[] encodedBytes = FileUtils.readFileToByteArray(new File(jsonFilePath));
+                String decodedJson = aesDecode(encodedBytes);
+                this.jsonObject = new JSONObject(decodedJson);
+            }
+            else{
+                this.jsonObject = new JSONObject(FileUtils.readFileToString(new File(jsonFilePath), "UTF-8"));
+            }
             log.info("JSON data loading successful");
             getWordPosition();
         } catch (IOException e) {
             log.error("Error reading json file", e);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
     //json에서 단어, 위치 가져와서 정렬 (1차)
@@ -70,15 +79,32 @@ public class JsonService {
             // 첫 번째 항목을 제외한 나머지 항목들에 대해 정렬 수행
             List<Map<String, Object>> remainingItems = jsonCollection.subList(1, jsonCollection.size());
 
-            // midY를 기준으로 정렬
-            remainingItems.sort(Comparator.comparingInt(a -> {
-                        Integer midY = (Integer) ((Map<String, Object>) a).get("midY");
-                        return midY != null ? midY : Integer.MAX_VALUE; // null인 경우 최대값으로 처리
-                    })
-                    .thenComparingInt(a -> {
-                        Integer minX = (Integer) ((Map<String, Object>) a).get("minX");
-                        return minX != null ? minX : Integer.MAX_VALUE; // null인 경우 최대값으로 처리
-                    })); // midY가 같으면 minX로 추가 정렬
+            // midY를 기준으로 정렬 (오차 범위가 10 이내면 minX로 정렬)
+            remainingItems.sort((a, b) -> {
+                Integer midY1 = (Integer) ((Map<String, Object>) a).get("midY");
+                Integer midY2 = (Integer) ((Map<String, Object>) b).get("midY");
+
+                // midY 값이 null인 경우 Integer.MAX_VALUE로 처리
+                if (midY1 == null) midY1 = Integer.MAX_VALUE;
+                if (midY2 == null) midY2 = Integer.MAX_VALUE;
+
+                int midYDiff = midY1 - midY2;
+
+                // midY 차이가 10 이하인 경우에만 minX로 추가 정렬
+                if (Math.abs(midYDiff) <= 10) {
+                    Integer minX1 = (Integer) ((Map<String, Object>) a).get("minX");
+                    Integer minX2 = (Integer) ((Map<String, Object>) b).get("minX");
+
+                    // minX 값이 null인 경우 Integer.MAX_VALUE로 처리
+                    if (minX1 == null) minX1 = Integer.MAX_VALUE;
+                    if (minX2 == null) minX2 = Integer.MAX_VALUE;
+
+                    return minX1.compareTo(minX2); // minX로 추가 정렬
+                }
+
+                // midY 차이가 10 이상이면 그냥 midY로만 정렬
+                return Integer.compare(midY1, midY2);
+            });
 
 
             // 정렬된 결과를 jsonCollection에 다시 설정
@@ -140,62 +166,63 @@ public class JsonService {
 
 
     //json을 통해서 2차 매칭 (y축 기준으로 그룹화)[경우의 수를 통한 그룹화]
-    public static List<Map<String, Object>> findMatchingWords(List<Map<String, Object>> words) {
-        List<Map<String, Object>> results = new ArrayList<>();
-        jsonCollection2 = new ArrayList<>();
-        int a = 0;
+//    public static List<Map<String, Object>> findMatchingWords(List<Map<String, Object>> words) {
+//        List<Map<String, Object>> results = new ArrayList<>();
+//        jsonCollection2 = new ArrayList<>();
+//        int a = 0;
+//
+//        List<Map<String, Object>> checkText = null;
+//        for (int i = 0; i < words.size(); i++) {
+//            a = 1;
+//            StringBuilder currentText = new StringBuilder();
+//            int startMaxX = (int) words.get(i).get("maxX");
+//            int startMaxY = (int) words.get(i).get("maxY");
+//            int startX = (int) words.get(i).get("minX");
+//            int startY = (int) words.get(i).get("minY");
+//            int maxX = startX;
+//            int maxY = startY;
+//
+//            // 단어 자체도 추가
+//            checkText = new ArrayList<>();
+//            Map<String, Object> singleWord = words.get(i);
+//            checkText.add(singleWord);
+//            currentText.append(singleWord.get("description"));
+//            log.debug("The first word :{}",currentText);
+//
+//            // 단일 단어 자체를 결과에 추가
+//            addToCollection2(checkText, currentText.toString(), startX, startY, startMaxX, startMaxY);
+//            // 연속된 단어 조합 생성
+//            for (int j = i + 1; j < words.size(); j++) {
+//                Map<String, Object> nextWord = words.get(j);
+////                log.info("체크 단어 : {}",checkText);
+////                log.info("다음 단어 : {}",nextWord);
+//                if (isOnSameLineByMidY2(checkText.get(checkText.size() - 1), nextWord)) {
+//                    currentText.append(nextWord.get("description"));
+//                    log.debug("Group words:{}", currentText);
+//                    a++;
+//                    checkText.add(nextWord);
+//                    maxX = Math.max(maxX, (int) nextWord.get("maxX"));
+//                    maxY = Math.max(maxY, (int) nextWord.get("maxY"));
+//
+//                    // 현재 조합이 targetWords에 포함되는지 확인
+//                    addToCollection2(checkText, currentText.toString(), startX, startY, maxX, maxY);
+//
+//                } else {
+//                    log.debug("Connected words: {}", a);
+//                    break; // 동일한 라인이 아니면 중단
+//                }
+//            }
+//        }
+//        log.debug("Total connected words: {}", a);
+////        log.info("안녕 @@@: {}", jsonCollection2);
+//
+////        return jsonCollection2;
+//        return results;
+//    }
 
-        List<Map<String, Object>> checkText = null;
-        for (int i = 0; i < words.size(); i++) {
-            a = 1;
-            StringBuilder currentText = new StringBuilder();
-            int startMaxX = (int) words.get(i).get("maxX");
-            int startMaxY = (int) words.get(i).get("maxY");
-            int startX = (int) words.get(i).get("minX");
-            int startY = (int) words.get(i).get("minY");
-            int maxX = startX;
-            int maxY = startY;
 
-            // 단어 자체도 추가
-            checkText = new ArrayList<>();
-            Map<String, Object> singleWord = words.get(i);
-            checkText.add(singleWord);
-            currentText.append(singleWord.get("description"));
-            log.debug("The first word :{}",currentText);
 
-            // 단일 단어 자체를 결과에 추가
-//            addToResults(results, checkText, currentText.toString().replace(" ", ""), startX, startY, startMaxX, startMaxY, targetWords);
-            addToCollection2(checkText, currentText.toString(), startX, startY, startMaxX, startMaxY);
-            // 연속된 단어 조합 생성
-            for (int j = i + 1; j < words.size(); j++) {
-                Map<String, Object> nextWord = words.get(j);
-//                log.info("체크 단어 : {}",checkText);
-//                log.info("다음 단어 : {}",nextWord);
-                if (isOnSameLineByMidY2(checkText.get(checkText.size() - 1), nextWord)) {
-                    currentText.append(nextWord.get("description"));
-                    log.debug("Group words:{}", currentText);
-                    a++;
-                    checkText.add(nextWord);
-                    maxX = Math.max(maxX, (int) nextWord.get("maxX"));
-                    maxY = Math.max(maxY, (int) nextWord.get("maxY"));
 
-                    // 현재 조합이 targetWords에 포함되는지 확인
-//                    addToResults(results, checkText, currentText.toString().replace(" ", ""), startX, startY, maxX, maxY, targetWords);
-//                    addToCollection2(checkText, currentText.toString(), startX, startY, startMaxX, startMaxY);
-                    addToCollection2(checkText, currentText.toString(), startX, startY, maxX, maxY);
-
-                } else {
-                    log.debug("Connected words: {}", a);
-                    break; // 동일한 라인이 아니면 중단
-                }
-            }
-        }
-        log.debug("Total connected words: {}", a);
-//        log.info("안녕 @@@: {}", jsonCollection2);
-
-//        return jsonCollection2;
-        return results;
-    }
     //TODO 아직 더 수정해야 됨 match2에서 단어 리스트와 동일한 것의 값을 가져오면서 그에 해당하는 좌표를 가져와야 함
     public static List<Map<String, Object>>findtheword(Set<String> targetWords){
         jsonCollection3 = new ArrayList<>();
