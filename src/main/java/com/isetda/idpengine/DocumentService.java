@@ -165,7 +165,15 @@ public class DocumentService {
                 matchingValues.add(matches + ""); // 매치 단어 수 결과 리스트에 추가
                 resultWord.add(matchingValues);
 
-                if (matches > maxMatches) {
+                if (matches == maxMatches) {
+                    if (addWeight > maxWeight) {
+                        maxMatches = matches;
+                        maxWeight = addWeight;
+                        matchIndex = col;
+                        weightIndex = col;
+                        matchCountry = countryName;
+                    }
+                } else if (matches > maxMatches) {
                     maxMatches = matches;
                     matchIndex = col;
                     matchCountry = countryName;
@@ -297,16 +305,25 @@ public class DocumentService {
                 matchingValues.add(totalMatches + ""); // 매치 단어 수 결과 리스트에 추가
                 resultWord.add(matchingValues);
 
-                if (totalWeight > maxWeight) {
-                    maxWeight = totalWeight;
-                    formWithMostWeights = formName;
-                }
-
-                if (matchedWords > maxMatches) {
+                if (matchedWords == maxMatches) {
+                    if (totalWeight > maxWeight) {
+                        maxMatches = matchedWords;
+                        maxWeight = totalWeight;
+                        formWithMostMatches = formName;
+                        formWithMostWeights = formName;
+                        matchLanguage = formLanguage;
+                        matchCountry = countryName;
+                    }
+                } else if (matchedWords > maxMatches) {
                     maxMatches = matchedWords;
                     formWithMostMatches = formName;
                     matchLanguage = formLanguage;
                     matchCountry = countryName;
+                }
+
+                if (totalWeight > maxWeight) {
+                    maxWeight = totalWeight;
+                    formWithMostWeights = formName;
                 }
             }
         }
@@ -453,16 +470,25 @@ public class DocumentService {
                 matchingValues.add(totalMatches + ""); // 매치 단어 수 결과 리스트에 추가
                 resultWord.add(matchingValues);
 
-                if (totalWeight > maxWeight) {
-                    maxWeight = totalWeight;
-                    formWithMostWeights = formName;
-                }
-
-                if (matchedWords > maxMatches) {
+                if (matchedWords == maxMatches) {
+                    if (totalWeight > maxWeight) {
+                        maxMatches = matchedWords;
+                        maxWeight = totalWeight;
+                        formWithMostMatches = formName;
+                        formWithMostWeights = formName;
+                        matchLanguage = formLanguage;
+                        matchCountry = countryName;
+                    }
+                } else if (matchedWords > maxMatches) {
                     maxMatches = matchedWords;
                     formWithMostMatches = formName;
                     matchLanguage = formLanguage;
                     matchCountry = countryName;
+                }
+
+                if (totalWeight > maxWeight) {
+                    maxWeight = totalWeight;
+                    formWithMostWeights = formName;
                 }
             }
         }
