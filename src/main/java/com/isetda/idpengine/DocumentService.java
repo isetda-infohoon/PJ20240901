@@ -58,7 +58,9 @@ public class DocumentService {
     // 폴더의 모든 파일(json)을 반복 (JSON Object로 저장 및 split, classifyDocuments 메소드로 분류 진행) (iterateFiles)
     public void createFinalResultFile() throws Exception {
         //excelData = getExcelData();
+        new IDPEngineController().jsonfiles = jsonFiles.length;
 
+        log.info("jsonfiles idp :{}",new IDPEngineController().jsonfiles);
         int cnt = 1;
         for (File curFile : jsonFiles) {
             log.info("{}번째 JSON 파일 작업 시작 : {}", cnt , curFile.getName());

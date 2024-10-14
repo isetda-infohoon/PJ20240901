@@ -22,6 +22,8 @@ public class IDPEngineController {
     public TextField inputImageFolderPath;
     public TextField inputResultFolderPath;
 
+    public int jsonfiles;
+
     public Label errorLabel;
 
     private ExcelService excelService = new ExcelService();
@@ -82,7 +84,7 @@ public class IDPEngineController {
         int totalFiles = imageAndPdfFiles.length;
 
         // 파일 하나 처리될 때마다 progress 비율 계산
-        double progressStep = 1.0 / totalFiles; // 전체 진행의 50%만 차게 하기 위해 0.5로 나눔
+        double progressStep = 1.0 / totalFiles; // 전체 진행의 100%
         AtomicReference<Double> currentProgress = new AtomicReference<>(0.0); // AtomicReference 사용
 
         // 백그라운드에서 작업을 수행

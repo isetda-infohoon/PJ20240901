@@ -1,6 +1,7 @@
 package com.isetda.idpengine;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -17,7 +18,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class ConfigLoader {
-    private static final Logger log = Logger.getLogger(ConfigLoader.class);
+    private static final Logger log = LogManager.getLogger(ConfigLoader.class);
     public static ConfigLoader instance;
 
     public List<String> bucketNames = new ArrayList<>();
@@ -86,8 +87,8 @@ public class ConfigLoader {
                 weightCountFlag = Boolean.parseBoolean(root.getElementsByTagName("weightCountFlag").item(0).getTextContent().trim());
             } else {
                 // 태그가 없을 경우 오류 로그 출력
-                log.error("weightCountFlag 태그가 Config.xml에 존재하지 않습니다. 기본값(false)로 설정됩니다.");
-                weightCountFlag = false; // 기본값 설정
+                log.info("weightCountFlag 태그가 Config.xml에 존재하지 않습니다. 기본값(false)로 설정됩니다.");
+//                weightCountFlag = false; // 기본값 설정
             }
 
         } catch (Exception e) {

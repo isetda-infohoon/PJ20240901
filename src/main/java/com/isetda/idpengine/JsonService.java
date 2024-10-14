@@ -47,9 +47,9 @@ public class JsonService {
                 this.jsonObject = new JSONObject(FileUtils.readFileToString(new File(jsonFilePath), "UTF-8"));
             }
             log.info("JSON data loading successful");
-//            getWordPosition();
+            getWordPosition();
 
-            cd3();
+//            cd3();
         } catch (IOException e) {
             log.error("Error reading json file", e);
         } catch (Exception e) {
@@ -687,9 +687,4 @@ public class JsonService {
         }
     }
 
-    private Map<String, Object> processAnnotation2(JSONObject annotation) {
-        // Implementation of processAnnotation method
-        // (This should be implemented based on your existing code)
-        return new HashMap<>();  // Placeholder return
-    }
 }
