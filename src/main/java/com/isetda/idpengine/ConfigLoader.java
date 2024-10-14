@@ -78,7 +78,7 @@ public class ConfigLoader {
             dbDataUsageFlag = Boolean.parseBoolean(root.getElementsByTagName("dbDataUsageFlag").item(0).getTextContent().trim());
             fullTextClassify = Boolean.parseBoolean(root.getElementsByTagName("fullTextClassify").item(0).getTextContent().trim());
             writeExcelDetails = Boolean.parseBoolean(root.getElementsByTagName("writeExcelDetails").item(0).getTextContent().trim());
-            encodingCheck = Boolean.parseBoolean(root.getElementsByTagName("encodoingCheck").item(0).getTextContent().trim());
+            encodingCheck = Boolean.parseBoolean(root.getElementsByTagName("encodingCheck").item(0).getTextContent().trim());
             weightCountFlag = Boolean.parseBoolean(root.getElementsByTagName("weightCountFlag").item(0).getTextContent().trim());
         } catch (Exception e) {
             e.printStackTrace();

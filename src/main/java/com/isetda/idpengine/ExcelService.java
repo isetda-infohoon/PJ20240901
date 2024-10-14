@@ -145,8 +145,9 @@ public class ExcelService {
             sheet = workbook.getSheetAt(0);
 
             int startRow = sheet.getLastRowNum();
-            for (int i = 1; i < resultList.size(); i++) {
-                Row row = sheet.createRow(startRow + i);
+            //for (int i = 1; i < resultList.size(); i++) {
+            for (int i = 0; i < resultList.size(); i++) {
+                Row row = sheet.createRow(startRow + i + 1); // 수정
                 for (int j = 0; j < resultList.get(i).size(); j++) {
                     Cell cell = row.createCell(j);
                     cell.setCellValue(resultList.get(i).get(j));
