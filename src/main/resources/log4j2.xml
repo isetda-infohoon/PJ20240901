@@ -20,12 +20,14 @@
     </Appenders>
 
     <Loggers>
-        <Logger name="org.apache.poi" level="OFF" >
-            <AppenderRef ref="console" />
+        <!-- org.apache.poi 로거는 로그를 출력하지 않음 -->
+        <Logger name="org.apache.poi" level="OFF">
+            <AppenderRef ref="CONSOLE"/> <!-- 수정: CONSOLE Appender로 참조 -->
         </Logger>
+
         <!-- 최상위 로그 설정 -->
         <Root level="DEBUG">
-            <AppenderRef ref="CONSOLE"/>
+            <AppenderRef ref="CONSOLE"/> <!-- 수정: CONSOLE Appender로 참조 -->
             <AppenderRef ref="FILE"/> <!-- 파일로 로그 저장 -->
         </Root>
     </Loggers>

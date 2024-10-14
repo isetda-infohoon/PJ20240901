@@ -1,5 +1,6 @@
 package com.isetda.idpengine;
 
+import org.apache.log4j.Logger;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -16,6 +17,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class ConfigLoader {
+    private static final Logger log = Logger.getLogger(ConfigLoader.class);
     public static ConfigLoader instance;
 
     public List<String> bucketNames = new ArrayList<>();
@@ -79,9 +81,17 @@ public class ConfigLoader {
             fullTextClassify = Boolean.parseBoolean(root.getElementsByTagName("fullTextClassify").item(0).getTextContent().trim());
             writeExcelDetails = Boolean.parseBoolean(root.getElementsByTagName("writeExcelDetails").item(0).getTextContent().trim());
             encodingCheck = Boolean.parseBoolean(root.getElementsByTagName("encodoingCheck").item(0).getTextContent().trim());
-            weightCountFlag = Boolean.parseBoolean(root.getElementsByTagName("weightCountFlag").item(0).getTextContent().trim());
+            // weightCountFlag 태그가 있는지 확인
+            if (root.getElementsByTagName("weightCountFlag").getLength() > 0) {
+                weightCountFlag = Boolean.parseBoolean(root.getElementsByTagName("weightCountFlag").item(0).getTextContent().trim());
+            } else {
+                // 태그가 없을 경우 오류 로그 출력
+                log.error("weightCountFlag 태그가 Config.xml에 존재하지 않습니다. 기본값(false)로 설정됩니다.");
+                weightCountFlag = false; // 기본값 설정
+            }
+
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Config.xml을 로드하는 중 오류가 발생했습니다.", e);
             throw new RuntimeException("Failed to load configuration from " + configFilePath, e);
         }
     }

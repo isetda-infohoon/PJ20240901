@@ -47,7 +47,9 @@ public class JsonService {
                 this.jsonObject = new JSONObject(FileUtils.readFileToString(new File(jsonFilePath), "UTF-8"));
             }
             log.info("JSON data loading successful");
-            getWordPosition();
+//            getWordPosition();
+
+            cd3();
         } catch (IOException e) {
             log.error("Error reading json file", e);
         } catch (Exception e) {
@@ -573,4 +575,121 @@ public class JsonService {
 
 
 
+    public void cd3() {
+        jsonCollection = new ArrayList<>();
+        try {
+            JSONObject responsesObject = jsonObject.getJSONArray("responses").getJSONObject(0);
+            JSONArray textAnnotationsArray = responsesObject.getJSONArray("textAnnotations");
+            jsonLocal = textAnnotationsArray.getJSONObject(0).getString("locale");
+            log.info("language code: {}", jsonLocal);
+
+            log.info("Start word position extraction");
+
+            // 첫 번째 description(전체 텍스트)을 별도로 처리
+            JSONObject firstAnnotation = textAnnotationsArray.getJSONObject(0);
+            Map<String, Object> firstData = processAnnotation(firstAnnotation);
+            jsonCollection.add(firstData);
+
+            // 나머지 annotations 처리
+            for (int i = 1; i < textAnnotationsArray.length(); i++) {
+                JSONObject textAnnotation = textAnnotationsArray.getJSONObject(i);
+                Map<String, Object> data = processAnnotation(textAnnotation);
+                jsonCollection.add(data);
+            }
+
+            // 첫 번째 항목을 제외한 나머지 항목들에 대해 정렬 수행
+            List<Map<String, Object>> remainingItems = jsonCollection.subList(1, jsonCollection.size());
+
+            // midY를 기준으로 정렬 (오차 범위가 10 이내면 minX로 정렬)
+            remainingItems.sort((a, b) -> {
+                Integer midY1 = (Integer) ((Map<String, Object>) a).get("midY");
+                Integer midY2 = (Integer) ((Map<String, Object>) b).get("midY");
+
+                // midY 값이 null인 경우 Integer.MAX_VALUE로 처리
+                if (midY1 == null) midY1 = Integer.MAX_VALUE;
+                if (midY2 == null) midY2 = Integer.MAX_VALUE;
+
+                int midYDiff = midY1 - midY2;
+
+                // midY 차이가 10 이하인 경우에만 minX로 추가 정렬
+                if (Math.abs(midYDiff) <= 10) {
+                    Integer minX1 = (Integer) ((Map<String, Object>) a).get("minX");
+                    Integer minX2 = (Integer) ((Map<String, Object>) b).get("minX");
+
+                    // minX 값이 null인 경우 Integer.MAX_VALUE로 처리
+                    if (minX1 == null) minX1 = Integer.MAX_VALUE;
+                    if (minX2 == null) minX2 = Integer.MAX_VALUE;
+
+                    return minX1.compareTo(minX2); // minX로 추가 정렬
+                }
+
+                // midY 차이가 10 이상이면 그냥 midY로만 정렬
+                return Integer.compare(midY1, midY2);
+            });
+
+            //글자 크기도 포함해서 정렬 하는 거 추가 10/11 정다현
+            // midY, minX, 그리고 글자의 크기(width, height)를 기준으로 정렬 수행
+            // Step 1: Sort by minY
+            remainingItems.sort(Comparator.comparingInt(a -> (Integer) a.getOrDefault("minY", Integer.MAX_VALUE)));
+
+            // Step 2: Group items with similar minY values
+            List<List<Map<String, Object>>> groups = new ArrayList<>();
+            List<Map<String, Object>> currentGroup = new ArrayList<>();
+            currentGroup.add(remainingItems.get(0));
+
+            for (int i = 1; i < remainingItems.size(); i++) {
+                Map<String, Object> current = remainingItems.get(i);
+                Map<String, Object> previous = remainingItems.get(i - 1);
+
+                int currentMinY = (Integer) current.getOrDefault("minY", Integer.MAX_VALUE);
+                int previousMinY = (Integer) previous.getOrDefault("minY", Integer.MAX_VALUE);
+
+                if (Math.abs(currentMinY - previousMinY) <= 10) {
+                    currentGroup.add(current);
+                } else {
+                    groups.add(new ArrayList<>(currentGroup));
+                    currentGroup.clear();
+                    currentGroup.add(current);
+                }
+            }
+            if (!currentGroup.isEmpty()) {
+                groups.add(currentGroup);
+            }
+
+            // Step 3: Sort each group by (maxY - minY) and then by minX
+            for (List<Map<String, Object>> group : groups) {
+                group.sort((a, b) -> {
+                    int heightDiffA = (Integer) a.getOrDefault("maxY", 0) - (Integer) a.getOrDefault("minY", 0);
+                    int heightDiffB = (Integer) b.getOrDefault("maxY", 0) - (Integer) b.getOrDefault("minY", 0);
+
+                    if (Math.abs(heightDiffA - heightDiffB) <= 5) {
+                        return Integer.compare(
+                                (Integer) a.getOrDefault("minX", Integer.MAX_VALUE),
+                                (Integer) b.getOrDefault("minX", Integer.MAX_VALUE)
+                        );
+                    }
+                    return Integer.compare(heightDiffA, heightDiffB);
+                });
+            }
+
+            // Step 4: Flatten the groups back into a single list
+            List<Map<String, Object>> sortedRemainingItems = groups.stream().flatMap(List::stream).collect(Collectors.toList());
+
+            // Update jsonCollection with sorted items
+            jsonCollection = new ArrayList<>();
+            jsonCollection.add(firstData);  // Add the first item (whole text) back
+            jsonCollection.addAll(sortedRemainingItems);
+
+            log.info("Word position extraction and sorting completed");
+
+        } catch (JSONException e) {
+            log.error("Error processing JSON: ", e);
+        }
+    }
+
+    private Map<String, Object> processAnnotation2(JSONObject annotation) {
+        // Implementation of processAnnotation method
+        // (This should be implemented based on your existing code)
+        return new HashMap<>();  // Placeholder return
+    }
 }
