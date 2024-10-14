@@ -92,7 +92,7 @@ public class ConfigLoader {
             }
 
         } catch (Exception e) {
-            log.error("Config.xml을 로드하는 중 오류가 발생했습니다.", e);
+            e.printStackTrace();
             throw new RuntimeException("Failed to load configuration from " + configFilePath, e);
         }
     }

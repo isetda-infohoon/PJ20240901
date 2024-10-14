@@ -171,7 +171,6 @@ public class DocumentService {
 
         resultList = new ArrayList<>();
         resultWord = new ArrayList<>();
-        // TODO
         resultWeightOneWord = new ArrayList<>();
         //List<String> matchedCountries = new ArrayList<>();
 
@@ -282,7 +281,7 @@ public class DocumentService {
         } else {
             log.info("Document classification results: Country({}), Language Code({}), Document Type({}), Weight({})", matchCountry, jsonData.get(matchCountry).get(matchIndex).get(0)[1], jsonData.get(matchCountry).get(matchIndex).get(0)[0], maxWeight);
             countryType.add(matchCountry);
-            languageCode.add(jsonData.get(matchCountry).get(matchIndex).get(0)[1] + " (" + jsonData.get(matchCountry) + ")");
+            languageCode.add(jsonData.get(matchCountry).get(matchIndex).get(0)[1]);
             documentType.add(jsonData.get(matchCountry).get(matchIndex).get(0)[0]);
         }
         resultList.add(countryType);
@@ -454,7 +453,7 @@ public class DocumentService {
         } else {
             log.info("Document classification results: Country({}), Language Code({}), Document Type({}), Weight({})", matchCountry, matchLanguage, formWithMostMatches, maxWeight);
             countryType.add(matchCountry);
-            languageCode.add(matchLanguage + " (" + matchCountry + ")");
+            languageCode.add(matchLanguage);
             documentType.add(formWithMostMatches);
         }
 
@@ -633,7 +632,7 @@ public class DocumentService {
             log.info("Document classification results: Country({}), Language Code({}), Document Type({}), Weight({})", matchCountry, matchLanguage, formWithMostMatches, maxWeight);
             countryType.add(matchCountry);
             //countryType.add(wordLocal);
-            languageCode.add(matchLanguage + " (" + matchCountry + ")");
+            languageCode.add(matchLanguage);
             documentType.add(formWithMostMatches);
         }
 
