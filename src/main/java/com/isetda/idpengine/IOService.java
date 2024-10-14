@@ -1,5 +1,6 @@
 package com.isetda.idpengine;
 
+import javafx.scene.control.ProgressBar;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -19,8 +20,7 @@ import java.util.List;
 public class IOService {
     private static final Logger log = LogManager.getLogger(IOService.class);
     public ConfigLoader configLoader;
-//    String resultFilePath;
-//왜 이래
+
     public File[] getFilteredFiles() {
         log.info("Start filtering files {}", configLoader.imageFolderPath);
         File folder = new File(configLoader.imageFolderPath);
@@ -133,6 +133,7 @@ public class IOService {
         }
     }
 
+
     // 파일 복사
     public void copyFiles(File file) throws IOException {
 
@@ -160,5 +161,6 @@ public class IOService {
                 log.error("Error copying: Name: {} -> Storage path: {}, Error: {}", fileName, destinationPath, e.getMessage(), e);
                 throw e; // 오류 발생 시 던지기
             }
+
     }
 }

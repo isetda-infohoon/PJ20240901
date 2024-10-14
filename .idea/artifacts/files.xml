@@ -1,0 +1,9 @@
+<component name="ArtifactManager">
+  <artifact name="files">
+    <output-path>$PROJECT_DIR$/out/artifacts/IDPEngine</output-path>
+    <root id="root">
+      <element id="file-copy" path="$PROJECT_DIR$/Config.xml" />
+      <element id="file-copy" path="$PROJECT_DIR$/RULES.json" />
+    </root>
+  </artifact>
+</component>

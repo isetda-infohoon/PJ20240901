@@ -15,7 +15,7 @@ public class IMGService {
     private static final Logger log = LogManager.getLogger(IMGService.class);
     public ConfigLoader configLoader;
 
-    public void drawMarking(File imageFile, List<Map<String, Object>> jsonCollection ,int a) throws IOException {
+    public void drawMarking(File imageFile, List<Map<String, Object>> jsonCollection ,int a,String docType) throws IOException {
         log.info("Adding marking to image: {}", imageFile.getAbsolutePath());
         DocumentService documentService = new DocumentService();
 
@@ -67,8 +67,9 @@ public class IMGService {
 //        List<Map<String, Object>> matchedWords = JsonService.findtheword(excelWords);
 //        log.info("matchedWords : {}",matchedWords);
 //            log.info("jsonCollection 2: {}",jsonCollection);
-        for (Map<String, Object> word : jsonCollection) {
-            String description = (String) word.get("description");
+        if (!docType.equals("미분류")){
+            for (Map<String, Object> word : jsonCollection) {
+                String description = (String) word.get("description");
 //            log.info("word:{}",word);
 
                 int minX = (int) word.get("minX");
@@ -80,8 +81,9 @@ public class IMGService {
                         description, minX, minY, maxX, maxY);
 
                 g2d.drawRect(minX, minY, maxX - minX, maxY - minY);
+            }
+            g2d.dispose();
         }
-        g2d.dispose();
 
         // 이미지 파일의 이름을 PNG 확장자로 변경
         String outputImagePath = imageFile.getParent() + File.separator + imageFile.getName().substring(0, imageFile.getName().lastIndexOf('.')) + "_annotated"+a+".png";
@@ -92,7 +94,7 @@ public class IMGService {
     }
 
 
-    public void processMarking(List<Map<String, Object>> jsonCollection, String resultFilePath, String targetFileName, int a) throws IOException {
+    public void processMarking(List<Map<String, Object>> jsonCollection, String resultFilePath, String targetFileName, int a, String docType) throws IOException {
         log.info("Start processing images and JSON files");
 
         File folder = new File(resultFilePath);
@@ -124,7 +126,7 @@ public class IMGService {
 
         if (jsonFile.exists()) {
             log.info("JSON file path: {}", jsonFile.getAbsolutePath());
-            this.drawMarking(imageFile, jsonCollection,a);
+            this.drawMarking(imageFile, jsonCollection,a,docType);
         } else {
             log.warn("JSON file not found for image: {}", imageFile.getName());
         }

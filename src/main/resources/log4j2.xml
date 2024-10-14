@@ -24,7 +24,7 @@
             <AppenderRef ref="console" />
         </Logger>
         <!-- 최상위 로그 설정 -->
-        <Root level="info">
+        <Root level="DEBUG">
             <AppenderRef ref="CONSOLE"/>
             <AppenderRef ref="FILE"/> <!-- 파일로 로그 저장 -->
         </Root>

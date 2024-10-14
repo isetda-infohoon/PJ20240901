@@ -1,6 +1,6 @@
 <component name="ArtifactManager">
   <artifact type="jar" name="IDPEngine:jar">
-    <output-path>$PROJECT_DIR$/out/artifacts/IDPEngine_jar</output-path>
+    <output-path>$PROJECT_DIR$/out/artifacts/IDPEngine</output-path>
     <root id="archive" name="IDPEngine.jar">
       <element id="module-output" name="IDPEngine" />
       <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-stdlib-common/1.4.0/kotlin-stdlib-common-1.4.0.jar" path-in-jar="/" />
@@ -17,7 +17,6 @@
       <element id="extracted-dir" path="$MAVEN_REPOSITORY$/com/google/api/grpc/proto-google-cloud-vision-v1p3beta1/0.133.0/proto-google-cloud-vision-v1p3beta1-0.133.0.jar" path-in-jar="/" />
       <element id="extracted-dir" path="$MAVEN_REPOSITORY$/io/grpc/grpc-core/1.62.2/grpc-core-1.62.2.jar" path-in-jar="/" />
       <element id="extracted-dir" path="$MAVEN_REPOSITORY$/commons-io/commons-io/2.11.0/commons-io-2.11.0.jar" path-in-jar="/" />
-      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/com/microsoft/sqlserver/mssql-jdbc/12.8.1.jre11/mssql-jdbc-12.8.1.jre11.jar" path-in-jar="/" />
       <element id="extracted-dir" path="$MAVEN_REPOSITORY$/com/google/android/annotations/4.1.1.4/annotations-4.1.1.4.jar" path-in-jar="/" />
       <element id="extracted-dir" path="$MAVEN_REPOSITORY$/com/google/re2j/re2j/1.7/re2j-1.7.jar" path-in-jar="/" />
       <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/apache/xmlbeans/xmlbeans/5.1.1/xmlbeans-5.1.1.jar" path-in-jar="/" />
@@ -93,7 +92,6 @@
       <element id="extracted-dir" path="$MAVEN_REPOSITORY$/io/opencensus/opencensus-proto/0.2.0/opencensus-proto-0.2.0.jar" path-in-jar="/" />
       <element id="extracted-dir" path="$MAVEN_REPOSITORY$/io/grpc/grpc-rls/1.62.2/grpc-rls-1.62.2.jar" path-in-jar="/" />
       <element id="extracted-dir" path="$MAVEN_REPOSITORY$/io/grpc/grpc-util/1.62.2/grpc-util-1.62.2.jar" path-in-jar="/" />
-      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/conscrypt/conscrypt-openjdk-uber/2.5.2/conscrypt-openjdk-uber-2.5.2.jar" path-in-jar="/" />
       <element id="extracted-dir" path="$MAVEN_REPOSITORY$/com/google/api/grpc/gapic-google-cloud-storage-v2/2.38.0-alpha/gapic-google-cloud-storage-v2-2.38.0-alpha.jar" path-in-jar="/" />
       <element id="extracted-dir" path="$MAVEN_REPOSITORY$/com/zaxxer/SparseBitSet/1.2/SparseBitSet-1.2.jar" path-in-jar="/" />
       <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/controlsfx/controlsfx/11.1.2/controlsfx-11.1.2.jar" path-in-jar="/" />
@@ -109,65 +107,6 @@
       <element id="extracted-dir" path="$MAVEN_REPOSITORY$/com/google/auto/value/auto-value-annotations/1.10.4/auto-value-annotations-1.10.4.jar" path-in-jar="/" />
       <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/apache/logging/log4j/log4j-core/2.20.0/log4j-core-2.20.0.jar" path-in-jar="/" />
       <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/openjfx/javafx-controls/22-ea+11/javafx-controls-22-ea+11.jar" path-in-jar="/" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/api-ms-win-core-console-l1-1-0.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/api-ms-win-core-console-l1-2-0.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/api-ms-win-core-datetime-l1-1-0.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/api-ms-win-core-debug-l1-1-0.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/api-ms-win-core-errorhandling-l1-1-0.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/api-ms-win-core-file-l1-1-0.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/api-ms-win-core-file-l1-2-0.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/api-ms-win-core-file-l2-1-0.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/api-ms-win-core-handle-l1-1-0.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/api-ms-win-core-heap-l1-1-0.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/api-ms-win-core-interlocked-l1-1-0.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/api-ms-win-core-libraryloader-l1-1-0.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/api-ms-win-core-localization-l1-2-0.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/api-ms-win-core-memory-l1-1-0.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/api-ms-win-core-namedpipe-l1-1-0.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/api-ms-win-core-processenvironment-l1-1-0.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/api-ms-win-core-processthreads-l1-1-0.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/api-ms-win-core-processthreads-l1-1-1.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/api-ms-win-core-profile-l1-1-0.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/api-ms-win-core-rtlsupport-l1-1-0.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/api-ms-win-core-string-l1-1-0.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/api-ms-win-core-synch-l1-1-0.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/api-ms-win-core-synch-l1-2-0.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/api-ms-win-core-sysinfo-l1-1-0.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/api-ms-win-core-timezone-l1-1-0.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/api-ms-win-core-util-l1-1-0.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/api-ms-win-crt-conio-l1-1-0.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/api-ms-win-crt-convert-l1-1-0.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/api-ms-win-crt-environment-l1-1-0.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/api-ms-win-crt-filesystem-l1-1-0.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/api-ms-win-crt-heap-l1-1-0.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/api-ms-win-crt-locale-l1-1-0.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/api-ms-win-crt-math-l1-1-0.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/api-ms-win-crt-multibyte-l1-1-0.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/api-ms-win-crt-private-l1-1-0.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/api-ms-win-crt-process-l1-1-0.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/api-ms-win-crt-runtime-l1-1-0.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/api-ms-win-crt-stdio-l1-1-0.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/api-ms-win-crt-string-l1-1-0.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/api-ms-win-crt-time-l1-1-0.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/api-ms-win-crt-utility-l1-1-0.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/decora_sse.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/fxplugins.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/glass.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/glib-lite.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/gstreamer-lite.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/javafx_font.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/javafx_iio.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/jfxmedia.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/jfxwebkit.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/msvcp140.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/msvcp140_1.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/msvcp140_2.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/prism_common.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/prism_d3d.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/prism_sw.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/ucrtbase.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/vcruntime140.dll" />
-      <element id="file-copy" path="$USER_HOME$/javafx-sdk-22.0.2/bin/vcruntime140_1.dll" />
     </root>
   </artifact>
 </component>
