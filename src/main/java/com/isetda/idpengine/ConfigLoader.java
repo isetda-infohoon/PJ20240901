@@ -36,6 +36,7 @@ public class ConfigLoader {
     public boolean writeExcelDetails;
     public boolean encodingCheck;
 
+    public boolean weightCountFlag;
 
     private String configFilePath = "Config.xml";
     //jar파일 만들 때 상대경로 config 파일 빼놓기 위한 경로
@@ -78,6 +79,7 @@ public class ConfigLoader {
             fullTextClassify = Boolean.parseBoolean(root.getElementsByTagName("fullTextClassify").item(0).getTextContent().trim());
             writeExcelDetails = Boolean.parseBoolean(root.getElementsByTagName("writeExcelDetails").item(0).getTextContent().trim());
             encodingCheck = Boolean.parseBoolean(root.getElementsByTagName("encodoingCheck").item(0).getTextContent().trim());
+            weightCountFlag = Boolean.parseBoolean(root.getElementsByTagName("weightCountFlag").item(0).getTextContent().trim());
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException("Failed to load configuration from " + configFilePath, e);

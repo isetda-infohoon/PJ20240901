@@ -129,7 +129,7 @@ public class ExcelService {
 //    }
 
     // 엑셀에 결과 값 쓰기
-    public void createExcel(List<List<String>> resultList, List<List<String>> resultWord, String fileName, String saveFilePath, int a) throws IOException {
+    public void createExcel(List<List<String>> resultList, List<List<String>> resultWord, List<List<String>> resultWeightOneWord, String fileName, String saveFilePath, int a) throws IOException {
         File file = new File(saveFilePath);
         Workbook workbook;
         Sheet sheet;
@@ -158,15 +158,16 @@ public class ExcelService {
                     int colNum = 2; // 3열부터 시작 (C열에 해당)
 
                     if (configLoader.writeExcelDetails) {
-                        for (List<String> rowData : resultWord) {
+                        for (int j = 0; j < resultWord.size(); j++) {
+                            List<String> rowData = resultWord.get(j);
                             Cell cell = row.createCell(colNum); // 2열에 해당
 
                             StringBuilder cellValue = new StringBuilder(rowData.get(0) + " 일치 단어 리스트");
                             cellValue.append(" (");
 
-                            for (int j = 1; j < rowData.size() - 1; j++) {
-                                cellValue.append(rowData.get(j));
-                                if (j < rowData.size() - 2) {
+                            for (int k = 1; k < rowData.size() - 1; k++) {
+                                cellValue.append(rowData.get(k));
+                                if (k < rowData.size() - 2) {
                                     cellValue.append(", ");
                                 }
                             }
@@ -178,12 +179,36 @@ public class ExcelService {
                             Cell cell2 = row.createCell(colNum);
                             cell2.setCellValue(rowData.get(0) + " 일치 단어 전체 개수 (" + rowData.get(rowData.size() - 1) + ")");
                             colNum++;
+
+                            if (configLoader.weightCountFlag) {
+                                List<String> rowData2 = resultWeightOneWord.get(j);
+
+                                Cell cell3 = row.createCell(colNum);
+
+                                StringBuilder cellValue2 = new StringBuilder(rowData2.get(0) + " 가중치 1인 일치 단어 리스트");
+                                cellValue2.append(" (");
+
+                                for (int x = 1; x < rowData2.size() - 1; x++) {
+                                    cellValue2.append(rowData2.get(x));
+                                    if (x < rowData2.size() - 2) {
+                                        cellValue2.append(", ");
+                                    }
+                                }
+
+                                cellValue2.append(")");
+                                cell3.setCellValue(cellValue2.toString());
+                                colNum++;
+
+                                Cell cell4 = row.createCell(colNum);
+                                cell4.setCellValue(rowData2.get(0) + " 가중치 1인 일치 단어 전체 개수 (" + rowData2.get(rowData2.size() - 1) + ")");
+                                colNum++;
+                            }
                         }
                     }
 
                     // cd1, cd2, cd3 .. 분류 유형에 따라 파일 이름 작성
-                    Cell cell3 = row.createCell(colNum);
-                    cell3.setCellValue(fileName + " (cd"+a+")");
+                    Cell cell5 = row.createCell(colNum);
+                    cell5.setCellValue(fileName + " (cd"+a+")");
                 }
             }
         } else {
@@ -212,15 +237,16 @@ public class ExcelService {
                     int colNum = 2; // 3열부터 시작 (C열에 해당)
 
                     if (configLoader.writeExcelDetails) {
-                        for (List<String> rowData : resultWord) {
+                        for (int j = 0; j < resultWord.size(); j++) {
+                            List<String> rowData = resultWord.get(j);
                             Cell cell = row.createCell(colNum); // 2열에 해당
 
                             StringBuilder cellValue = new StringBuilder(rowData.get(0) + " 일치 단어 리스트");
                             cellValue.append(" (");
 
-                            for (int j = 1; j < rowData.size() - 1; j++) {
-                                cellValue.append(rowData.get(j));
-                                if (j < rowData.size() - 2) {
+                            for (int k = 1; k < rowData.size() - 1; k++) {
+                                cellValue.append(rowData.get(k));
+                                if (k < rowData.size() - 2) {
                                     cellValue.append(", ");
                                 }
                             }
@@ -234,12 +260,36 @@ public class ExcelService {
                             colNum++;
                             log.info("안녕 11 :{}  : {}", cell);
                             log.info("안녕 22 :{}  : {}", cell2);
+
+                            if (configLoader.weightCountFlag) {
+                                List<String> rowData2 = resultWeightOneWord.get(j);
+
+                                Cell cell3 = row.createCell(colNum);
+
+                                StringBuilder cellValue2 = new StringBuilder(rowData2.get(0) + " 가중치 1인 일치 단어 리스트");
+                                cellValue2.append(" (");
+
+                                for (int x = 1; x < rowData2.size() - 1; x++) {
+                                    cellValue2.append(rowData2.get(x));
+                                    if (x < rowData2.size() - 2) {
+                                        cellValue2.append(", ");
+                                    }
+                                }
+
+                                cellValue2.append(")");
+                                cell3.setCellValue(cellValue2.toString());
+                                colNum++;
+
+                                Cell cell4 = row.createCell(colNum);
+                                cell4.setCellValue(rowData2.get(0) + " 가중치 1인 일치 단어 전체 개수 (" + rowData2.get(rowData2.size() - 1) + ")");
+                                colNum++;
+                            }
                         }
                     }
 
                     // cd1, cd2, cd3 .. 분류 유형에 따라 파일 이름 작성
-                    Cell cell3 = row.createCell(colNum);
-                    cell3.setCellValue(fileName + " (cd"+a+")");
+                    Cell cell5 = row.createCell(colNum);
+                    cell5.setCellValue(fileName + " (cd"+a+")");
                 }
             }
         }

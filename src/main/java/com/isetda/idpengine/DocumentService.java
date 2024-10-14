@@ -25,6 +25,7 @@ public class DocumentService {
     public File[] jsonFiles;
     public List<List<String>> resultList; // 각 변수로
     public List<List<String>> resultWord;
+    public List<List<String>> resultWeightOneWord;
     public String docType="";
     public String fileName;
     public List<String> documentType = new ArrayList<>();
@@ -148,12 +149,14 @@ public class DocumentService {
         log.info("matchjsonWord : {}",matchjsonWord);
 
         try {
-            excelService.createExcel(resultList, resultWord, fileName, saveFilePath,a);
+            excelService.createExcel(resultList, resultWord, resultWeightOneWord, fileName, saveFilePath, a);
         } catch (IOException e) {
             log.error("엑셀 파일 생성 실패: {}", e.getStackTrace()[0]);
         }
         matchjsonWord = new ArrayList<>();
     }
+
+    // TODO : 가중치 별로 매칭되는 단어 개수를 카운트하고 가중치 1인 단어 개수를 비교 -> 파라메터로 동작 유무 설정 -> cd4로 만든 후에 작업 완료 되면 cd1으로 이름 변경
 
     // 합쳐진 추출 단어(description)로 일치 단어 비교
     public void classifyDocuments1(Map<String, List<List<String[]>>> jsonData, String jsonLocale, String jsonDescription) {
@@ -166,6 +169,8 @@ public class DocumentService {
 
         resultList = new ArrayList<>();
         resultWord = new ArrayList<>();
+        // TODO
+        resultWeightOneWord = new ArrayList<>();
         //List<String> matchedCountries = new ArrayList<>();
 
         for (String countryName : jsonData.keySet()) {
@@ -180,30 +185,42 @@ public class DocumentService {
                 List<String[]> form = forms.get(col);
 
                 double addWeight = 0;
+                int addWeightOneValue = 0;
                 int matches = 0;
+                int weightOneCount = 0;
                 List<String> matchingValues = new ArrayList<>();
+                List<String> weightOneValues = new ArrayList<>();
 
                 matchingValues.add(form.get(0)[0]);
+                weightOneValues.add(form.get(0)[0]);
 
                 int cnt = 0;
                 for (int i = 1; i < form.size(); i++) {
                     String value = form.get(i)[0];
+                    double weight = Double.parseDouble(form.get(i)[1]);
+
                     if (jsonDescription.contains(value)) {
-                        try {
-                            addWeight += Double.parseDouble(form.get(i)[1]);
-                        } catch (Exception e) {
-                            log.error("Weight calculation failed: {}", e.getStackTrace()[0]);
-                        }
+                        addWeight += weight;
 
                         matches++;
                         cnt = countOccurrences(jsonDescription, value);
                         matchingValues.add(value + "(" + cnt + ")");
+
+                        // TODO : cd2, cd3 내용 추가
+                        if (configLoader.weightCountFlag) {
+                            if (weight == 1.0) {
+                                weightOneValues.add(value + "(" + cnt + ")");
+                                addWeightOneValue += cnt;
+                            }
+                        }
                     } else {
                         cnt = 0;
                     }
                     log.info("'{}' - MC: {}, WT: {}", value, cnt, Double.parseDouble(form.get(i)[1]));
                 }
 
+                log.info("'{}' Document Type - Number of matched words with weight 1: {}", form.get(0)[0], addWeightOneValue);
+                log.info("'{}' Document Type - Matched words with weight 1 result: {}", form.get(0)[0], weightOneValues.subList(1, weightOneValues.size()));
                 log.info("'{}' Document Type - Number of matching word: {}/{}", form.get(0)[0], matches, form.size() - 1);
                 log.info("'{}' Document Type - Weight sum: {}", form.get(0)[0], addWeight);
                 log.info("'{}' Document Type - Match result: {}", form.get(0)[0], matches != 0 ? matchingValues.subList(1, matchingValues.size()) : "");
@@ -211,7 +228,18 @@ public class DocumentService {
                 matchingValues.add(matches + ""); // 매치 단어 수 결과 리스트에 추가
                 resultWord.add(matchingValues);
 
-                if (matches > maxMatches) {
+                weightOneValues.add(addWeightOneValue + "");
+                resultWeightOneWord.add(weightOneValues);
+
+                if (matches == maxMatches) {
+                    if (addWeight > maxWeight) {
+                        maxMatches = matches;
+                        maxWeight = addWeight;
+                        matchIndex = col;
+                        weightIndex = col;
+                        matchCountry = countryName;
+                    }
+                } else if (matches > maxMatches) {
                     maxMatches = matches;
                     matchIndex = col;
                     matchCountry = countryName;
@@ -276,6 +304,7 @@ public class DocumentService {
 
         resultList = new ArrayList<>();
         resultWord = new ArrayList<>();
+        resultWeightOneWord = new ArrayList<>();
 
         // null 처리
 
@@ -297,6 +326,7 @@ public class DocumentService {
 
             for (List<String[]> form : forms) {
                 int totalMatches = 0; // 전체 매치된 단어의 수
+                int addWeightOneValue = 0;
                 String formName = form.get(0)[0];
                 String formLanguage = form.get(0)[1];
                 formWeightSum.put(formName, 0.0);
@@ -310,7 +340,10 @@ public class DocumentService {
                 }
 
                 List<String> matchingValues = new ArrayList<>();
+                List<String> weightOneValues = new ArrayList<>();
+
                 matchingValues.add(form.get(0)[0]);
+                weightOneValues.add(form.get(0)[0]);
 
                 for (Map<String, Object> item : items) {
                     String description = (String) item.get("description");
@@ -321,7 +354,6 @@ public class DocumentService {
                             formWeightSum.put(formName, formWeightSum.get(formName) + weightMap.get(description));
                             formMatchCount.put(formName, formMatchCount.get(formName) + 1);
                             totalMatches++; // 전체 매치 수 증가
-                            matchingValues.add(description + "(" + matchCount.get(description) + ")");
                             formMatchedWords.computeIfAbsent(formName, k -> new ArrayList<>()).add(item);
                         }
                     }
@@ -331,12 +363,25 @@ public class DocumentService {
                     String word = form.get(i)[0];
                     int count = matchCount.get(word);
                     double weight = weightMap.get(word);
+
+                    if (count >= 1) {
+                        matchingValues.add(word + "(" + count + ")");
+
+                        if (configLoader.weightCountFlag) {
+                            if (weight == 1.0) {
+                                weightOneValues.add(word + "(" + count + ")");
+                                addWeightOneValue += count;
+                            }
+                        }
+                    }
                     log.info("'{}' - MC: {}, WT: {}", word, count, weight);
                 }
 
                 int totalWords = form.size() - 1;
                 int matchedWords = formMatchCount.get(formName);
                 double totalWeight = formWeightSum.get(formName);
+                log.info("'{}' Document Type - Number of matched words with weight 1: {}", formName, addWeightOneValue);
+                log.info("'{}' Document Type - Matched words with weight 1 result: {}", formName, matchingValues);
                 log.info("'{}' Document Type - Number of matching word: {}/{}", formName, matchedWords, totalWords);
                 log.info("'{}' Document Type - Weight sum: {}", formName, totalWeight);
                 log.info("'{}' Document Type - Match result: {}", formName, matchedWords != 0 ? matchingValues : "");
@@ -344,16 +389,28 @@ public class DocumentService {
                 matchingValues.add(totalMatches + ""); // 매치 단어 수 결과 리스트에 추가
                 resultWord.add(matchingValues);
 
-                if (totalWeight > maxWeight) {
-                    maxWeight = totalWeight;
-                    formWithMostWeights = formName;
-                }
+                weightOneValues.add(addWeightOneValue + "");
+                resultWeightOneWord.add(weightOneValues);
 
-                if (matchedWords > maxMatches) {
+                if (matchedWords == maxMatches) {
+                    if (totalWeight > maxWeight) {
+                        maxMatches = matchedWords;
+                        maxWeight = totalWeight;
+                        formWithMostMatches = formName;
+                        formWithMostWeights = formName;
+                        matchLanguage = formLanguage;
+                        matchCountry = countryName;
+                    }
+                } else if (matchedWords > maxMatches) {
                     maxMatches = matchedWords;
                     formWithMostMatches = formName;
                     matchLanguage = formLanguage;
                     matchCountry = countryName;
+                }
+
+                if (totalWeight > maxWeight) {
+                    maxWeight = totalWeight;
+                    formWithMostWeights = formName;
                 }
             }
         }
@@ -431,6 +488,7 @@ public class DocumentService {
 
         resultList = new ArrayList<>();
         resultWord = new ArrayList<>();
+        resultWeightOneWord = new ArrayList<>();
 
         // null 처리
 
@@ -452,6 +510,7 @@ public class DocumentService {
 
             for (List<String[]> form : forms) {
                 int totalMatches = 0; // 전체 매치된 단어의 수
+                int addWeightOneValue = 0;
                 String formName = form.get(0)[0];
                 String formLanguage = form.get(0)[1];
                 formWeightSum.put(formName, 0.0);
@@ -466,7 +525,10 @@ public class DocumentService {
                 }
 
                 List<String> matchingValues = new ArrayList<>();
+                List<String> weightOneValues = new ArrayList<>();
+
                 matchingValues.add(form.get(0)[0]);
+                weightOneValues.add(form.get(0)[0]);
 
                 for (Map<String, Object> item : items) {
                     String description = (String) item.get("description");
@@ -477,7 +539,6 @@ public class DocumentService {
                             formWeightSum.put(formName, formWeightSum.get(formName) + weightMap.get(description));
                             formMatchCount.put(formName, formMatchCount.get(formName) + 1);
                             totalMatches++; // 전체 매치 수 증가
-                            matchingValues.add(description + "(" + matchCount.get(description) + ")");
                             formMatchedWords.computeIfAbsent(formName, k -> new ArrayList<>()).add(item);
                         }
                     }
@@ -487,12 +548,25 @@ public class DocumentService {
                     String word = form.get(i)[0];
                     int count = matchCount.get(word);
                     double weight = weightMap.get(word);
+
+                    if (count >= 1) {
+                        matchingValues.add(word + "(" + count + ")");
+
+                        if (configLoader.weightCountFlag) {
+                            if (weight == 1.0) {
+                                weightOneValues.add(word + "(" + count + ")");
+                                addWeightOneValue += count;
+                            }
+                        }
+                    }
                     log.info("'{}' - MC: {}, WT: {}", word, count, weight);
                 }
 
                 int totalWords = form.size() - 1;
                 int matchedWords = formMatchCount.get(formName);
                 double totalWeight = formWeightSum.get(formName);
+                log.info("'{}' Document Type - Number of matched words with weight 1: {}", formName, addWeightOneValue);
+                log.info("'{}' Document Type - Matched words with weight 1 result: {}", formName, matchingValues);
                 log.info("'{}' Document Type - Number of matching word: {}/{}", formName, matchedWords, totalWords);
                 log.info("'{}' Document Type - Weight sum: {}", formName, totalWeight);
                 log.info("'{}' Document Type - Match result: {}", formName, matchedWords != 0 ? matchingValues : "");
@@ -500,16 +574,28 @@ public class DocumentService {
                 matchingValues.add(totalMatches + ""); // 매치 단어 수 결과 리스트에 추가
                 resultWord.add(matchingValues);
 
-                if (totalWeight > maxWeight) {
-                    maxWeight = totalWeight;
-                    formWithMostWeights = formName;
-                }
+                weightOneValues.add(addWeightOneValue + "");
+                resultWeightOneWord.add(weightOneValues);
 
-                if (matchedWords > maxMatches) {
+                if (matchedWords == maxMatches) {
+                    if (totalWeight > maxWeight) {
+                        maxMatches = matchedWords;
+                        maxWeight = totalWeight;
+                        formWithMostMatches = formName;
+                        formWithMostWeights = formName;
+                        matchLanguage = formLanguage;
+                        matchCountry = countryName;
+                    }
+                } else if (matchedWords > maxMatches) {
                     maxMatches = matchedWords;
                     formWithMostMatches = formName;
                     matchLanguage = formLanguage;
                     matchCountry = countryName;
+                }
+
+                if (totalWeight > maxWeight) {
+                    maxWeight = totalWeight;
+                    formWithMostWeights = formName;
                 }
             }
         }
@@ -553,11 +639,11 @@ public class DocumentService {
         resultList.add(languageCode);
         resultList.add(documentType);
 
-        log.debug("엑셀 데이터 결과 : {}", resultList);
+        log.debug("Excel Data Results: {}", resultList);
         docType = resultList.get(1).get(1);
 
 //            matchjsonWord = matchjsonWord2;
 //            log.debug("filteredMatchJsonWord2 : {}", filteredMatchJsonWord2);
 
-        }
     }
+}
