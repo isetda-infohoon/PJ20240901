@@ -364,21 +364,21 @@ public class JsonService {
             //String content = FileUtils.readFileToString(new File(filePath), "UTF-8");
             JSONObject jsonObject = new JSONObject(decodeText);
 
-            JSONArray countryList = jsonObject.getJSONArray("국가 리스트");
+            JSONArray countryList = jsonObject.getJSONArray("Country List");
 
             for (int i = 0; i < countryList.length(); i++) {
                 JSONObject country = countryList.getJSONObject(i);
-                String countryName = country.getString("국가");
+                String countryName = country.getString("Country");
 
                 log.info("Country: {}", countryName);
 
-                JSONArray forms = country.getJSONArray("양식");
+                JSONArray forms = country.getJSONArray("Template");
                 List<List<String[]>> formList = new ArrayList<>();
 
                 for (int j = 0; j < forms.length(); j++) {
                     JSONObject form = forms.getJSONObject(j);
-                    String formName = form.getString("양식명");
-                    String language = form.getString("언어");
+                    String formName = form.getString("Template Name");
+                    String language = form.getString("Language");
 
                     log.info("H: {}, {}", formName, language);
 
@@ -387,13 +387,13 @@ public class JsonService {
 
                     int count = 0;
 
-                    JSONArray rules = form.getJSONArray("RULE");
+                    JSONArray rules = form.getJSONArray("H-RULE");
                     for (int k = 0; k < rules.length(); k++) {
                         JSONObject rule = rules.getJSONObject(k);
-                        String word = rule.getString("단어");
+                        String word = rule.getString("WD");
 
                         if (!word.isEmpty()) {
-                            String weight = String.valueOf(rule.getDouble("가중치"));
+                            String weight = String.valueOf(rule.getDouble("WT"));
                             ruleList.add(new String[]{word, weight});
 
                             count += 1;
