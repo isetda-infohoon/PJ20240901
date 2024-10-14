@@ -5,12 +5,12 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.*?>
 
-<VBox alignment="CENTER" spacing="20.0" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/17.0.2-ea" fx:controller="com.isetda.idpengine.IDPEngineController">
+<VBox alignment="CENTER" prefWidth="576.0" spacing="20.0" xmlns="http://javafx.com/javafx/17.0.2-ea" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.isetda.idpengine.IDPEngineController">
   <padding>
     <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
   </padding>
 
-  <GridPane prefHeight="500.0" prefWidth="575.0">
+  <GridPane prefHeight="298.0" prefWidth="444.0">
     <columnConstraints>
       <ColumnConstraints halignment="CENTER" hgrow="SOMETIMES" maxWidth="500.0" minWidth="10.0" prefWidth="389.0" />
       <ColumnConstraints halignment="CENTER" hgrow="SOMETIMES" maxWidth="189.0" minWidth="10.0" prefWidth="189.0" />
@@ -21,11 +21,6 @@
       <RowConstraints maxHeight="50.0" minHeight="10.0" prefHeight="50.0" vgrow="SOMETIMES" />
       <RowConstraints maxHeight="50.0" minHeight="6.0" prefHeight="32.0" vgrow="SOMETIMES" />
       <RowConstraints maxHeight="-Infinity" minHeight="0.0" prefHeight="50.0" vgrow="SOMETIMES" />
-      <RowConstraints maxHeight="-Infinity" minHeight="10.0" prefHeight="50.0" vgrow="SOMETIMES" />
-      <RowConstraints maxHeight="-Infinity" minHeight="10.0" prefHeight="50.0" vgrow="SOMETIMES" />
-      <RowConstraints maxHeight="-Infinity" minHeight="10.0" prefHeight="50.0" vgrow="SOMETIMES" />
-      <RowConstraints maxHeight="-Infinity" minHeight="10.0" prefHeight="50.0" vgrow="SOMETIMES" />
-      <RowConstraints maxHeight="-Infinity" minHeight="10.0" prefHeight="50.0" vgrow="SOMETIMES" />
     </rowConstraints>
     <children>
       <TextField fx:id="inputImageFolderPath" prefHeight="22.0" prefWidth="279.0" promptText="이미지 폴더 경로 입력">
@@ -57,6 +52,10 @@
           <Font name="Arial" size="12.0" />
         </font>
       </Button>
+      <Label fx:id="errorLabel" text="" GridPane.rowIndex="3" />
     </children>
   </GridPane>
+
+  <!-- Progress Bar 추가 -->
+  <ProgressBar fx:id="progressBar" prefWidth="500.0" progress="0.0" />
 </VBox>

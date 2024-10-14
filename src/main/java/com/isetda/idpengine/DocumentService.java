@@ -92,13 +92,59 @@ public class DocumentService {
         }
     }
 
+//    public interface ProgressCallback {
+//        void updateProgress(double progress, String message);
+//    }
+
+//    public void createFinalResultFile(ProgressCallback progressCallback) throws Exception {
+//        int totalFiles = jsonFiles.length;
+//        log.info("11 :{}",totalFiles);
+//        int cnt = 1;
+//        for (File curFile : jsonFiles) {
+//
+//            log.info("{}번째 JSON 파일 작업 시작 : {}", cnt , curFile.getName());
+//            // 각 파일 JSON Object로 저장
+//            String jsonFilePath = curFile.getPath();
+//
+//            fileName = curFile.getName().substring(0, curFile.getName().lastIndexOf("."));
+//            saveFilePath = configLoader.resultFilePath + "\\" + fileName + ".xlsx";
+//
+//            imgFileName = fileName.replace("_result","");
+//
+//            JsonService jsonService = new JsonService(jsonFilePath);
+//            //정다현 추가
+//            wordLocal = jsonService.jsonLocal;
+//
+//            //StringBuilder allWords = new StringBuilder();
+//            String allWords = jsonService.jsonCollection.get(0).get("description").toString();
+//
+////            for (Map<String, Object> item : jsonService.jsonCollection) {
+////                allWords.append(item.get("description"));
+////            }
+//
+//            classifyDocuments1(jsonData, jsonService.jsonLocal, allWords);
+//            postProcessing(1);
+//            classifyDocuments2(jsonData, jsonService.jsonLocal, jsonService.jsonCollection);
+//            postProcessing(2);
+//            JsonService.findMatchingWords(jsonService.jsonCollection);
+//            classifyDocuments3(jsonData,jsonService.jsonLocal,JsonService.jsonCollection2);
+//            postProcessing(3);
+//
+//            // 진행률 업데이트
+//            double progress = (double) cnt / totalFiles;
+//            progressCallback.updateProgress(progress, "Processing file " + cnt + " of " + totalFiles + ": " + curFile.getName());
+//
+//            cnt++;
+//        }
+//    }
+
     public void postProcessing(int a) throws Exception {
 //        log.info("문서 타입 55 :{}",docType);
 //        log.info("문서 타입 54 :{}",documentType);
 //        log.info("문서 타입 56 :{}",resultList);
 
         excelService.configLoader = configLoader;
-        imgService.processMarking(matchjsonWord, configLoader.resultFilePath,imgFileName,a);
+        imgService.processMarking(matchjsonWord, configLoader.resultFilePath,imgFileName,a,docType);
         log.info("matchjsonWord : {}",matchjsonWord);
 
         try {
@@ -215,6 +261,7 @@ public class DocumentService {
 
         log.info("Excel Data Results: {}", resultList);
         docType = resultList.get(1).get(1);
+        log.info("docType : {}",docType);
     }
 
     public void classifyDocuments2(Map<String, List<List<String[]>>> jsonData, String jsonLocale, List<Map<String, Object>> items) {
