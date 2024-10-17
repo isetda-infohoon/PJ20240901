@@ -3,14 +3,12 @@ package com.isetda.idpengine;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import javafx.scene.control.*;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyEvent;
-import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.GridPane;
-import javafx.scene.text.Text;
+import javafx.scene.control.Label;
+import javafx.scene.control.ProgressBar;
+import javafx.scene.control.TextField;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.w3c.dom.Text;
 
 import java.io.File;
 import java.io.IOException;
@@ -34,6 +32,7 @@ public class IDPEngineController {
 
     private ExcelService excelService = new ExcelService();
     private DocumentService documentService = new DocumentService();
+    private JsonEnDecode jsonEnDecode = new JsonEnDecode();
 
     String resultFilePath = configLoader.resultFilePath;
     @FXML
@@ -179,14 +178,58 @@ public class IDPEngineController {
 
     public void onButton2Click(ActionEvent event) throws Exception {
         byte[] jsonToByte = Files.readAllBytes(Paths.get(configLoader.jsonFilePath));
-        documentService.jsonData = JsonService.getJsonDictionary(JsonService.aesDecode(jsonToByte));
+//        documentService.jsonData = JsonService.getJsonDictionary(JsonService.aesDecode(jsonToByte));
 //        documentService.setController(this);  // controller 설정
+        //documentService.jsonData = JsonService.getJsonDictionary(JsonService.aesDecode(jsonToByte));
+        documentService.jsonData = JsonService.getJsonDictionary2(JsonService.aesDecode(jsonToByte));
         classificationDocument();
         errorLabel.setText("all success");
         btn2files.setText("json files in result folder : "+documentService.jsonFiles.length);
 
 //        JsonService.processMarking(folderPath, jsonFolderPath);
     }
+//public void onButton2Click(ActionEvent event) throws Exception {
+//    byte[] jsonToByte = Files.readAllBytes(Paths.get(configLoader.jsonFilePath));
+//    documentService.jsonData = JsonService.getJsonDictionary(JsonService.aesDecode(jsonToByte));
+//
+//    // 진행률 바 초기화
+//    progressBar.setProgress(0);
+//    errorLabel.setText("Starting document classification...");
+//    log.info("dd");
+//
+//    // 백그라운드 스레드에서 작업 실행
+//    Thread thread = new Thread(() -> {
+//        log.info("11");
+//            try {
+//                documentService.createFinalResultFile();
+//                    public void updateProgress(final double progress, final String message) {
+//                        Platform.runLater(new Runnable() {
+//                            @Override
+//                            public void run() {
+//                                progressBar.setProgress(progress);
+//                                errorLabel.setText(message);
+//                            }
+//                        });
+//                    }
+//                Platform.runLater(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        progressBar.setProgress(1);
+//                        errorLabel.setText("Document classification completed");
+//                    }
+//                });
+//            } catch (final Exception e) {
+//                Platform.runLater(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        errorLabel.setText("Error: " + e.getMessage());
+//                    }
+//                });
+//            }
+//    });
+//    thread.setDaemon(true);
+//    thread.start();
+//}
 
     public void processing() {
         configLoader.resultFilePath = inputResultFolderPath.getText();
@@ -218,5 +261,6 @@ public class IDPEngineController {
         // 전달 받은 폴더 경로의 json 파일 필터링
         documentService.jsonFiles = excelService.getFilteredJsonFiles();
         documentService.createFinalResultFile();
+//        imgService.processMarking(documentService.matchjsonWord, configLoader.resultFilePath,);
     }
 }
