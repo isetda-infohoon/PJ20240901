@@ -302,5 +302,144 @@ public class ExcelService {
         workbook.close();
     }
 
+    public void createExcel2(List<List<String>> resultList, List<Map<String, Object>> filteredResult, String fileName, String saveFilePath, int a) throws IOException {
+        File file = new File(saveFilePath);
+        Workbook workbook;
+        Sheet sheet;
+
+        Map<String, StringBuilder> templateEntries = new HashMap<>();
+
+        for (Map<String, Object> result : filteredResult) {
+            String templateName = (String) result.get("Template Name");
+            String wd = (String) result.get("WD");
+            int count = (int) result.get("Count");
+
+            // count가 1 이상인 항목만 저장
+            if (count >= 1) {
+                // 해당 템플릿 이름이 없다면 초기화하고, WD와 Count 값을 추가
+                templateEntries.putIfAbsent(templateName, new StringBuilder(templateName).append(" 일치 단어 리스트 ("));
+                StringBuilder sb = templateEntries.get(templateName);
+                sb.append(wd).append("(").append(count).append("), ");
+            }
+        }
+
+        // 이미 생성된 파일이 있는지 확인
+        if (file.exists()) {
+            // 생성된 파일이 있는 경우 기존 파일에 이어서 결과 작성
+            log.info("{} File exists. Continuing from the existing file.", fileName);
+
+            try (FileInputStream fileIn = new FileInputStream(file)) {
+                workbook = new XSSFWorkbook(fileIn);
+            }
+            sheet = workbook.getSheetAt(0);
+
+            int startRow = sheet.getLastRowNum();
+            //for (int i = 1; i < resultList.size(); i++) {
+            for (int i = 0; i < resultList.size(); i++) {
+                Row row = sheet.createRow(startRow + i + 1); // 수정
+                for (int j = 0; j < resultList.get(i).size(); j++) {
+                    Cell cell = row.createCell(j);
+                    cell.setCellValue(resultList.get(i).get(j));
+//                    log.info("안녕 11 :{}  : {}", cell);
+                }
+
+                if (i == resultList.size() - 1) {
+                    // Writing resultWord
+                    int colNum = 2; // 3열부터 시작 (C열에 해당)
+
+                    if (configLoader.writeExcelDetails) {
+                        for (Map.Entry<String, StringBuilder> entry : templateEntries.entrySet()) {
+                            String templateName = entry.getKey();
+                            StringBuilder wdEntries = entry.getValue();
+
+                            // 마지막 쉼표와 공백을 제거하고 닫는 괄호 추가
+                            if (wdEntries.length() > 0) {
+                                wdEntries.setLength(wdEntries.length() - 2); // 마지막 쉼표와 공백 제거
+                                wdEntries.append(")");
+                            }
+
+                            Cell cell = row.createCell(colNum);
+                            cell.setCellValue(wdEntries.toString());
+                            colNum++;
+
+                            long totalCount = filteredResult.stream()
+                                    .filter(result -> templateName.equals(result.get("Template Name")) && (int) result.get("Count") >= 1)
+                                    .count();
+
+                            Cell cell2 = row.createCell(colNum);
+                            cell2.setCellValue(templateName + " 일치 단어 전체 개수 (" + totalCount + ")");
+                            colNum++;
+                        }
+                    }
+
+                    // cd1, cd2, cd3 .. 분류 유형에 따라 파일 이름 작성
+                    Cell cell3 = row.createCell(colNum);
+                    cell3.setCellValue(fileName + " (cd"+a+")");
+                }
+            }
+        } else {
+            // 생성된 파일이 없는 경우 새 파일 생성
+            workbook = new XSSFWorkbook();
+            sheet = workbook.createSheet("Sheet1");
+
+            // 첫 번째 행에 파일 이름 삽입
+            Row firstRow = sheet.createRow(0);
+            Cell fileNameCell = firstRow.createCell(0); // A열에 해당
+            fileNameCell.setCellValue("파일이름");
+            Cell fileNameCell2 = firstRow.createCell(1);
+            fileNameCell2.setCellValue(fileName.replace("_OCR_result", "")); // B열에 해당
+
+            // Writing resultList
+            int startRow = sheet.getLastRowNum() + 1;
+            for (int i = 0; i < resultList.size(); i++) {
+                Row row = sheet.createRow(startRow + i);
+                for (int j = 0; j < resultList.get(i).size(); j++) {
+                    Cell cell = row.createCell(j);
+                    cell.setCellValue(resultList.get(i).get(j));
+                }
+
+                if (i == resultList.size() - 1) {
+                    // Writing resultWord
+                    int colNum = 2; // 3열부터 시작 (C열에 해당)
+
+                    if (configLoader.writeExcelDetails) {
+                        for (Map.Entry<String, StringBuilder> entry : templateEntries.entrySet()) {
+                            String templateName = entry.getKey();
+                            StringBuilder wdEntries = entry.getValue();
+
+                            // 마지막 쉼표와 공백을 제거하고 닫는 괄호 추가
+                            if (wdEntries.length() > 0) {
+                                wdEntries.setLength(wdEntries.length() - 2); // 마지막 쉼표와 공백 제거
+                                wdEntries.append(")");
+                            }
+
+                            Cell cell = row.createCell(colNum);
+                            cell.setCellValue(wdEntries.toString());
+                            colNum++;
+
+                            long totalCount = filteredResult.stream()
+                                    .filter(result -> templateName.equals(result.get("Template Name")) && (int) result.get("Count") >= 1)
+                                    .count();
+
+                            Cell cell2 = row.createCell(colNum);
+                            cell2.setCellValue(templateName + " 일치 단어 전체 개수 (" + totalCount + ")");
+                            colNum++;
+                        }
+                    }
+
+                    // cd1, cd2, cd3 .. 분류 유형에 따라 파일 이름 작성
+                    Cell cell3 = row.createCell(colNum);
+                    cell3.setCellValue(fileName + " (cd"+a+")");
+                }
+            }
+        }
+
+        try (FileOutputStream fileOut = new FileOutputStream(saveFilePath)) {
+            workbook.write(fileOut);
+            log.info("엑셀 파일 생성 완료: {} ", saveFilePath);
+        }
+        workbook.close();
+    }
+
 }
 

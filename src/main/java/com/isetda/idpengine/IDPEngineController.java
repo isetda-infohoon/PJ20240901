@@ -8,7 +8,6 @@ import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TextField;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.w3c.dom.Text;
 
 import java.io.File;
 import java.io.IOException;
@@ -144,7 +143,8 @@ public class IDPEngineController {
 
     public void onButton2Click(ActionEvent event) throws Exception {
         byte[] jsonToByte = Files.readAllBytes(Paths.get(configLoader.jsonFilePath));
-        documentService.jsonData = JsonService.getJsonDictionary(JsonService.aesDecode(jsonToByte));
+        //documentService.jsonData = JsonService.getJsonDictionary(JsonService.aesDecode(jsonToByte));
+        documentService.jsonData = JsonService.getJsonDictionary2(JsonService.aesDecode(jsonToByte));
         classificationDocument();
         errorLabel.setText("끝");
 //        JsonService.processMarking(folderPath, jsonFolderPath);

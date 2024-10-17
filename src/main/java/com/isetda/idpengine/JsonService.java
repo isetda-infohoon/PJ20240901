@@ -3,7 +3,6 @@ package com.isetda.idpengine;
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.poi.ss.formula.functions.T;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -11,9 +10,6 @@ import org.json.JSONObject;
 import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
-import javax.imageio.ImageIO;
-import java.awt.*;
-import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -533,6 +529,192 @@ public class JsonService {
 
         return jsonDictionary;
     }
+
+//    public static Map<String, List<List<String[]>>> getJsonDictionary2(String decodeText) throws Exception {
+//        Map<String, List<List<String[]>>> jsonDictionary = new HashMap<>();
+//
+//        try {
+//            JSONObject jsonObject = new JSONObject(decodeText);
+//
+//            JSONArray countryList = jsonObject.getJSONArray("Country List");
+//
+//            for (int i = 0; i < countryList.length(); i++) {
+//                JSONObject country = countryList.getJSONObject(i);
+//                String countryName = country.getString("Country");
+//
+//                log.info("Country: {}", countryName);
+//
+//                JSONArray forms = country.getJSONArray("Template");
+//                List<List<String[]>> formList = new ArrayList<>();
+//
+//                for (int j = 0; j < forms.length(); j++) {
+//                    JSONObject form = forms.getJSONObject(j);
+//                    String formName = form.getString("Template Name");
+//                    String language = form.getString("Language");
+//
+//                    log.info("H: {}, {}", formName, language);
+//
+//                    List<String[]> ruleList = new ArrayList<>();
+//                    ruleList.add(new String[]{formName, language});
+//
+//                    int count = 0;
+//
+//                    JSONArray hrules = form.getJSONArray("H-RULE");
+//                    for (int k = 0; k < hrules.length(); k++) {
+//                        JSONObject hrule = hrules.getJSONObject(k);
+//                        String word = hrule.getString("WD");
+//
+//                        if (!word.isEmpty()) {
+//                            String weight = String.valueOf(hrule.getDouble("WT"));
+//                            ruleList.add(new String[]{word, weight});
+//
+//                            count += 1;
+//                            log.info("W: {}, {}", word, weight);
+//                        } else {
+//                            log.info("Word is empty.");
+//                        }
+//                    }
+//
+//                    JSONArray airules = form.getJSONArray("AI-RULE");
+//                    for (int k = 0; k < airules.length(); k++) {
+//                        JSONObject airule = airules.getJSONObject(k);
+//                        String word = airule.getString("WD");
+//
+//                        if (!word.isEmpty()) {
+//                            String weight = String.valueOf(airule.getDouble("WT"));
+//                            ruleList.add(new String[]{word, weight});
+//
+//                            count += 1;
+//                            log.info("W: {}, {}", word, weight);
+//                        } else {
+//                            log.info("Word is empty.");
+//                        }
+//                    }
+//
+//                    formList.add(ruleList);
+//                    log.info("Number of words imported: {}", count);
+//                }
+//
+//                jsonDictionary.put(countryName, formList);
+//            }
+//            log.info("JSON 단어 리스트 추출 완료");
+//
+//            // 결과 출력
+////            for (Map.Entry<String, List<List<String[]>>> entry : jsonDictionary.entrySet()) {
+////                String country = entry.getKey();
+////                List<List<String[]>> forms = entry.getValue();
+////                System.out.println("국가: " + country);
+////                for (List<String[]> form : forms) {
+////                    for (String[] details : form) {
+////                        System.out.print("[");
+////                        for (String detail : details) {
+////                            System.out.print(detail + ", ");
+////                        }
+////                        System.out.print("] ");
+////                    }
+////                    System.out.println();
+////                }
+////                System.out.println();
+////            }
+//
+//        } catch (Exception e) {
+//            log.error("JSON 단어 리스트 추출 실패: {}", e.getStackTrace()[0]);
+//        }
+//
+//        return jsonDictionary;
+//    }
+
+    public static Map<String, List<Map<String, Object>>> getJsonDictionary2(String decodeText) throws Exception {
+        Map<String, List<Map<String, Object>>> jsonDictionary = new HashMap<>();
+        try {
+            JSONObject jsonObject = new JSONObject(decodeText);
+            JSONArray countryList = jsonObject.getJSONArray("Country List");
+            for (int i = 0; i < countryList.length(); i++) {
+                JSONObject country = countryList.getJSONObject(i);
+                String countryName = country.getString("Country");
+                log.info("Country: {}", countryName);
+                JSONArray forms = country.getJSONArray("Template");
+                List<Map<String, Object>> formList = new ArrayList<>();
+                for (int j = 0; j < forms.length(); j++) {
+                    JSONObject form = forms.getJSONObject(j);
+                    String formName = form.getString("Template Name");
+                    String language = form.getString("Language");
+                    log.info("Template: {}, Language: {}", formName, language);
+
+                    Map<String, Object> formMap = new HashMap<>();
+                    formMap.put("Template Name", formName);
+                    formMap.put("Language", language);
+
+                    // H-RULE
+                    JSONArray hrules = form.getJSONArray("H-RULE");
+                    List<Map<String, Object>> hRuleList = new ArrayList<>();
+                    for (int k = 0; k < hrules.length(); k++) {
+                        JSONObject hrule = hrules.getJSONObject(k);
+                        String word = hrule.getString("WD");
+                        double weight = hrule.getDouble("WT");
+                        Map<String, Object> ruleMap = new HashMap<>();
+                        ruleMap.put("WD", word);
+                        ruleMap.put("WT", weight);
+                        hRuleList.add(ruleMap);
+                        log.info("H-RULE - WD: {}, WT: {}", word, weight);
+                    }
+                    formMap.put("H-RULE", hRuleList);
+
+//                    // AI-RULE
+//                    JSONArray airules = form.getJSONArray("AI-RULE");
+//                    List<Map<String, Object>> aiRuleList = new ArrayList<>();
+//                    for (int k = 0; k < airules.length(); k++) {
+//                        JSONObject airule = airules.getJSONObject(k);
+//                        String word = airule.getString("WD");
+//                        double weight = airule.getDouble("WT");
+//                        Map<String, Object> ruleMap = new HashMap<>();
+//                        ruleMap.put("WD", word);
+//                        ruleMap.put("WT", weight);
+//                        aiRuleList.add(ruleMap);
+//                        log.info("AI-RULE - WD: {}, WT: {}", word, weight);
+//                    }
+//                    formMap.put("AI-RULE", aiRuleList);
+
+                    formList.add(formMap);
+                }
+                jsonDictionary.put(countryName, formList);
+            }
+            log.info("JSON 단어 리스트 추출 완료");
+        } catch (Exception e) {
+            log.error("JSON 단어 리스트 추출 실패: {}", e.getStackTrace()[0]);
+        }
+
+        for (Map.Entry<String, List<Map<String, Object>>> countryEntry : jsonDictionary.entrySet()) {
+            String countryName = countryEntry.getKey();
+            log.info("Country: " + countryName);
+
+            List<Map<String, Object>> formList = countryEntry.getValue();
+            for (Map<String, Object> formMap : formList) {
+                String formName = (String) formMap.get("Template Name");
+                String language = (String) formMap.get("Language");
+                log.info("  Template Name: " + formName);
+                log.info("  Language: " + language);
+
+                List<Map<String, Object>> hRules = (List<Map<String, Object>>) formMap.get("H-RULE");
+                log.info("    H-RULE:");
+                for (Map<String, Object> hRule : hRules) {
+                    String word = (String) hRule.get("WD");
+                    double weight = (double) hRule.get("WT");
+                    log.info("      WD: " + word + ", WT: " + weight);
+                }
+
+//                List<Map<String, Object>> aiRules = (List<Map<String, Object>>) formMap.get("AI-RULE");
+//                System.out.println("    AI-RULE:");
+//                for (Map<String, Object> aiRule : aiRules) {
+//                    String word = (String) aiRule.get("WD");
+//                    double weight = (double) aiRule.get("WT");
+//                    System.out.println("      WD: " + word + ", WT: " + weight);
+//                }
+            }
+        }
+        return jsonDictionary;
+    }
+
 //    인코딩 디코딩 하는 코드 옮김 -정다현-
     private static final String ALGORITHM = "AES/CBC/ISO10126Padding";
     private static final String KEY = "iset2021!1234567890abcdefghijkln";

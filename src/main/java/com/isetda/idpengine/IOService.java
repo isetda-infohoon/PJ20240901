@@ -76,6 +76,31 @@ public class IOService {
     }
 
     // PDF에서 이미지를 추출하는 메서드 (수정됨: 추출된 이미지를 반환)
+//    private List<File> extractImagesFromPDF(String pdfPath) throws IOException {
+//        List<File> extractedImages = new ArrayList<>();
+//
+//        try (PDDocument document = PDDocument.load(new File(pdfPath))) {
+//            PDFRenderer pdfRenderer = new PDFRenderer(document);
+//            int totalPages = document.getNumberOfPages(); // 전체 페이지 수
+//
+//            for (int page = 0; page < document.getNumberOfPages(); ++page) {
+//                BufferedImage bim = pdfRenderer.renderImageWithDPI(page, 600, ImageType.RGB);
+//                String fileName = pdfPath.replace(".pdf", "") + "-page" + page + ".jpg";
+//                File imageFile = new File(configLoader.resultFilePath, new File(fileName).getName());
+//                ImageIO.write(bim, "jpg", imageFile);
+//                extractedImages.add(imageFile);
+//
+//                log.info("Image extracted from PDF (page {}): {}", page + 1, imageFile.getAbsolutePath()); // 페이지 번호는 1부터 시작하도록 로그 출력
+//            }
+//            log.info("A total of {} images were extracted from PDF file: {}", totalPages, pdfPath); // 총 추출된 이미지 수 로그 출력
+//        } catch (IOException e) {
+//            log.error("Error extracting image from PDF file: {}", pdfPath, e);
+//            throw e;
+//        }
+//
+//        return extractedImages; // 추출된 이미지를 반환
+//    }
+
     private List<File> extractImagesFromPDF(String pdfPath) throws IOException {
         List<File> extractedImages = new ArrayList<>();
 
