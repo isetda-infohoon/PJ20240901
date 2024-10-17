@@ -239,6 +239,7 @@ public class IDPEngineController {
         IMGService imgService =new IMGService();
         processing();
         excelService.configLoader = configLoader;
+        documentService.configLoader = configLoader;
 
         // 전달 받은 폴더 경로의 json 파일 필터링
         documentService.jsonFiles = excelService.getFilteredJsonFiles();
