@@ -21,25 +21,19 @@ import java.util.concurrent.atomic.AtomicReference;
 public class IDPEngineController {
     private static final Logger log = LogManager.getLogger(IDPEngineController.class);
     public ConfigLoader configLoader = ConfigLoader.getInstance();
-//    public TextInputControl inputImageFolderPath;
-//    public TextField inputResultFolderPath;
     public PasswordField inputImageFolderPath;
     public PasswordField inputResultFolderPath;
-
-    // PasswordField 추가 (기본적으로 경로를 숨기는 필드)[10/16 정다현]
-    private PasswordField passwordField;
 
     public int jsonfiles;
 
     public Text errorLabel;
 
+    public Text btn1files;
+    public Text btn2files;
+
+
     private ExcelService excelService = new ExcelService();
     private DocumentService documentService = new DocumentService();
-
-
-    private boolean shiftPressed = false; // Shift 키 상태를 추적하기 위한 플래그
-    @FXML
-    private GridPane gridPane;
 
     String resultFilePath = configLoader.resultFilePath;
     @FXML
@@ -50,26 +44,10 @@ public class IDPEngineController {
     public void lood(){
         inputImageFolderPath.setText(configLoader.imageFolderPath);
         inputResultFolderPath.setText(configLoader.resultFilePath);
-//        inputImageFolderPath.setOnKeyPressed(this::handleKeyPressed);
-//        inputImageFolderPath.setOnKeyReleased(this::handleKeyReleased);
-
         // 더블클릭 감지
         inputImageFolderPath.setOnMouseClicked(this::sourcehandleDoubleClick);
         inputResultFolderPath.setOnMouseClicked(this::resulthandleDoubleClick);
     }
-//    // Shift 키 눌림 상태 체크
-//    private void handleKeyPressed(KeyEvent event) {
-//        if (event.getCode() == KeyCode.SHIFT) {
-//            shiftPressed = true; // Shift 키가 눌리면 플래그 설정
-//        }
-//    }
-//
-//    // Shift 키가 떼어질 때 플래그 해제
-//    private void handleKeyReleased(KeyEvent event) {
-//        if (event.getCode() == KeyCode.SHIFT) {
-//            shiftPressed = false; // Shift 키가 떼어지면 플래그 해제
-//        }
-//    }
 
     // 더블클릭 이벤트 핸들러
     private void sourcehandleDoubleClick(MouseEvent event) {
@@ -101,7 +79,6 @@ public class IDPEngineController {
     //분리된 이미지 저장 변수
     private File[] imageAndPdfFiles;
     public ProgressBar progressBar;
-//    public ProgressBar progressBar2;
 
     public void onButton1Click() throws IOException {
         IOService IOService = new IOService();
@@ -123,6 +100,16 @@ public class IDPEngineController {
         }
 
         configLoader.saveConfig(); // 변경된 경로를 XML 파일에 저장
+
+        File sourceFolder = new File(configLoader.imageFolderPath);
+        File[] sourceFiles = sourceFolder.listFiles(); // 폴더 안의 모든 파일 목록 가져오기
+
+//        if (sourceFiles != null) {
+//            log.info("Number of files in the source folder: {}", sourceFiles.length-1);
+//            btn1files.setText("filse in source folder : " +(String.valueOf(sourceFiles.length-1))); // 파일 개수를 UI에 표시
+//        } else {
+//            log.warn("Source folder does not exist or cannot be read.");
+//        }
 
         documentService.configLoader = configLoader;
         IOService.configLoader = configLoader;
@@ -185,22 +172,8 @@ public class IDPEngineController {
         // 백그라운드 스레드 시작
         taskThread.setDaemon(true);
         taskThread.start();
+        btn1files.setText("filse in source folder : " +IOService.allFilesInSourceFolder.size()); // 파일 개수를 UI에 표시
 
-//        진행 바 추가 되기 전 버전
-//        int a =1;
-//        for(File file : imageAndPdfFiles){
-//            log.info("{} Start processing files: {}",a,file.getName());
-//            IOService.copyFiles(file);
-//            googleService.uploadAndOCR(file);
-//            a++;
-//            errorLabel.setText("("+file.getName()+")" +"File Copy and Upload success");
-//        }
-//        log.info("Number of image file copies: {}", imageAndPdfFiles.length);
-////        errorLabel.setText("Files Copy and Upload success");
-//
-////        imgFileIOService.deleteFilesInFolder();
-////        JsonService.processMarking(folderPath, jsonFolderPath);
-//    }
     }
     public double c;
 
@@ -210,6 +183,7 @@ public class IDPEngineController {
 //        documentService.setController(this);  // controller 설정
         classificationDocument();
         errorLabel.setText("all success");
+        btn2files.setText("json files in result folder : "+documentService.jsonFiles.length);
 
 //        JsonService.processMarking(folderPath, jsonFolderPath);
     }

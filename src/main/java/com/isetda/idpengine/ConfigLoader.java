@@ -41,6 +41,8 @@ public class ConfigLoader {
 
     public boolean weightCountFlag;
 
+    public boolean markingCheck;
+
     private String configFilePath = "Config.xml";
     //jar파일 만들 때 상대경로 config 파일 빼놓기 위한 경로
 
@@ -66,29 +68,132 @@ public class ConfigLoader {
 
             Element root = doc.getDocumentElement();
 
-            projectId = root.getElementsByTagName("projectId").item(0).getTextContent().trim();
-            bucketNames = Collections.singletonList(root.getElementsByTagName("bucketNames").item(0).getTextContent().trim());
-            keyFilePath = root.getElementsByTagName("keyFilePath").item(0).getTextContent().trim();
-            deletedCheck = Boolean.parseBoolean(root.getElementsByTagName("deletedCheck").item(0).getTextContent().trim());
-            cloudPlatform = root.getElementsByTagName("cloudPlatform").item(0).getTextContent().trim();
-            ocrUrl = root.getElementsByTagName("ocrUrl").item(0).getTextContent().trim();
-            jsonFilePath = root.getElementsByTagName("jsonFilePath").item(0).getTextContent().trim();
-            imageFolderPath = root.getElementsByTagName("imageFolderPath").item(0).getTextContent().trim();
-            resultFilePath = root.getElementsByTagName("resultFilePath").item(0).getTextContent().trim();
-            jdbcUrl = root.getElementsByTagName("jdbcUrl").item(0).getTextContent().trim();
-            username = root.getElementsByTagName("username").item(0).getTextContent().trim();
-            password = root.getElementsByTagName("password").item(0).getTextContent().trim();
-            dbDataUsageFlag = Boolean.parseBoolean(root.getElementsByTagName("dbDataUsageFlag").item(0).getTextContent().trim());
-            fullTextClassify = Boolean.parseBoolean(root.getElementsByTagName("fullTextClassify").item(0).getTextContent().trim());
-            writeExcelDetails = Boolean.parseBoolean(root.getElementsByTagName("writeExcelDetails").item(0).getTextContent().trim());
-            encodingCheck = Boolean.parseBoolean(root.getElementsByTagName("encodingCheck").item(0).getTextContent().trim());
-            // weightCountFlag 태그가 있는지 확인
+            // 각 태그가 있는지 확인하고 없으면 예외 발생
+            if (root.getElementsByTagName("projectId").getLength() > 0) {
+                projectId = root.getElementsByTagName("projectId").item(0).getTextContent().trim();
+            } else {
+                log.error("The projectId tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: projectId");
+            }
+
+            if (root.getElementsByTagName("bucketNames").getLength() > 0) {
+                bucketNames = Collections.singletonList(root.getElementsByTagName("bucketNames").item(0).getTextContent().trim());
+            } else {
+                log.error("The bucketNames tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: bucketNames");
+            }
+
+            if (root.getElementsByTagName("keyFilePath").getLength() > 0) {
+                keyFilePath = root.getElementsByTagName("keyFilePath").item(0).getTextContent().trim();
+            } else {
+                log.error("The keyFilePath tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: keyFilePath");
+            }
+
+            if (root.getElementsByTagName("deletedCheck").getLength() > 0) {
+                deletedCheck = Boolean.parseBoolean(root.getElementsByTagName("deletedCheck").item(0).getTextContent().trim());
+            } else {
+                log.error("The deletedCheck tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: deletedCheck");
+            }
+
+            if (root.getElementsByTagName("cloudPlatform").getLength() > 0) {
+                cloudPlatform = root.getElementsByTagName("cloudPlatform").item(0).getTextContent().trim();
+            } else {
+                log.error("The cloudPlatform tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: cloudPlatform");
+            }
+
+            if (root.getElementsByTagName("ocrUrl").getLength() > 0) {
+                ocrUrl = root.getElementsByTagName("ocrUrl").item(0).getTextContent().trim();
+            } else {
+                log.error("The ocrUrl tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: ocrUrl");
+            }
+
+            if (root.getElementsByTagName("jsonFilePath").getLength() > 0) {
+                jsonFilePath = root.getElementsByTagName("jsonFilePath").item(0).getTextContent().trim();
+            } else {
+                log.error("The jsonFilePath tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: jsonFilePath");
+            }
+
+            if (root.getElementsByTagName("imageFolderPath").getLength() > 0) {
+                imageFolderPath = root.getElementsByTagName("imageFolderPath").item(0).getTextContent().trim();
+            } else {
+                log.error("The imageFolderPath tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: imageFolderPath");
+            }
+
+            if (root.getElementsByTagName("resultFilePath").getLength() > 0) {
+                resultFilePath = root.getElementsByTagName("resultFilePath").item(0).getTextContent().trim();
+            } else {
+                log.error("The resultFilePath tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: resultFilePath");
+            }
+
+            if (root.getElementsByTagName("jdbcUrl").getLength() > 0) {
+                jdbcUrl = root.getElementsByTagName("jdbcUrl").item(0).getTextContent().trim();
+            } else {
+                log.error("The jdbcUrl tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: jdbcUrl");
+            }
+
+            if (root.getElementsByTagName("username").getLength() > 0) {
+                username = root.getElementsByTagName("username").item(0).getTextContent().trim();
+            } else {
+                log.error("The username tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: username");
+            }
+
+            if (root.getElementsByTagName("password").getLength() > 0) {
+                password = root.getElementsByTagName("password").item(0).getTextContent().trim();
+            } else {
+                log.error("The password tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: password");
+            }
+
+            if (root.getElementsByTagName("dbDataUsageFlag").getLength() > 0) {
+                dbDataUsageFlag = Boolean.parseBoolean(root.getElementsByTagName("dbDataUsageFlag").item(0).getTextContent().trim());
+            } else {
+                log.error("The dbDataUsageFlag tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: dbDataUsageFlag");
+            }
+
+            if (root.getElementsByTagName("fullTextClassify").getLength() > 0) {
+                fullTextClassify = Boolean.parseBoolean(root.getElementsByTagName("fullTextClassify").item(0).getTextContent().trim());
+            } else {
+                log.error("The fullTextClassify tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: fullTextClassify");
+            }
+
+            if (root.getElementsByTagName("writeExcelDetails").getLength() > 0) {
+                writeExcelDetails = Boolean.parseBoolean(root.getElementsByTagName("writeExcelDetails").item(0).getTextContent().trim());
+            } else {
+                log.error("The writeExcelDetails tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: writeExcelDetails");
+            }
+
+            if (root.getElementsByTagName("encodingCheck").getLength() > 0) {
+                encodingCheck = Boolean.parseBoolean(root.getElementsByTagName("encodingCheck").item(0).getTextContent().trim());
+            } else {
+                log.error("The encodingCheck tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: encodingCheck");
+            }
+
+            // weightCountFlag 태그가 있는지 확인하고 없으면 예외 발생
             if (root.getElementsByTagName("weightCountFlag").getLength() > 0) {
                 weightCountFlag = Boolean.parseBoolean(root.getElementsByTagName("weightCountFlag").item(0).getTextContent().trim());
             } else {
-                // 태그가 없을 경우 오류 로그 출력
-                log.info("The weightCountFlag tag does not exist in Config.xml. Set to the default value (false).");
-//                weightCountFlag = false; // 기본값 설정
+                log.error("The weightCountFlag tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: weightCountFlag");
+            }
+            // weightCountFlag 태그가 있는지 확인하고 없으면 예외 발생
+            if (root.getElementsByTagName("markingCheck").getLength() > 0) {
+                markingCheck = Boolean.parseBoolean(root.getElementsByTagName("markingCheck").item(0).getTextContent().trim());
+            } else {
+                log.error("The markingCheck tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: markingCheck");
             }
 
         } catch (Exception e) {
