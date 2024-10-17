@@ -1,5 +1,6 @@
 package com.isetda.idpengine;
 
+import javafx.application.Platform;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -12,7 +13,14 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 public class DocumentService {
+    private IDPEngineController controller;
+
+    // controller를 설정하는 메서드 추가 진행바를 위한 것
+//    public void setController(IDPEngineController controller) {
+//        this.controller = controller;
+//    }
     private static final Logger log = LogManager.getLogger(DocumentService.class);
+
     public ConfigLoader configLoader;
 
     public ExcelService excelService = new ExcelService();
@@ -58,10 +66,11 @@ public class DocumentService {
     // 폴더의 모든 파일(json)을 반복 (JSON Object로 저장 및 split, classifyDocuments 메소드로 분류 진행) (iterateFiles)
     public void createFinalResultFile() throws Exception {
         //excelData = getExcelData();
-        new IDPEngineController().jsonfiles = jsonFiles.length;
+
 
         log.info("jsonfiles idp :{}",new IDPEngineController().jsonfiles);
         int cnt = 1;
+//        int totalFiles = jsonFiles.length;  진행바를 위한 변수
         for (File curFile : jsonFiles) {
             log.info("{}번째 JSON 파일 작업 시작 : {}", cnt , curFile.getName());
             // 각 파일 JSON Object로 저장
@@ -92,6 +101,16 @@ public class DocumentService {
             postProcessing(3);
 
             cnt++;
+//            // 진행 상태 업데이트
+//            final int currentCnt = cnt;
+//            Platform.runLater(() -> {
+//                double progress = (double) currentCnt / totalFiles;
+//                if (controller.progressBar2 != null) {
+//                    controller.progressBar2.setProgress(progress);
+//                } else {
+//                    log.error("progressBar2 is null");
+//                }
+//            });
         }
     }
 

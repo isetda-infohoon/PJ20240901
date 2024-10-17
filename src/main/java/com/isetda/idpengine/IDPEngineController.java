@@ -3,12 +3,14 @@ package com.isetda.idpengine;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import javafx.scene.control.Label;
-import javafx.scene.control.ProgressBar;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.GridPane;
+import javafx.scene.text.Text;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.w3c.dom.Text;
 
 import java.io.File;
 import java.io.IOException;
@@ -19,16 +21,25 @@ import java.util.concurrent.atomic.AtomicReference;
 public class IDPEngineController {
     private static final Logger log = LogManager.getLogger(IDPEngineController.class);
     public ConfigLoader configLoader = ConfigLoader.getInstance();
-    public TextField inputImageFolderPath;
-    public TextField inputResultFolderPath;
+//    public TextInputControl inputImageFolderPath;
+//    public TextField inputResultFolderPath;
+    public PasswordField inputImageFolderPath;
+    public PasswordField inputResultFolderPath;
+
+    // PasswordField 추가 (기본적으로 경로를 숨기는 필드)[10/16 정다현]
+    private PasswordField passwordField;
 
     public int jsonfiles;
 
-    public Label errorLabel;
+    public Text errorLabel;
 
     private ExcelService excelService = new ExcelService();
     private DocumentService documentService = new DocumentService();
-    private JsonEnDecode jsonEnDecode = new JsonEnDecode();
+
+
+    private boolean shiftPressed = false; // Shift 키 상태를 추적하기 위한 플래그
+    @FXML
+    private GridPane gridPane;
 
     String resultFilePath = configLoader.resultFilePath;
     @FXML
@@ -39,11 +50,58 @@ public class IDPEngineController {
     public void lood(){
         inputImageFolderPath.setText(configLoader.imageFolderPath);
         inputResultFolderPath.setText(configLoader.resultFilePath);
+//        inputImageFolderPath.setOnKeyPressed(this::handleKeyPressed);
+//        inputImageFolderPath.setOnKeyReleased(this::handleKeyReleased);
+
+        // 더블클릭 감지
+        inputImageFolderPath.setOnMouseClicked(this::sourcehandleDoubleClick);
+        inputResultFolderPath.setOnMouseClicked(this::resulthandleDoubleClick);
     }
+//    // Shift 키 눌림 상태 체크
+//    private void handleKeyPressed(KeyEvent event) {
+//        if (event.getCode() == KeyCode.SHIFT) {
+//            shiftPressed = true; // Shift 키가 눌리면 플래그 설정
+//        }
+//    }
+//
+//    // Shift 키가 떼어질 때 플래그 해제
+//    private void handleKeyReleased(KeyEvent event) {
+//        if (event.getCode() == KeyCode.SHIFT) {
+//            shiftPressed = false; // Shift 키가 떼어지면 플래그 해제
+//        }
+//    }
+
+    // 더블클릭 이벤트 핸들러
+    private void sourcehandleDoubleClick(MouseEvent event) {
+        if (event.getClickCount() == 2 && event.isShiftDown() && event.isControlDown()) {
+            if(!inputImageFolderPath.getText().isEmpty()){
+                inputImageFolderPath.setPromptText(inputImageFolderPath.getText());
+                inputImageFolderPath.setText("");
+            }
+            else if(!inputImageFolderPath.getPromptText().isEmpty()) {
+                inputImageFolderPath.setText(inputImageFolderPath.getPromptText());
+                inputImageFolderPath.setPromptText("");
+            }
+        }
+    }
+    private void resulthandleDoubleClick(MouseEvent event) {
+        if (event.getClickCount() == 2 && event.isShiftDown() && event.isControlDown()) {
+            if(!inputResultFolderPath.getText().isEmpty()){
+                inputResultFolderPath.setPromptText(inputResultFolderPath.getText());
+                inputResultFolderPath.setText("");
+            }
+            else if(!inputResultFolderPath.getPromptText().isEmpty()) {
+                inputResultFolderPath.setText(inputResultFolderPath.getPromptText());
+                inputResultFolderPath.setPromptText("");
+            }
+        }
+    }
+
 
     //분리된 이미지 저장 변수
     private File[] imageAndPdfFiles;
     public ProgressBar progressBar;
+//    public ProgressBar progressBar2;
 
     public void onButton1Click() throws IOException {
         IOService IOService = new IOService();
@@ -111,6 +169,7 @@ public class IDPEngineController {
                 Platform.runLater(() -> {
                     progressBar.setProgress(updatedProgress);
                     errorLabel.setText("Processing file: " + file.getName());
+
                 });
             }
 
@@ -118,6 +177,7 @@ public class IDPEngineController {
             Platform.runLater(() -> {
                 progressBar.setProgress(1);
                 errorLabel.setText("Files Copy and Upload success");
+
                 log.info("Number of image file copies: {}", imageAndPdfFiles.length);
             });
         });
@@ -126,6 +186,7 @@ public class IDPEngineController {
         taskThread.setDaemon(true);
         taskThread.start();
 
+//        진행 바 추가 되기 전 버전
 //        int a =1;
 //        for(File file : imageAndPdfFiles){
 //            log.info("{} Start processing files: {}",a,file.getName());
@@ -141,56 +202,17 @@ public class IDPEngineController {
 ////        JsonService.processMarking(folderPath, jsonFolderPath);
 //    }
     }
+    public double c;
 
     public void onButton2Click(ActionEvent event) throws Exception {
         byte[] jsonToByte = Files.readAllBytes(Paths.get(configLoader.jsonFilePath));
         documentService.jsonData = JsonService.getJsonDictionary(JsonService.aesDecode(jsonToByte));
+//        documentService.setController(this);  // controller 설정
         classificationDocument();
-        errorLabel.setText("끝");
+        errorLabel.setText("all success");
+
 //        JsonService.processMarking(folderPath, jsonFolderPath);
     }
-//public void onButton2Click(ActionEvent event) throws Exception {
-//    byte[] jsonToByte = Files.readAllBytes(Paths.get(configLoader.jsonFilePath));
-//    documentService.jsonData = JsonService.getJsonDictionary(JsonService.aesDecode(jsonToByte));
-//
-//    // 진행률 바 초기화
-//    progressBar.setProgress(0);
-//    errorLabel.setText("Starting document classification...");
-//    log.info("dd");
-//
-//    // 백그라운드 스레드에서 작업 실행
-//    Thread thread = new Thread(() -> {
-//        log.info("11");
-//            try {
-//                documentService.createFinalResultFile();
-//                    public void updateProgress(final double progress, final String message) {
-//                        Platform.runLater(new Runnable() {
-//                            @Override
-//                            public void run() {
-//                                progressBar.setProgress(progress);
-//                                errorLabel.setText(message);
-//                            }
-//                        });
-//                    }
-//                Platform.runLater(new Runnable() {
-//                    @Override
-//                    public void run() {
-//                        progressBar.setProgress(1);
-//                        errorLabel.setText("Document classification completed");
-//                    }
-//                });
-//            } catch (final Exception e) {
-//                Platform.runLater(new Runnable() {
-//                    @Override
-//                    public void run() {
-//                        errorLabel.setText("Error: " + e.getMessage());
-//                    }
-//                });
-//            }
-//    });
-//    thread.setDaemon(true);
-//    thread.start();
-//}
 
     public void processing() {
         configLoader.resultFilePath = inputResultFolderPath.getText();
@@ -221,6 +243,5 @@ public class IDPEngineController {
         // 전달 받은 폴더 경로의 json 파일 필터링
         documentService.jsonFiles = excelService.getFilteredJsonFiles();
         documentService.createFinalResultFile();
-//        imgService.processMarking(documentService.matchjsonWord, configLoader.resultFilePath,);
     }
 }

@@ -57,15 +57,10 @@ public class GoogleService {
             String objectName = file.getName();
             BlobId blobId = BlobId.of(configLoader.bucketNames.get(0), objectName);
 
-            // 파일 처리 시작 로그
-//            log.info("파일 처리 시작: {}", fileCounter, objectName);
-
             // 버킷에 해당 파일이 있는 지 확인
             if (storage.get(blobId) != null) {
                 log.warn("Image file already exists in bucket: {}", objectName);
                 deleteFileInBucket(storage,blobId);
-//                fileCounter++;
-//                continue;  // 스킵
             }
             BlobInfo blobInfo = BlobInfo.newBuilder(blobId).build();
 
@@ -119,10 +114,6 @@ public class GoogleService {
                 log.info("OCR request successful");
                 deleteFileInBucket(storage, blobId);
             }
-            // 파일 처리 완료 로그
-//            log.info("{}번째 파일 처리 완료: {}", fileCounter, objectName);
-            // 카운터 증가
-//            fileCounter++;
     }
 
     //구글 인증 토근 설정

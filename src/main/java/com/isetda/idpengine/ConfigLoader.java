@@ -87,7 +87,7 @@ public class ConfigLoader {
                 weightCountFlag = Boolean.parseBoolean(root.getElementsByTagName("weightCountFlag").item(0).getTextContent().trim());
             } else {
                 // 태그가 없을 경우 오류 로그 출력
-                log.info("weightCountFlag 태그가 Config.xml에 존재하지 않습니다. 기본값(false)로 설정됩니다.");
+                log.info("The weightCountFlag tag does not exist in Config.xml. Set to the default value (false).");
 //                weightCountFlag = false; // 기본값 설정
             }
 

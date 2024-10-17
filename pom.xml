@@ -11,7 +11,10 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-<junit.version>5.10.0</junit.version>  </properties>
+    <junit.version>5.10.0</junit.version>
+    <!-- 타임스탬프 형식 지정 10/17-->
+    <maven.build.timestamp.format>yy.MM.dd</maven.build.timestamp.format>
+  </properties>
 
   <dependencies>
     <dependency>
@@ -159,11 +162,35 @@
         </executions>
       </plugin>
 
+      <!-- Build Number Plugin -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>buildnumber-maven-plugin</artifactId>
+        <version>3.2.0</version>
+        <executions>
+          <execution>
+            <phase>validate</phase>
+            <goals>
+              <goal>create</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <format>{0,number}</format>
+          <items>
+            <item>buildNumber</item>
+          </items>
+          <doCheck>false</doCheck>
+          <doUpdate>false</doUpdate>
+        </configuration>
+      </plugin>
+
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
         <version>3.2.0</version>
         <configuration>
+          <finalName>IDPEngine-${maven.build.timestamp}-${buildNumber}</finalName>
           <archive>
             <addMavenDescriptor>false</addMavenDescriptor>
             <manifest>
@@ -171,10 +198,13 @@
               <classpathPrefix>lib/</classpathPrefix>
               <mainClass>com.isetda.idpengine.IDPEngineApplication</mainClass>
             </manifest>
+            <manifestEntries>
+              <Build-Time>${maven.build.timestamp}</Build-Time>
+              <Build-Number>${buildNumber}</Build-Number>
+            </manifestEntries>
           </archive>
         </configuration>
       </plugin>
-
     </plugins>
   </build>
 </project>

@@ -39,7 +39,6 @@ public class IOService {
         if (filteredFiles.isEmpty()) {
             log.info("No files found in {}", configLoader.imageFolderPath);
         } else {
-//            log.info("{} 폴더에서 {}개의 파일을 가져왔습니다", configLoader.imageFolderPath, folder.length());
         }
         // 리스트를 배열로 변환하여 반환
         return filteredFiles.toArray(new File[0]);
