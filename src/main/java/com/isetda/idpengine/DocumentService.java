@@ -237,20 +237,12 @@ public class DocumentService {
 
         // Country, Template 별로 최상위 WT의 count 합계를 찾기
         Map<String, Integer> templateCountSum = new HashMap<>();
-        Map<String, Map<String, List<String>>> templateInfo = new HashMap<>();
         for (Map<String, Object> res : filteredResult) {
             String templateName = (String) res.get("Template Name");
             int count = (int) res.get("Count");
 
             templateCountSum.put(templateName, templateCountSum.getOrDefault(templateName, 0) + count);
-
-            Map<String, List<String>> languageMap = new HashMap<>();
-            languageMap.put("Country", List.of((String) res.get("Country"))); // Country를 리스트로 변환
-            languageMap.put("Language", (List<String>) res.get("Language"));
-
-            templateInfo.put(templateName, languageMap);
         }
-
 
         if (!templateCountSum.isEmpty()) {
             // 합계가 가장 높은 Template들 찾기
@@ -262,39 +254,27 @@ public class DocumentService {
                 }
             }
 
-            // 합계가 같은 Template들이 여러 개 있는 경우, 앞에서 찾은 WT 값이 높은 항목들을 제외하고 count가 1 이상인 항목들의 합계 비교
-            Map<String, Integer> filteredTemplateCountSum = new HashMap<>();
-            for (String templateName : topTemplates) {
-                for (Map<String, Object> res : filteredResult) {
-                    if (templateName.equals(res.get("Template Name"))) {
-                        int count = (int) res.get("Count");
-                        double weight = (double) res.get("WT");
-                        if (count > 0 && weight != (double) filteredResult.get(0).get("WT")) {
-                            filteredTemplateCountSum.put(templateName, filteredTemplateCountSum.getOrDefault(templateName, 0) + count);
-                        }
-                    }
-                }
-            }
-
             // 최종적으로 합계가 가장 높은 Template 찾기
-            if (filteredTemplateCountSum.isEmpty()) {
-                // filteredTemplateCountSum이 비어 있는 경우 처리
+            if (topTemplates.isEmpty()) {
                 finalTopTemplate = "미분류";
                 finalCountry = "미분류";
                 finalLanguage = "미분류";
                 finalMaxTotalCount = 0;
                 System.out.println("No valid template found. Setting default value.");
             } else {
-                finalTopTemplate = Collections.max(filteredTemplateCountSum.entrySet(), Map.Entry.comparingByValue()).getKey();
-                finalMaxTotalCount = filteredTemplateCountSum.get(finalTopTemplate);
+                finalTopTemplate = topTemplates.get(0);
+                finalMaxTotalCount = maxTotalCount;
 
                 // 최종 결과로 가져온 Template의 Country와 Language를 가져오기
-                finalCountry = templateInfo.get(finalTopTemplate).get("Country").get(0);
-                finalLanguage = String.join(", ", templateInfo.get(finalTopTemplate).get("Language"));
-
+                for (Map<String, Object> res : filteredResult) { // 수정된 부분
+                    if (finalTopTemplate.equals(res.get("Template Name"))) {
+                        finalCountry = (String) res.get("Country");
+                        finalLanguage = String.join(", ", (List<String>) res.get("Language"));
+                        break;
+                    }
+                }
 
                 // 최종 템플릿에서 count가 1 이상인 항목의 WT 합계를 구하기
-
                 for (Map<String, Object> res : filteredResult) {
                     if (finalTopTemplate.equals(res.get("Template Name"))) {
                         int count = (int) res.get("Count");
@@ -409,17 +389,11 @@ public class DocumentService {
 
         // Country, Template 별로 최상위 WT의 count 합계를 찾기
         Map<String, Integer> templateCountSum = new HashMap<>();
-        Map<String, Map<String, List<String>>> templateInfo = new HashMap<>();
         for (Map<String, Object> res : filteredResult) {
             String templateName = (String) res.get("Template Name");
             int count = (int) res.get("Count");
+
             templateCountSum.put(templateName, templateCountSum.getOrDefault(templateName, 0) + count);
-
-            Map<String, List<String>> languageMap = new HashMap<>();
-            languageMap.put("Country", List.of((String) res.get("Country"))); // Country를 리스트로 변환
-            languageMap.put("Language", (List<String>) res.get("Language"));
-
-            templateInfo.put(templateName, languageMap);
         }
 
         if (!templateCountSum.isEmpty()) {
@@ -432,35 +406,25 @@ public class DocumentService {
                 }
             }
 
-            // 합계가 같은 Template들이 여러 개 있는 경우, 앞에서 찾은 WT 값이 높은 항목들을 제외하고 count가 1 이상인 항목들의 합계 비교
-            Map<String, Integer> filteredTemplateCountSum = new HashMap<>();
-            for (String templateName : topTemplates) {
-                for (Map<String, Object> res : filteredResult) {
-                    if (templateName.equals(res.get("Template Name"))) {
-                        int count = (int) res.get("Count");
-                        double weight = (double) res.get("WT");
-                        if (count > 0 && weight != (double) filteredResult.get(0).get("WT")) {
-                            filteredTemplateCountSum.put(templateName, filteredTemplateCountSum.getOrDefault(templateName, 0) + count);
-                        }
-                    }
-                }
-            }
-
             // 최종적으로 합계가 가장 높은 Template 찾기
-            if (filteredTemplateCountSum.isEmpty()) {
-                // filteredTemplateCountSum이 비어 있는 경우 처리
+            if (topTemplates.isEmpty()) {
                 finalTopTemplate = "미분류";
                 finalCountry = "미분류";
                 finalLanguage = "미분류";
                 finalMaxTotalCount = 0;
-                log.info("No valid template found. Setting default value.");
+                System.out.println("No valid template found. Setting default value.");
             } else {
-                finalTopTemplate = Collections.max(filteredTemplateCountSum.entrySet(), Map.Entry.comparingByValue()).getKey();
-                finalMaxTotalCount = filteredTemplateCountSum.get(finalTopTemplate);
+                finalTopTemplate = topTemplates.get(0);
+                finalMaxTotalCount = maxTotalCount;
 
                 // 최종 결과로 가져온 Template의 Country와 Language를 가져오기
-                finalCountry = templateInfo.get(finalTopTemplate).get("Country").get(0);
-                finalLanguage = String.join(", ", templateInfo.get(finalTopTemplate).get("Language"));
+                for (Map<String, Object> res : filteredResult) { // 수정된 부분
+                    if (finalTopTemplate.equals(res.get("Template Name"))) {
+                        finalCountry = (String) res.get("Country");
+                        finalLanguage = String.join(", ", (List<String>) res.get("Language"));
+                        break;
+                    }
+                }
 
                 // 최종 템플릿에서 count가 1 이상인 항목의 WT 합계를 구하기
                 for (Map<String, Object> res : filteredResult) {
@@ -585,18 +549,11 @@ public class DocumentService {
 
         // Country, Template 별로 최상위 WT의 count 합계를 찾기
         Map<String, Integer> templateCountSum = new HashMap<>();
-        Map<String, Map<String, List<String>>> templateInfo = new HashMap<>();
         for (Map<String, Object> res : filteredResult) {
             String templateName = (String) res.get("Template Name");
             int count = (int) res.get("Count");
+
             templateCountSum.put(templateName, templateCountSum.getOrDefault(templateName, 0) + count);
-
-            Map<String, List<String>> languageMap = new HashMap<>();
-            languageMap.put("Country", List.of((String) res.get("Country"))); // Country를 리스트로 변환
-            languageMap.put("Language", (List<String>) res.get("Language"));
-
-            templateInfo.put(templateName, languageMap);
-
         }
 
         if (!templateCountSum.isEmpty()) {
@@ -609,39 +566,27 @@ public class DocumentService {
                 }
             }
 
-            // 합계가 같은 Template들이 여러 개 있는 경우, 앞에서 찾은 WT 값이 높은 항목들을 제외하고 count가 1 이상인 항목들의 합계 비교
-            Map<String, Integer> filteredTemplateCountSum = new HashMap<>();
-            for (String templateName : topTemplates) {
-                for (Map<String, Object> res : filteredResult) {
-                    if (templateName.equals(res.get("Template Name"))) {
-                        int count = (int) res.get("Count");
-                        double weight = (double) res.get("WT");
-                        if (count > 0 && weight != (double) filteredResult.get(0).get("WT")) {
-                            filteredTemplateCountSum.put(templateName, filteredTemplateCountSum.getOrDefault(templateName, 0) + count);
-                        }
-                    }
-                }
-            }
-
             // 최종적으로 합계가 가장 높은 Template 찾기
-            if (filteredTemplateCountSum.isEmpty()) {
-                // filteredTemplateCountSum이 비어 있는 경우 처리
+            if (topTemplates.isEmpty()) {
                 finalTopTemplate = "미분류";
                 finalCountry = "미분류";
                 finalLanguage = "미분류";
                 finalMaxTotalCount = 0;
                 System.out.println("No valid template found. Setting default value.");
             } else {
-                // 최종적으로 합계가 가장 높은 Template 찾기
-                finalTopTemplate = Collections.max(filteredTemplateCountSum.entrySet(), Map.Entry.comparingByValue()).getKey();
-                finalMaxTotalCount = filteredTemplateCountSum.get(finalTopTemplate);
+                finalTopTemplate = topTemplates.get(0);
+                finalMaxTotalCount = maxTotalCount;
 
                 // 최종 결과로 가져온 Template의 Country와 Language를 가져오기
-                finalCountry = templateInfo.get(finalTopTemplate).get("Country").get(0);
-                finalLanguage = String.join(", ", templateInfo.get(finalTopTemplate).get("Language"));
+                for (Map<String, Object> res : filteredResult) { // 수정된 부분
+                    if (finalTopTemplate.equals(res.get("Template Name"))) {
+                        finalCountry = (String) res.get("Country");
+                        finalLanguage = String.join(", ", (List<String>) res.get("Language"));
+                        break;
+                    }
+                }
 
                 // 최종 템플릿에서 count가 1 이상인 항목의 WT 합계를 구하기
-
                 for (Map<String, Object> res : filteredResult) {
                     if (finalTopTemplate.equals(res.get("Template Name"))) {
                         int count = (int) res.get("Count");
