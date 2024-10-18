@@ -496,6 +496,9 @@ public class JsonService {
         Map<String, List<Map<String, Object>>> jsonDictionary = new HashMap<>();
         try {
             JSONObject jsonObject = new JSONObject(decodeText);
+            String version = jsonObject.optString("_Version", "Unknown");
+            log.info("Json Dictionary Version : {}", version);
+
             JSONArray countryList = jsonObject.getJSONArray("Country List");
             for (int i = 0; i < countryList.length(); i++) {
                 JSONObject country = countryList.getJSONObject(i);
