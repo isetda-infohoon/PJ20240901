@@ -35,7 +35,6 @@ public class ConfigLoader {
     private String username;
     private String password;
     private boolean dbDataUsageFlag;
-    public boolean fullTextClassify;
     public boolean writeExcelDetails;
     public boolean encodingCheck;
 
@@ -158,13 +157,6 @@ public class ConfigLoader {
             } else {
                 log.error("The dbDataUsageFlag tag does not exist in Config.xml. Application will terminate.");
                 throw new RuntimeException("Missing required configuration: dbDataUsageFlag");
-            }
-
-            if (root.getElementsByTagName("fullTextClassify").getLength() > 0) {
-                fullTextClassify = Boolean.parseBoolean(root.getElementsByTagName("fullTextClassify").item(0).getTextContent().trim());
-            } else {
-                log.error("The fullTextClassify tag does not exist in Config.xml. Application will terminate.");
-                throw new RuntimeException("Missing required configuration: fullTextClassify");
             }
 
             if (root.getElementsByTagName("writeExcelDetails").getLength() > 0) {
