@@ -522,9 +522,9 @@ public class JsonService {
                     List<Map<String, Object>> hRuleList = new ArrayList<>();
                     for (int k = 0; k < hrules.length(); k++) {
                         JSONObject hrule = hrules.getJSONObject(k);
-                        String word = hrule.getString("WD");
-                        double weight = hrule.getDouble("WT");
-                        String kr = hrule.getString("KR");
+                        String word = hrule.optString("WD", ""); // 기본값 설정
+                        double weight = hrule.optDouble("WT", 0.0); // 기본값 설정
+                        String kr = hrule.optString("KR", ""); // 기본값 설정
                         Map<String, Object> ruleMap = new HashMap<>();
                         ruleMap.put("WD", word);
                         ruleMap.put("WT", weight);
@@ -553,9 +553,9 @@ public class JsonService {
                 }
                 jsonDictionary.put(countryName, formList);
             }
-            log.info("JSON 단어 리스트 추출 완료");
+            log.info("JSON Word list extraction completed");
         } catch (Exception e) {
-            log.error("JSON 단어 리스트 추출 실패: {}", e.getStackTrace()[0]);
+            log.error("JSON Word list extraction failed: {}", e.getStackTrace());
         }
 
         for (Map.Entry<String, List<Map<String, Object>>> countryEntry : jsonDictionary.entrySet()) {
