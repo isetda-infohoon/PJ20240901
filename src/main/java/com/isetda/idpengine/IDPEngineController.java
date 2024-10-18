@@ -8,6 +8,7 @@ import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TextField;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.w3c.dom.Text;
 
 import java.io.File;
 import java.io.IOException;
@@ -18,12 +19,16 @@ import java.util.concurrent.atomic.AtomicReference;
 public class IDPEngineController {
     private static final Logger log = LogManager.getLogger(IDPEngineController.class);
     public ConfigLoader configLoader = ConfigLoader.getInstance();
-    public TextField inputImageFolderPath;
-    public TextField inputResultFolderPath;
+    public PasswordField inputImageFolderPath;
+    public PasswordField inputResultFolderPath;
 
     public int jsonfiles;
 
-    public Label errorLabel;
+    public Text errorLabel;
+
+    public Text btn1files;
+    public Text btn2files;
+
 
     private ExcelService excelService = new ExcelService();
     private DocumentService documentService = new DocumentService();
@@ -38,7 +43,37 @@ public class IDPEngineController {
     public void lood(){
         inputImageFolderPath.setText(configLoader.imageFolderPath);
         inputResultFolderPath.setText(configLoader.resultFilePath);
+        // 더블클릭 감지
+        inputImageFolderPath.setOnMouseClicked(this::sourcehandleDoubleClick);
+        inputResultFolderPath.setOnMouseClicked(this::resulthandleDoubleClick);
     }
+
+    // 더블클릭 이벤트 핸들러
+    private void sourcehandleDoubleClick(MouseEvent event) {
+        if (event.getClickCount() == 2 && event.isShiftDown() && event.isControlDown()) {
+            if(!inputImageFolderPath.getText().isEmpty()){
+                inputImageFolderPath.setPromptText(inputImageFolderPath.getText());
+                inputImageFolderPath.setText("");
+            }
+            else if(!inputImageFolderPath.getPromptText().isEmpty()) {
+                inputImageFolderPath.setText(inputImageFolderPath.getPromptText());
+                inputImageFolderPath.setPromptText("");
+            }
+        }
+    }
+    private void resulthandleDoubleClick(MouseEvent event) {
+        if (event.getClickCount() == 2 && event.isShiftDown() && event.isControlDown()) {
+            if(!inputResultFolderPath.getText().isEmpty()){
+                inputResultFolderPath.setPromptText(inputResultFolderPath.getText());
+                inputResultFolderPath.setText("");
+            }
+            else if(!inputResultFolderPath.getPromptText().isEmpty()) {
+                inputResultFolderPath.setText(inputResultFolderPath.getPromptText());
+                inputResultFolderPath.setPromptText("");
+            }
+        }
+    }
+
 
     //분리된 이미지 저장 변수
     private File[] imageAndPdfFiles;
@@ -64,6 +99,16 @@ public class IDPEngineController {
         }
 
         configLoader.saveConfig(); // 변경된 경로를 XML 파일에 저장
+
+        File sourceFolder = new File(configLoader.imageFolderPath);
+        File[] sourceFiles = sourceFolder.listFiles(); // 폴더 안의 모든 파일 목록 가져오기
+
+//        if (sourceFiles != null) {
+//            log.info("Number of files in the source folder: {}", sourceFiles.length-1);
+//            btn1files.setText("filse in source folder : " +(String.valueOf(sourceFiles.length-1))); // 파일 개수를 UI에 표시
+//        } else {
+//            log.warn("Source folder does not exist or cannot be read.");
+//        }
 
         documentService.configLoader = configLoader;
         IOService.configLoader = configLoader;
@@ -110,6 +155,7 @@ public class IDPEngineController {
                 Platform.runLater(() -> {
                     progressBar.setProgress(updatedProgress);
                     errorLabel.setText("Processing file: " + file.getName());
+
                 });
             }
 
@@ -117,6 +163,7 @@ public class IDPEngineController {
             Platform.runLater(() -> {
                 progressBar.setProgress(1);
                 errorLabel.setText("Files Copy and Upload success");
+
                 log.info("Number of image file copies: {}", imageAndPdfFiles.length);
             });
         });
@@ -124,29 +171,21 @@ public class IDPEngineController {
         // 백그라운드 스레드 시작
         taskThread.setDaemon(true);
         taskThread.start();
+        btn1files.setText("filse in source folder : " +IOService.allFilesInSourceFolder.size()); // 파일 개수를 UI에 표시
 
-//        int a =1;
-//        for(File file : imageAndPdfFiles){
-//            log.info("{} Start processing files: {}",a,file.getName());
-//            IOService.copyFiles(file);
-//            googleService.uploadAndOCR(file);
-//            a++;
-//            errorLabel.setText("("+file.getName()+")" +"File Copy and Upload success");
-//        }
-//        log.info("Number of image file copies: {}", imageAndPdfFiles.length);
-////        errorLabel.setText("Files Copy and Upload success");
-//
-////        imgFileIOService.deleteFilesInFolder();
-////        JsonService.processMarking(folderPath, jsonFolderPath);
-//    }
     }
+    public double c;
 
     public void onButton2Click(ActionEvent event) throws Exception {
         byte[] jsonToByte = Files.readAllBytes(Paths.get(configLoader.jsonFilePath));
+//        documentService.jsonData = JsonService.getJsonDictionary(JsonService.aesDecode(jsonToByte));
+//        documentService.setController(this);  // controller 설정
         //documentService.jsonData = JsonService.getJsonDictionary(JsonService.aesDecode(jsonToByte));
         documentService.jsonData = JsonService.getJsonDictionary2(JsonService.aesDecode(jsonToByte));
         classificationDocument();
-        errorLabel.setText("끝");
+        errorLabel.setText("all success");
+        btn2files.setText("json files in result folder : "+documentService.jsonFiles.length);
+
 //        JsonService.processMarking(folderPath, jsonFolderPath);
     }
 //public void onButton2Click(ActionEvent event) throws Exception {

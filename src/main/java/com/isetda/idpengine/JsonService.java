@@ -52,12 +52,78 @@ public class JsonService {
             throw new RuntimeException(e);
         }
     }
+
+    private Map<String, Object> createEmptyData() {
+        // 빈 데이터를 생성하여 반환하는 메서드
+        Map<String, Object> emptyData = new HashMap<>();
+        emptyData.put("description", "");
+        emptyData.put("locale", "");
+        emptyData.put("midY", Integer.MAX_VALUE);
+        emptyData.put("minX", Integer.MAX_VALUE);
+        // 필요한 경우 다른 필드도 빈 값으로 설정 가능
+        return emptyData;
+    }
+
+    //정렬 로직[10/16] 구 버전 CD 3에 적용
+    public static List<Map<String, Object>> sortAnnotations(List<Map<String, Object>> items) {
+        // Step 1: Sort by minY
+        items.sort(Comparator.comparingInt(a -> (Integer) a.getOrDefault("minY", Integer.MAX_VALUE)));
+
+        // Step 2: Group items with similar minY values
+        List<List<Map<String, Object>>> groups = new ArrayList<>();
+        List<Map<String, Object>> currentGroup = new ArrayList<>();
+        currentGroup.add(items.get(0));
+
+        for (int i = 1; i < items.size(); i++) {
+            Map<String, Object> current = items.get(i);
+            Map<String, Object> previous = items.get(i - 1);
+
+            int currentMinY = (Integer) current.getOrDefault("minY", Integer.MAX_VALUE);
+            int previousMinY = (Integer) previous.getOrDefault("minY", Integer.MAX_VALUE);
+
+            if (Math.abs(currentMinY - previousMinY) <= 10) {
+                currentGroup.add(current);
+            } else {
+                groups.add(new ArrayList<>(currentGroup));
+                currentGroup.clear();
+                currentGroup.add(current);
+            }
+        }
+        if (!currentGroup.isEmpty()) {
+            groups.add(currentGroup);
+        }
+
+        // Step 3: Sort each group by minX
+        for (List<Map<String, Object>> group : groups) {
+            group.sort(Comparator.comparingInt(a -> (Integer) a.getOrDefault("minX", Integer.MAX_VALUE)));
+        }
+
+        // Step 4: Flatten the groups back into a single list
+        return groups.stream()
+                .flatMap(List::stream)
+                .collect(Collectors.toList());
+    }
+
     //json에서 단어, 위치 가져와서 정렬 (1차)
     public void getWordPosition() {
         jsonCollection = new ArrayList<>();
         try {
             JSONObject responsesObject = jsonObject.getJSONArray("responses").getJSONObject(0);
+
+            if (responsesObject == null) {
+                log.warn("No valid responsesObject found, skipping extraction.");
+                jsonCollection.add(createEmptyData());
+                return;
+            }
+
             JSONArray textAnnotationsArray = responsesObject.getJSONArray("textAnnotations");
+
+            if (textAnnotationsArray == null || textAnnotationsArray.length() == 0) {
+                log.warn("No valid textAnnotationsArray found, skipping extraction.");
+                jsonCollection.add(createEmptyData());
+                return;
+            }
+
             jsonLocal = textAnnotationsArray.getJSONObject(0).getString("locale");
             log.info("language code: {}", jsonLocal);
 
@@ -71,120 +137,29 @@ public class JsonService {
             // 나머지 annotations 처리
             for (int i = 1; i < textAnnotationsArray.length(); i++) {
                 JSONObject textAnnotation = textAnnotationsArray.getJSONObject(i);
-                Map<String, Object> data = processAnnotation(textAnnotation);
-                jsonCollection.add(data);
+                if (textAnnotation != null) {
+                    Map<String, Object> data = processAnnotation(textAnnotation);
+                    logItemInfo(data);
+                    jsonCollection.add(data);
+                }
             }
 
-            // 첫 번째 항목을 제외한 나머지 항목들에 대해 정렬 수행
-            List<Map<String, Object>> remainingItems = jsonCollection.subList(1, jsonCollection.size());
-
-            // midY를 기준으로 정렬 (오차 범위가 10 이내면 minX로 정렬)
-            remainingItems.sort((a, b) -> {
-                Integer midY1 = (Integer) ((Map<String, Object>) a).get("midY");
-                Integer midY2 = (Integer) ((Map<String, Object>) b).get("midY");
-
-                // midY 값이 null인 경우 Integer.MAX_VALUE로 처리
-                if (midY1 == null) midY1 = Integer.MAX_VALUE;
-                if (midY2 == null) midY2 = Integer.MAX_VALUE;
-
-                int midYDiff = midY1 - midY2;
-
-                // midY 차이가 10 이하인 경우에만 minX로 추가 정렬
-                if (Math.abs(midYDiff) <= 10) {
-                    Integer minX1 = (Integer) ((Map<String, Object>) a).get("minX");
-                    Integer minX2 = (Integer) ((Map<String, Object>) b).get("minX");
-
-                    // minX 값이 null인 경우 Integer.MAX_VALUE로 처리
-                    if (minX1 == null) minX1 = Integer.MAX_VALUE;
-                    if (minX2 == null) minX2 = Integer.MAX_VALUE;
-
-                    return minX1.compareTo(minX2); // minX로 추가 정렬
-                }
-
-                // midY 차이가 10 이상이면 그냥 midY로만 정렬
-                return Integer.compare(midY1, midY2);
-            });
-
-            //글자 크기도 포함해서 정렬 하는 거 추가 10/11 정다현
-            // midY, minX, 그리고 글자의 크기(width, height)를 기준으로 정렬 수행
-            // Step 1: Sort by minY
-//            remainingItems.sort(Comparator.comparingInt(a -> (Integer) a.getOrDefault("minY", Integer.MAX_VALUE)));
-//
-//            // Step 2: Group items with similar minY values
-//            List<List<Map<String, Object>>> groups = new ArrayList<>();
-//            List<Map<String, Object>> currentGroup = new ArrayList<>();
-//            currentGroup.add(remainingItems.get(0));
-//
-//            for (int i = 1; i < remainingItems.size(); i++) {
-//                Map<String, Object> current = remainingItems.get(i);
-//                Map<String, Object> previous = remainingItems.get(i - 1);
-//
-//                int currentMinY = (Integer) current.getOrDefault("minY", Integer.MAX_VALUE);
-//                int previousMinY = (Integer) previous.getOrDefault("minY", Integer.MAX_VALUE);
-//
-//                if (Math.abs(currentMinY - previousMinY) <= 10) {
-//                    currentGroup.add(current);
-//                } else {
-//                    groups.add(new ArrayList<>(currentGroup));
-//                    currentGroup.clear();
-//                    currentGroup.add(current);
-//                }
-//            }
-//            if (!currentGroup.isEmpty()) {
-//                groups.add(currentGroup);
-//            }
-//
-//            // Step 3: Sort each group by (maxY - minY) and then by minX
-//            for (List<Map<String, Object>> group : groups) {
-//                group.sort((a, b) -> {
-//                    int heightDiffA = (Integer) a.getOrDefault("maxY", 0) - (Integer) a.getOrDefault("minY", 0);
-//                    int heightDiffB = (Integer) b.getOrDefault("maxY", 0) - (Integer) b.getOrDefault("minY", 0);
-//
-//                    if (Math.abs(heightDiffA - heightDiffB) <= 5) {
-//                        return Integer.compare(
-//                                (Integer) a.getOrDefault("minX", Integer.MAX_VALUE),
-//                                (Integer) b.getOrDefault("minX", Integer.MAX_VALUE)
-//                        );
-//                    }
-//                    return Integer.compare(heightDiffA, heightDiffB);
-//                });
-//            }
-//
-//            // Step 4: Flatten the groups back into a single list
-//            List<Map<String, Object>> sortedRemainingItems = groups.stream().flatMap(List::stream).collect(Collectors.toList());
+//            // 정렬 로직 적용
+//            List<Map<String, Object>> sortedItems = sortAnnotations(jsonCollection.subList(1, jsonCollection.size()));
 //
 //            // Update jsonCollection with sorted items
 //            jsonCollection = new ArrayList<>();
 //            jsonCollection.add(firstData);  // Add the first item (whole text) back
-//            jsonCollection.addAll(sortedRemainingItems);
-//
-//            log.info("Word position extraction and sorting completed");
-//
-//        } catch (JSONException e) {
-//            log.error("Error processing JSON: ", e);
-//        }
-//    }
+//            jsonCollection.addAll(sortedItems);
 
-//    private Map<String, Object> processAnnotation2(JSONObject annotation) {
-//        // Implementation of processAnnotation method
-//        // (This should be implemented based on your existing code)
-//        return new HashMap<>();  // Placeholder return
-//    }
+            log.info("Word position extraction and sorting completed");
 
-
-//    ----------------------------------------------------------------밑에가 원래 본  위에가 추가본 
-
-            // 정렬된 결과를 jsonCollection에 다시 설정
-            jsonCollection = new ArrayList<>();
-            jsonCollection.add(firstData); // 첫 번째 항목 추가
-            jsonCollection.addAll(remainingItems); // 나머지 항목 추가
-
-            for (Map<String, Object> item : jsonCollection) {
-                logItemInfo(item);
-            }
-            log.info("Word position extraction successful");
+        } catch (JSONException e) {
+            log.error("Error processing JSON: ", e);
+            jsonCollection.add(createEmptyData());
         } catch (Exception e) {
             log.error("Error extracting word location: {}", e.getMessage(), e);
+            jsonCollection.add(createEmptyData());
         }
     }
 
@@ -213,7 +188,7 @@ public class JsonService {
 
         return data;
     }
-
+//    로고 찍기 용
     private void logItemInfo(Map<String, Object> item) {
         String description = (String) item.get("description");
         List<JSONObject> vertices = (List<JSONObject>) item.get("vertices");
@@ -233,19 +208,29 @@ public class JsonService {
 
 
     //json을 통해서 2차 매칭 (y축 기준으로 그룹화)[경우의 수를 통한 그룹화]
+    //CD3 전용
     public static List<Map<String, Object>> findMatchingWords(List<Map<String, Object>> words) {
+        words = sortAnnotations(words);
         List<Map<String, Object>> results = new ArrayList<>();
         jsonCollection2 = new ArrayList<>();
         int a = 0;
+
+        // words가 비어 있거나 null이면 스킵
+        if (words == null || words.isEmpty()) {
+            log.warn("The words list is empty or null, skipping processing.");
+            return results; // 빈 리스트 반환
+        }
 
         List<Map<String, Object>> checkText = null;
         for (int i = 0; i < words.size(); i++) {
             a = 1;
             StringBuilder currentText = new StringBuilder();
-            int startMaxX = (int) words.get(i).get("maxX");
-            int startMaxY = (int) words.get(i).get("maxY");
-            int startX = (int) words.get(i).get("minX");
-            int startY = (int) words.get(i).get("minY");
+
+            // null을 처리하기 위해 기본값 사용
+            int startMaxX = (int) words.get(i).getOrDefault("maxX", 0);
+            int startMaxY = (int) words.get(i).getOrDefault("maxY", 0);
+            int startX = (int) words.get(i).getOrDefault("minX", 0);
+            int startY = (int) words.get(i).getOrDefault("minY", 0);
             int maxX = startX;
             int maxY = startY;
 
@@ -254,22 +239,24 @@ public class JsonService {
             Map<String, Object> singleWord = words.get(i);
             checkText.add(singleWord);
             currentText.append(singleWord.get("description"));
-            log.debug("The first word :{}",currentText);
+            log.debug("The first word: {}", currentText);
 
             // 단일 단어 자체를 결과에 추가
             addToCollection2(checkText, currentText.toString(), startX, startY, startMaxX, startMaxY);
+
             // 연속된 단어 조합 생성
             for (int j = i + 1; j < words.size(); j++) {
                 Map<String, Object> nextWord = words.get(j);
-//                log.info("체크 단어 : {}",checkText);
-//                log.info("다음 단어 : {}",nextWord);
+//          log.info("체크 단어 : {}",checkText);
+//          log.info("다음 단어 : {}",nextWord);
+
                 if (isOnSameLineByMidY2(checkText.get(checkText.size() - 1), nextWord)) {
                     currentText.append(nextWord.get("description"));
-                    log.debug("Group words:{}", currentText);
+                    log.debug("Group words:  {}", currentText); //여기 띄우기
                     a++;
                     checkText.add(nextWord);
-                    maxX = Math.max(maxX, (int) nextWord.get("maxX"));
-                    maxY = Math.max(maxY, (int) nextWord.get("maxY"));
+                    maxX = Math.max(maxX, (int) nextWord.getOrDefault("maxX", 0));
+                    maxY = Math.max(maxY, (int) nextWord.getOrDefault("maxY", 0));
 
                     // 현재 조합이 targetWords에 포함되는지 확인
                     addToCollection2(checkText, currentText.toString(), startX, startY, maxX, maxY);
@@ -281,11 +268,10 @@ public class JsonService {
             }
         }
         log.debug("Total connected words: {}", a);
-//        log.info("안녕 @@@: {}", jsonCollection2);
 
-//        return jsonCollection2;
         return results;
     }
+
 
 
 
@@ -304,24 +290,7 @@ public class JsonService {
         return jsonCollection3;
     }
 
-//    //엑셀 단어와 매칭된 결과만 저장
-//    private static void addToResults(List<Map<String, Object>> results, List<Map<String, Object>> checkText,
-//                                     String combinedText, int startX, int startY, int maxX, int maxY, List<String> targetWords) {
-//        // 조합된 텍스트가 targetWords에 포함되는지 확인
-//        Map<String, Object> result = new HashMap<>();
-//        for (Map<String, Object> item : jsonCollection2) {
-//                String description = (String) item.get("description");
-//            if (targetWords.contains(description)) {
-//                int minX = jsonCollection2.stream().mapToInt(w -> (int) w.get("minX")).min().orElse(startX);
-//                result.put("description", description);
-//                result.put("minX", minX);
-//                result.put("minY", startY);
-//                result.put("maxX", maxX);
-//                result.put("maxY", maxY);
-//                results.add(result);
-//            }
-//        }
-//    }
+
     //모든 연속된 단어을 저장하는 것
     private static void addToCollection2(List<Map<String, Object>> checkText, String combinedText,
                                          int startX, int startY, int maxX, int maxY) {
@@ -348,107 +317,6 @@ public class JsonService {
         return midY_a>=minY_b && midY_a<= maxY_b && minX_b - maxX_a <100; //
     }
 
-
-//    public void drawMarking(File imageFile, List<Map<String, Object>> jsonCollection, Map<String, List<List<String[]>>> excelData ,String documentType ) throws IOException {
-//        log.info("이미지에 마킹을 추가하는 중: {}", imageFile.getAbsolutePath());
-//        ExcelService excelService =new ExcelService();
-//
-//        BufferedImage image = ImageIO.read(imageFile);
-//        if (image == null) {
-//            log.error("이미지를 읽어오는 데 실패했습니다: {}", imageFile.getAbsolutePath());
-//            return;
-//        }
-//
-//        Graphics2D g2d = image.createGraphics();
-//        g2d.setColor(Color.RED);
-//        g2d.setStroke(new java.awt.BasicStroke(1)); // 박스의 두께
-//
-//        // 엑셀 데이터에서 해당 문서 양식에 해당하는 데이터만 추출
-//        List<List<String[]>> excelRows = excelData.get(jsonLocal);
-//        if (excelRows == null) {
-//            log.warn("해당하는 엑셀 데이터가 없습니다: {}", jsonLocal);
-//            return;
-//        }
-//        //안녕22
-//
-//        Set<String> excelWords = new HashSet<>();
-//
-//        // "사업자등록증(영업허가증)" 또는 다른 문서 양식 이름에 해당하는 데이터를 가져오기
-//        // 또는 다른 문서 양식 이름으로 변경 가능
-//        log.info("문서 타입 : {}",documentType);
-//        for (List<String[]> row : excelRows) {
-//            if (row.size() > 0 && documentType.equals(row.get(0)[0])) {
-//                for (int i = 1; i < row.size(); i++) { // 첫 번째 열은 컬럼 이름이므로 제외
-//                    excelWords.add(row.get(i)[0]); // 문서 양식에 해당하는 단어들만 수집
-//                }
-//                break; // 해당 문서 양식에 해당하는 행을 찾았으므로 루프 종료
-//            }
-//        }
-//
-//        if (excelWords.isEmpty()) {
-//            log.warn("문서 양식 '{}'에 해당하는 단어가 없습니다.", documentType);
-//            return;
-//        }
-//
-//        log.info("엑셀에서 추출한 단어들: {}", excelWords);
-//
-//        List<Map<String, Object>> matchedWords = findMatchingWords(jsonCollection, new ArrayList<>(excelWords));
-//
-//        for (Map<String, Object> word : matchedWords) {
-//            String description = (String) word.get("description");
-//
-//            if (excelWords.contains(description)) {
-//                int minX = (int) word.get("minX");
-//                int minY = (int) word.get("minY");
-//                int maxX = (int) word.get("maxX");
-//                int maxY = (int) word.get("maxY");
-//
-//                log.info("W:[{}],L:MinX:{},MinY:{},MaxX:{},MaxY:{}",
-//                        description, minX, minY, maxX, maxY);
-//
-//                g2d.drawRect(minX, minY, maxX - minX, maxY - minY);
-//            }
-//        }
-//        g2d.dispose();
-//
-//        // 이미지 파일의 이름을 PNG 확장자로 변경
-//        String outputImagePath = imageFile.getParent() + File.separator + imageFile.getName().substring(0, imageFile.getName().lastIndexOf('.')) + "_annotated.png";
-//        File outputImageFile = new File(outputImagePath);
-//        ImageIO.write(image, "png", outputImageFile);
-//
-//        log.info("주석이 추가된 이미지가 저장되었습니다: {}", outputImageFile.getAbsolutePath());
-//    }
-//
-//
-//    public static void processMarking(Map<String, List<List<String[]>>> excelData, String resultfolderPath,String documentType) throws IOException {
-//
-//        log.info("이미지와 JSON 파일 처리 시작");
-//        File folder = new File(resultfolderPath);
-//        if (!folder.exists() || !folder.isDirectory()) {
-//            log.warn("유효하지 않은 폴더 경로입니다: {}", resultfolderPath);
-//            return;
-//        }
-//
-//        File[] imageFiles = folder.listFiles((dir, name) -> name.toLowerCase().endsWith(".jpg") || name.toLowerCase().endsWith(".png") || name.toLowerCase().endsWith(".jpeg") && !name.toLowerCase().contains("_annotated.png"));
-//        if (imageFiles == null || imageFiles.length == 0) {
-//            log.warn("폴더에 이미지 파일이 없습니다: {}", resultfolderPath);
-//            return;
-//        }
-//
-//        for (File imageFile : imageFiles) {
-//            String baseName = imageFile.getName().substring(0, imageFile.getName().lastIndexOf('.'));
-//            File jsonFile = new File(resultfolderPath, baseName + "_result.json");
-//
-//            if (jsonFile.exists()) {
-//                log.info("JSON 파일 경로: {}", jsonFile.getAbsolutePath());
-//                JsonService jsonService = new JsonService(jsonFile.getAbsolutePath());
-//                jsonService.drawMarking(imageFile, jsonService.jsonCollection, excelData,documentType);
-//            } else {
-//                log.warn("이미지에 대한 JSON 파일을 찾을 수 없습니다: {}", imageFile.getName());
-//            }
-//        }
-//        log.info("이미지 및 JSON 파일 처리 완료");
-//    }
 
     public static Map<String, List<List<String[]>>> getJsonDictionary(String decodeText) throws Exception {
 //        String filePath = configLoader.jsonFilePath;
@@ -764,11 +632,28 @@ public class JsonService {
 
 
 
-    public void cd3() {
+    //json에서 단어, 위치 가져와서 정렬 (1차)
+    public void CD3() {
         jsonCollection = new ArrayList<>();
         try {
             JSONObject responsesObject = jsonObject.getJSONArray("responses").getJSONObject(0);
+
+            if (responsesObject == null) {
+                // responsesObject가 없으면 빈 데이터 추가
+                log.warn("No valid responsesObject found, skipping extraction.");
+                jsonCollection.add(createEmptyData()); // 빈 데이터 추가
+                return;
+            }
+
             JSONArray textAnnotationsArray = responsesObject.getJSONArray("textAnnotations");
+
+            if (textAnnotationsArray == null || textAnnotationsArray.length() == 0) {
+                // textAnnotationsArray가 없으면 빈 데이터 추가
+                log.warn("No valid textAnnotationsArray found, skipping extraction.");
+                jsonCollection.add(createEmptyData()); // 빈 데이터 추가
+                return;
+            }
+
             jsonLocal = textAnnotationsArray.getJSONObject(0).getString("locale");
             log.info("language code: {}", jsonLocal);
 
@@ -782,39 +667,16 @@ public class JsonService {
             // 나머지 annotations 처리
             for (int i = 1; i < textAnnotationsArray.length(); i++) {
                 JSONObject textAnnotation = textAnnotationsArray.getJSONObject(i);
-                Map<String, Object> data = processAnnotation(textAnnotation);
-                jsonCollection.add(data);
+                if (textAnnotation != null) {
+                    Map<String, Object> data = processAnnotation(textAnnotation);
+
+                    jsonCollection.add(data);
+//                    log.info("확인 :{}",jsonCollection);
+                }
             }
 
             // 첫 번째 항목을 제외한 나머지 항목들에 대해 정렬 수행
             List<Map<String, Object>> remainingItems = jsonCollection.subList(1, jsonCollection.size());
-
-            // midY를 기준으로 정렬 (오차 범위가 10 이내면 minX로 정렬)
-            remainingItems.sort((a, b) -> {
-                Integer midY1 = (Integer) ((Map<String, Object>) a).get("midY");
-                Integer midY2 = (Integer) ((Map<String, Object>) b).get("midY");
-
-                // midY 값이 null인 경우 Integer.MAX_VALUE로 처리
-                if (midY1 == null) midY1 = Integer.MAX_VALUE;
-                if (midY2 == null) midY2 = Integer.MAX_VALUE;
-
-                int midYDiff = midY1 - midY2;
-
-                // midY 차이가 10 이하인 경우에만 minX로 추가 정렬
-                if (Math.abs(midYDiff) <= 10) {
-                    Integer minX1 = (Integer) ((Map<String, Object>) a).get("minX");
-                    Integer minX2 = (Integer) ((Map<String, Object>) b).get("minX");
-
-                    // minX 값이 null인 경우 Integer.MAX_VALUE로 처리
-                    if (minX1 == null) minX1 = Integer.MAX_VALUE;
-                    if (minX2 == null) minX2 = Integer.MAX_VALUE;
-
-                    return minX1.compareTo(minX2); // minX로 추가 정렬
-                }
-
-                // midY 차이가 10 이상이면 그냥 midY로만 정렬
-                return Integer.compare(midY1, midY2);
-            });
 
             //글자 크기도 포함해서 정렬 하는 거 추가 10/11 정다현
             // midY, minX, 그리고 글자의 크기(width, height)를 기준으로 정렬 수행
@@ -874,6 +736,57 @@ public class JsonService {
         } catch (JSONException e) {
             log.error("Error processing JSON: ", e);
         }
+    }
+
+    //CD4 전용 정렬 로직 글자 크기 추가
+    public static List<Map<String, Object>> sortAnnotations2(List<Map<String, Object>> items) {
+        // Step 1: Sort by minY
+        items.sort(Comparator.comparingInt(a -> (Integer) a.getOrDefault("minY", Integer.MAX_VALUE)));
+
+        // Step 2: Group items with similar minY values
+        List<List<Map<String, Object>>> groups = new ArrayList<>();
+        List<Map<String, Object>> currentGroup = new ArrayList<>();
+        currentGroup.add(items.get(0));
+
+        for (int i = 1; i < items.size(); i++) {
+            Map<String, Object> current = items.get(i);
+            Map<String, Object> previous = items.get(i - 1);
+
+            int currentMinY = (Integer) current.getOrDefault("minY", Integer.MAX_VALUE);
+            int previousMinY = (Integer) previous.getOrDefault("minY", Integer.MAX_VALUE);
+
+            if (Math.abs(currentMinY - previousMinY) <= 10) {
+                currentGroup.add(current);
+            } else {
+                groups.add(new ArrayList<>(currentGroup));
+                currentGroup.clear();
+                currentGroup.add(current);
+            }
+        }
+        if (!currentGroup.isEmpty()) {
+            groups.add(currentGroup);
+        }
+
+        // Step 3: Sort each group by minX
+        for (List<Map<String, Object>> group : groups) {
+            group.sort((a, b) -> {
+                int heightDiffA = (Integer) a.getOrDefault("maxY", 0) - (Integer) a.getOrDefault("minY", 0);
+                int heightDiffB = (Integer) b.getOrDefault("maxY", 0) - (Integer) b.getOrDefault("minY", 0);
+
+                if (Math.abs(heightDiffA - heightDiffB) <= 5) {
+                    return Integer.compare(
+                            (Integer) a.getOrDefault("minX", Integer.MAX_VALUE),
+                            (Integer) b.getOrDefault("minX", Integer.MAX_VALUE)
+                    );
+                }
+                return Integer.compare(heightDiffA, heightDiffB);
+            });
+        }
+
+        // Step 4: Flatten the groups back into a single list
+        return groups.stream()
+                .flatMap(List::stream)
+                .collect(Collectors.toList());
     }
 
 }

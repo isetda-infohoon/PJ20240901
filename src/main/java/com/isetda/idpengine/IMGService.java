@@ -29,44 +29,6 @@ public class IMGService {
         g2d.setColor(Color.RED);
         g2d.setStroke(new java.awt.BasicStroke(1)); // 박스의 두께
 
-        //나라 이름
-//        String countryName = documentService.getCountryFromSheetName(jsonLocal);
-
-//        // json 데이터에서 해당 나라 문서 데이터만 추출
-//        List<List<String[]>> jsonWord = jsonData.get(countryName);
-//        if (jsonWord == null) {
-//            log.warn("No JSON data corresponding: {}", jsonLocal);
-//            return;
-//        }
-//        //안녕22
-//
-//        Set<String> excelWords = new HashSet<>();
-//
-//        // "사업자등록증(영업허가증)" 또는 다른 문서 양식 이름에 해당하는 데이터를 가져오기
-//        // 또는 다른 문서 양식 이름으로 변경 가능
-//        log.info("DocumentType : {}",documentType);
-//        for (List<String[]> row : jsonWord) {
-//            if (row.size() > 0 && documentType.equals(row.get(0)[0])) {
-//                for (int i = 1; i < row.size(); i++) {
-//                    excelWords.add(row.get(i)[0]);
-//                }
-//            }
-//        }
-//
-//        if (excelWords.isEmpty()) {
-//            log.warn("No words corresponding to document form '{}.", documentType);
-//            return;
-//        }
-//
-//        log.info("words extracted from Json: {}", excelWords);
-//
-//        //연속되는 단어들
-////        List<Map<String, Object>> matchedWords = JsonService.findMatchingWords(jsonCollection);
-//        JsonService.findMatchingWords(jsonCollection);
-////        log.info("확인 작업 : {}", JsonService.jsonCollection2);
-//        List<Map<String, Object>> matchedWords = JsonService.findtheword(excelWords);
-//        log.info("matchedWords : {}",matchedWords);
-//            log.info("jsonCollection 2: {}",jsonCollection);
         if (!docType.equals("미분류")){
             for (Map<String, Object> word : jsonCollection) {
                 String description = (String) word.get("description");

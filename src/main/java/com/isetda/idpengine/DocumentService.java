@@ -87,8 +87,12 @@ public class DocumentService {
             classifyDocuments2(jsonData, jsonService.jsonLocal, jsonService.jsonCollection);
             postProcessing(2);
             JsonService.findMatchingWords(jsonService.jsonCollection);
+            JsonService.sortAnnotations2(jsonService.jsonCollection);
             classifyDocuments3(jsonData,jsonService.jsonLocal,JsonService.jsonCollection2);
             postProcessing(3);
+
+//            classifyDocuments4(jsonData,jsonService.jsonLocal,JsonService.jsonCollection2);
+//            postProcessing(4);
 
             cnt++;
         }
@@ -146,7 +150,10 @@ public class DocumentService {
 //        log.info("문서 타입 56 :{}",resultList);
 
         excelService.configLoader = configLoader;
-        imgService.processMarking(matchjsonWord, configLoader.resultFilePath,imgFileName,a,docType);
+
+        if(configLoader.markingCheck){
+            imgService.processMarking(matchjsonWord, configLoader.resultFilePath,imgFileName,a,docType);
+        }
         log.info("matchjsonWord : {}",matchjsonWord);
 
         try {

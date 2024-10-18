@@ -38,13 +38,18 @@ public class ExcelService {
                 return lowercaseName.endsWith(".json");
             }
         });
-
-        jsonFiles = files;
-
-        if (jsonFiles.length == 0) {
-            log.info("폴더 내 JSON 파일 목록 저장 실패 - JSON 파일 없음");
-        } else {
+        if (files != null && files.length > 0) {
+            // 파일들을 생성 시간 순으로 정렬
+            Arrays.sort(files, new Comparator<File>() {
+                @Override
+                public int compare(File f1, File f2) {
+                    return Long.compare(f1.lastModified(), f2.lastModified());
+                }
+            });
+            jsonFiles = files;
             log.info("폴더 내 JSON 파일 목록 저장 완료");
+        } else {
+            log.info("폴더 내 JSON 파일 목록 저장 실패 - JSON 파일 없음");
         }
 
         return jsonFiles;

@@ -12,7 +12,7 @@ public class IDPEngineApplication extends Application {
     public void start(Stage stage) throws IOException {
         FXMLLoader fxmlLoader = new FXMLLoader(IDPEngineApplication.class.getResource("IDPEngineView.fxml"));
         Scene scene = new Scene(fxmlLoader.load());
-        stage.setTitle("Intelligent Document Processing Engine");
+        stage.setTitle("Basic IDP Engine");
         stage.setScene(scene);
         stage.setResizable(false); // 창 최대화 X
         stage.show();
