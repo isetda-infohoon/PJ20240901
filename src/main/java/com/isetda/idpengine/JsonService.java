@@ -506,25 +506,31 @@ public class JsonService {
                 for (int j = 0; j < forms.length(); j++) {
                     JSONObject form = forms.getJSONObject(j);
                     String formName = form.getString("Template Name");
-                    String language = form.getString("Language");
-                    log.info("Template: {}, Language: {}", formName, language);
+                    JSONArray languageArray = form.getJSONArray("Language");
+                    List<String> languages = new ArrayList<>();
+                    for (int l = 0; l < languageArray.length(); l++) {
+                        languages.add(languageArray.getString(l));
+                    }
+                    log.info("Template: {}, Languages: {}", formName, languages);
 
                     Map<String, Object> formMap = new HashMap<>();
                     formMap.put("Template Name", formName);
-                    formMap.put("Language", language);
+                    formMap.put("Language", languages);
 
                     // H-RULE
                     JSONArray hrules = form.getJSONArray("H-RULE");
                     List<Map<String, Object>> hRuleList = new ArrayList<>();
                     for (int k = 0; k < hrules.length(); k++) {
                         JSONObject hrule = hrules.getJSONObject(k);
-                        String word = hrule.getString("WD");
-                        double weight = hrule.getDouble("WT");
+                        String word = hrule.optString("WD", ""); // 기본값 설정
+                        double weight = hrule.optDouble("WT", 0.0); // 기본값 설정
+                        String kr = hrule.optString("KR", ""); // 기본값 설정
                         Map<String, Object> ruleMap = new HashMap<>();
                         ruleMap.put("WD", word);
                         ruleMap.put("WT", weight);
+                        ruleMap.put("KR", kr);
                         hRuleList.add(ruleMap);
-                        log.info("H-RULE - WD: {}, WT: {}", word, weight);
+                        log.info("WD: {}, WT: {}, KR: {}", word, weight, kr);
                     }
                     formMap.put("H-RULE", hRuleList);
 
@@ -547,9 +553,9 @@ public class JsonService {
                 }
                 jsonDictionary.put(countryName, formList);
             }
-            log.info("JSON 단어 리스트 추출 완료");
+            log.info("JSON Word list extraction completed");
         } catch (Exception e) {
-            log.error("JSON 단어 리스트 추출 실패: {}", e.getStackTrace()[0]);
+            log.error("JSON Word list extraction failed: {}", e.getStackTrace());
         }
 
         for (Map.Entry<String, List<Map<String, Object>>> countryEntry : jsonDictionary.entrySet()) {
@@ -559,16 +565,17 @@ public class JsonService {
             List<Map<String, Object>> formList = countryEntry.getValue();
             for (Map<String, Object> formMap : formList) {
                 String formName = (String) formMap.get("Template Name");
-                String language = (String) formMap.get("Language");
+                List<String> languages = (List<String>) formMap.get("Language");
                 log.info("  Template Name: " + formName);
-                log.info("  Language: " + language);
+                log.info("  Languages: " + languages);
 
                 List<Map<String, Object>> hRules = (List<Map<String, Object>>) formMap.get("H-RULE");
                 log.info("    H-RULE:");
                 for (Map<String, Object> hRule : hRules) {
                     String word = (String) hRule.get("WD");
                     double weight = (double) hRule.get("WT");
-                    log.info("      WD: " + word + ", WT: " + weight);
+                    String kr = (String) hRule.get("KR");
+                    log.info("      WD: " + word + ", WT: " + weight + ", KR: " + kr);
                 }
 
 //                List<Map<String, Object>> aiRules = (List<Map<String, Object>>) formMap.get("AI-RULE");
