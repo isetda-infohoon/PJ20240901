@@ -29,7 +29,7 @@
           <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
         </padding>
       </PasswordField>
-      <Button id="btn1" fx:id="btn1" mnemonicParsing="false" onAction="#onButton1Click" prefHeight="33.0" prefWidth="165.0" text="이미지 업로드 후 OCR 진행" GridPane.columnIndex="1">
+      <Button id="btn1" fx:id="btn1" mnemonicParsing="false" onAction="#onButton1Click" prefHeight="33.0" prefWidth="165.0" text="Upload and AI-OCR" GridPane.columnIndex="1">
         <font>
           <Font name="Arial" size="12.0" />
         </font>
@@ -45,7 +45,7 @@
           <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
         </padding>
       </PasswordField>
-      <Button id="btn2" fx:id="btn2" mnemonicParsing="false" onAction="#onButton2Click" prefHeight="33.0" prefWidth="165.0" text="폴더의 json 문서 분류" GridPane.columnIndex="1" GridPane.rowIndex="1">
+      <Button id="btn2" fx:id="btn2" mnemonicParsing="false" onAction="#onButton2Click" prefHeight="33.0" prefWidth="165.0" text="Classify" GridPane.columnIndex="1" GridPane.rowIndex="1">
         <font>
           <Font name="Arial" size="12.0" />
         </font>

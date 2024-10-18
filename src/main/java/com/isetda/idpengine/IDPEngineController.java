@@ -3,10 +3,7 @@ package com.isetda.idpengine;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import javafx.scene.control.Label;
-import javafx.scene.control.PasswordField;
-import javafx.scene.control.ProgressBar;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.text.Text;
 import org.apache.logging.log4j.LogManager;
@@ -30,6 +27,10 @@ public class IDPEngineController {
 
     public Text btn1files;
     public Text btn2files;
+
+    public Button btn1;
+    public Button btn2;
+
 
 
     private ExcelService excelService = new ExcelService();
@@ -81,6 +82,7 @@ public class IDPEngineController {
     public ProgressBar progressBar;
 
     public void onButton1Click() throws IOException {
+        btn1.setDisable(true);
         IOService IOService = new IOService();
         GoogleService googleService = new GoogleService();
 
@@ -104,12 +106,6 @@ public class IDPEngineController {
         File sourceFolder = new File(configLoader.imageFolderPath);
         File[] sourceFiles = sourceFolder.listFiles(); // 폴더 안의 모든 파일 목록 가져오기
 
-//        if (sourceFiles != null) {
-//            log.info("Number of files in the source folder: {}", sourceFiles.length-1);
-//            btn1files.setText("filse in source folder : " +(String.valueOf(sourceFiles.length-1))); // 파일 개수를 UI에 표시
-//        } else {
-//            log.warn("Source folder does not exist or cannot be read.");
-//        }
 
         documentService.configLoader = configLoader;
         IOService.configLoader = configLoader;
@@ -166,29 +162,58 @@ public class IDPEngineController {
                 errorLabel.setText("Files Copy and Upload success");
 
                 log.info("Number of image file copies: {}", imageAndPdfFiles.length);
+                btn1.setDisable(false);
             });
         });
 
         // 백그라운드 스레드 시작
         taskThread.setDaemon(true);
         taskThread.start();
-        btn1files.setText("filse in source folder : " +IOService.allFilesInSourceFolder.size()); // 파일 개수를 UI에 표시
+        btn1files.setText("files in source folder : " +IOService.allFilesInSourceFolder.size()); // 파일 개수를 UI에 표시
 
     }
     public double c;
 
     public void onButton2Click(ActionEvent event) throws Exception {
-        byte[] jsonToByte = Files.readAllBytes(Paths.get(configLoader.jsonFilePath));
+        Thread taskThread = new Thread(() -> {
+            int a = 1;
+            btn2.setDisable(true);
+            byte[] jsonToByte = null;
+            try {
+                jsonToByte = Files.readAllBytes(Paths.get(configLoader.jsonFilePath));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
 //        documentService.jsonData = JsonService.getJsonDictionary(JsonService.aesDecode(jsonToByte));
 //        documentService.setController(this);  // controller 설정
-        //documentService.jsonData = JsonService.getJsonDictionary(JsonService.aesDecode(jsonToByte));
-        documentService.jsonData = JsonService.getJsonDictionary2(JsonService.aesDecode(jsonToByte));
-        classificationDocument();
-        errorLabel.setText("all success");
-        btn2files.setText("json files in result folder : "+documentService.jsonFiles.length);
+            //documentService.jsonData = JsonService.getJsonDictionary(JsonService.aesDecode(jsonToByte));
+            try {
+                documentService.jsonData = JsonService.getJsonDictionary2(JsonService.aesDecode(jsonToByte));
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+            try {
+                classificationDocument();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+            errorLabel.setText("all success");
+            btn2files.setText("json files in result folder : "+documentService.jsonFiles.length);
+            // 모든 파일이 처리된 후 최종 50%로 고정
+            Platform.runLater(() -> {
+                btn2.setDisable(false);
+
+            });
+        });
+
+        // 백그라운드 스레드 시작
+        taskThread.setDaemon(true);
+        taskThread.start();
+//        btn1files.setText("filse in source folder : " +IOService.allFilesInSourceFolder.size()); // 파일 개수를 UI에 표시
+
+    }
 
 //        JsonService.processMarking(folderPath, jsonFolderPath);
-    }
 //public void onButton2Click(ActionEvent event) throws Exception {
 //    byte[] jsonToByte = Files.readAllBytes(Paths.get(configLoader.jsonFilePath));
 //    documentService.jsonData = JsonService.getJsonDictionary(JsonService.aesDecode(jsonToByte));

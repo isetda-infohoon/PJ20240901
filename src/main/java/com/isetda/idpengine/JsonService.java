@@ -189,7 +189,7 @@ public class JsonService {
         return data;
     }
 //    로고 찍기 용
-    private void logItemInfo(Map<String, Object> item) {
+    public void logItemInfo(Map<String, Object> item) {
         String description = (String) item.get("description");
         List<JSONObject> vertices = (List<JSONObject>) item.get("vertices");
         int minX = (int) item.get("minX");
@@ -533,7 +533,7 @@ public class JsonService {
                         ruleMap.put("WT", weight);
                         ruleMap.put("KR", kr);
                         hRuleList.add(ruleMap);
-                        log.info("WD: {}, WT: {}, KR: {}", word, weight, kr);
+                        log.debug("WD: {}, WT: {}, KR: {}", word, weight, kr);
                     }
                     formMap.put("H-RULE", hRuleList);
 
@@ -578,7 +578,7 @@ public class JsonService {
                     String word = (String) hRule.get("WD");
                     double weight = (double) hRule.get("WT");
                     String kr = (String) hRule.get("KR");
-                    log.info("      WD: " + word + ", WT: " + weight + ", KR: " + kr);
+                    log.debug("      WD: " + word + ", WT: " + weight + ", KR: " + kr);
                 }
 
 //                List<Map<String, Object>> aiRules = (List<Map<String, Object>>) formMap.get("AI-RULE");

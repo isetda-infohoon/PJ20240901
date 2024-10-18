@@ -86,10 +86,11 @@ public class DocumentService {
             postProcessing(1);
             classifyDocuments2(jsonData, jsonService.jsonLocal, jsonService.jsonCollection);
             postProcessing(2);
+            JsonService.sortAnnotations(jsonService.jsonCollection);
             JsonService.findMatchingWords(jsonService.jsonCollection);
-            JsonService.sortAnnotations2(jsonService.jsonCollection);
             classifyDocuments3(jsonData,jsonService.jsonLocal,JsonService.jsonCollection2);
             postProcessing(3);
+
 
 //            classifyDocuments4(jsonData,jsonService.jsonLocal,JsonService.jsonCollection2);
 //            postProcessing(4);
@@ -306,10 +307,15 @@ public class DocumentService {
         resultList.add(languageCode);
         resultList.add(documentType);
 
+        //log.info("Final template with highest adjusted WT sum count: {}, Count: {}", finalTopTemplate, finalMaxTotalCount);
         log.info("Document classification results: Country({}), Language Code({}), Document Type({}))", finalCountry, finalLanguage, finalTopTemplate);
     }
 
     public void classifyDocuments2(Map<String, List<Map<String, Object>>> jsonData, String jsonLocale, List<Map<String, Object>> items) {
+
+        //정다혀 추가
+        Map<String, List<Map<String, Object>>> formMatchedWords = new HashMap<>();
+
         filteredResult = new ArrayList<>();
         resultList = new ArrayList<>();
 
@@ -343,6 +349,7 @@ public class DocumentService {
                                 String description = (String) item.get("description");
                                 if (description != null && description.equals(word)) {
                                     count++;
+                                    formMatchedWords.computeIfAbsent(formName, k -> new ArrayList<>()).add(item);
                                 }
                             }
 
@@ -450,6 +457,12 @@ public class DocumentService {
             finalLanguage = "미분류";
         }
 
+        if (finalTopTemplate.equals("미분류")) {
+            matchjsonWord = new ArrayList<>();
+        } else {
+            matchjsonWord = formMatchedWords.getOrDefault(finalTopTemplate, new ArrayList<>());
+        }
+
         countryType.add(finalCountry);
         languageCode.add(finalLanguage);
         documentType.add(finalTopTemplate);
@@ -458,6 +471,7 @@ public class DocumentService {
         resultList.add(languageCode);
         resultList.add(documentType);
 
+        //log.info("Final template with highest adjusted WT sum count: {}, Count: {}", finalTopTemplate, finalMaxTotalCount);
         log.info("Document classification results: Country({}), Language Code({}), Document Type({}))", finalCountry, finalLanguage, finalTopTemplate);
     }
 
