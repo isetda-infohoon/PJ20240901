@@ -86,10 +86,11 @@ public class DocumentService {
             postProcessing(1);
             classifyDocuments2(jsonData, jsonService.jsonLocal, jsonService.jsonCollection);
             postProcessing(2);
+            JsonService.sortAnnotations(jsonService.jsonCollection);
             JsonService.findMatchingWords(jsonService.jsonCollection);
-            JsonService.sortAnnotations2(jsonService.jsonCollection);
             classifyDocuments3(jsonData,jsonService.jsonLocal,JsonService.jsonCollection2);
             postProcessing(3);
+
 
 //            classifyDocuments4(jsonData,jsonService.jsonLocal,JsonService.jsonCollection2);
 //            postProcessing(4);
@@ -547,6 +548,7 @@ public class DocumentService {
                 for (Map<String, Object> hRule : hRules) {
                     String word = (String) hRule.get("WD");
                     double weight = (double) hRule.get("WT");
+                    String kr = (String) hRule.get("KR");
                     int count = 0;
 
                     // items를 순회하며 description과 일치하는 word의 개수를 카운트
