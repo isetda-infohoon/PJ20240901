@@ -189,7 +189,7 @@ public class JsonService {
         return data;
     }
 //    로고 찍기 용
-    private void logItemInfo(Map<String, Object> item) {
+    public void logItemInfo(Map<String, Object> item) {
         String description = (String) item.get("description");
         List<JSONObject> vertices = (List<JSONObject>) item.get("vertices");
         int minX = (int) item.get("minX");

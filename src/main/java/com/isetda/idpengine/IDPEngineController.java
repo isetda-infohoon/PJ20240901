@@ -3,12 +3,12 @@ package com.isetda.idpengine;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import javafx.scene.control.Label;
+import javafx.scene.control.PasswordField;
 import javafx.scene.control.ProgressBar;
-import javafx.scene.control.TextField;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.text.Text;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.w3c.dom.Text;
 
 import java.io.File;
 import java.io.IOException;
@@ -32,7 +32,6 @@ public class IDPEngineController {
 
     private ExcelService excelService = new ExcelService();
     private DocumentService documentService = new DocumentService();
-    private JsonEnDecode jsonEnDecode = new JsonEnDecode();
 
     String resultFilePath = configLoader.resultFilePath;
     @FXML

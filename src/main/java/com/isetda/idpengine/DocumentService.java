@@ -86,8 +86,9 @@ public class DocumentService {
             postProcessing(1);
             classifyDocuments2(jsonData, jsonService.jsonLocal, jsonService.jsonCollection);
             postProcessing(2);
-            JsonService.findMatchingWords(jsonService.jsonCollection);
             JsonService.sortAnnotations2(jsonService.jsonCollection);
+            log.info("확인 :{}",jsonService.jsonCollection);
+            JsonService.findMatchingWords(jsonService.jsonCollection);
             classifyDocuments3(jsonData,jsonService.jsonLocal,JsonService.jsonCollection2);
             postProcessing(3);
 
@@ -298,6 +299,10 @@ public class DocumentService {
     }
 
     public void classifyDocuments2(Map<String, List<Map<String, Object>>> jsonData, String jsonLocale, List<Map<String, Object>> items) {
+
+        //정다혀 추가
+        Map<String, List<Map<String, Object>>> formMatchedWords = new HashMap<>();
+
         filteredResult = new ArrayList<>();
         resultList = new ArrayList<>();
 
@@ -321,6 +326,7 @@ public class DocumentService {
                         String description = (String) item.get("description");
                         if (description.equals(word)) {
                             count++;
+                            formMatchedWords.computeIfAbsent(formName, k -> new ArrayList<>()).add(item);
                         }
                     }
 
@@ -435,6 +441,12 @@ public class DocumentService {
             finalTopTemplate = "미분류";
             finalCountry = "미분류";
             finalLanguage = "미분류";
+        }
+
+        if (finalTopTemplate.equals("미분류")) {
+            matchjsonWord = new ArrayList<>();
+        } else {
+            matchjsonWord = formMatchedWords.getOrDefault(finalTopTemplate, new ArrayList<>());
         }
 
         countryType.add(finalCountry);
