@@ -15,7 +15,7 @@ public class IMGService {
     private static final Logger log = LogManager.getLogger(IMGService.class);
     public ConfigLoader configLoader;
 
-    public void drawMarking(File imageFile, List<Map<String, Object>> jsonCollection ,int a,String docType) throws IOException {
+    public void drawMarking(File imageFile, List<Map<String, Object>> jsonCollection ,String a,String docType) throws IOException {
         log.info("Adding marking to image: {}", imageFile.getAbsolutePath());
         DocumentService documentService = new DocumentService();
 
@@ -56,7 +56,7 @@ public class IMGService {
     }
 
 
-    public void processMarking(List<Map<String, Object>> jsonCollection, String resultFilePath, String targetFileName, int a, String docType) throws IOException {
+    public void processMarking(List<Map<String, Object>> jsonCollection, String resultFilePath, String targetFileName, String a, String docType) throws IOException {
         log.info("Start processing images and JSON files");
 
         File folder = new File(resultFilePath);
