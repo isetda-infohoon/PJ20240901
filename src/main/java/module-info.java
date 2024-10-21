@@ -25,7 +25,6 @@ module com.isetda.idpengine {
     requires java.sql;
 //    requires com.sun.jna;
     requires org.apache.pdfbox;
-    requires log4j;
     requires org.apache.commons.codec;
     requires com.google.api.client;
 
