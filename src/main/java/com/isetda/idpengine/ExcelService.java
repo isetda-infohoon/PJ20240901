@@ -313,18 +313,31 @@ public class ExcelService {
         Sheet sheet;
 
         Map<String, StringBuilder> templateEntries = new HashMap<>();
+        Map<String, Map<String, Object>> keyCountMap = new HashMap<>();
 
         for (Map<String, Object> result : filteredResult) {
+            String country = (String) result.get("Country");
+            List<String> languages = (List<String>) result.get("Language");
             String templateName = (String) result.get("Template Name");
             String wd = (String) result.get("WD");
+            Double wt = (Double) result.get("WT");
             int count = (int) result.get("Count");
 
             // count가 1 이상인 항목만 저장
             if (count >= 1) {
-                // 해당 템플릿 이름이 없다면 초기화하고, WD와 Count 값을 추가
-                templateEntries.putIfAbsent(templateName, new StringBuilder(templateName).append(" 일치 단어 리스트 ("));
-                StringBuilder sb = templateEntries.get(templateName);
-                sb.append(wd).append("(").append(count).append("), ");
+                String key = country + "(" + String.join(",", languages) + ")" + templateName;
+
+                // 해당 키가 없다면 초기화하고, WD와 Count 값을 추가
+                templateEntries.putIfAbsent(key, new StringBuilder(templateName).append("(").append(String.join(",", languages)).append(") 일치 단어 리스트 ("));
+                StringBuilder sb = templateEntries.get(key);
+                sb.append(wd).append("[").append(wt).append("]").append("(").append(count).append("), ");
+
+                // 양식 별 일치 단어 개수 카운트
+                keyCountMap.putIfAbsent(key, new HashMap<>());
+                Map<String, Object> keyInfo = keyCountMap.get(key);
+                keyInfo.put("Count", (int) keyInfo.getOrDefault("Count", 0) + 1);
+                keyInfo.put("Languages", languages);
+                keyInfo.put("TemplateName", templateName);
             }
         }
 
@@ -354,7 +367,7 @@ public class ExcelService {
 
                     if (configLoader.writeExcelDetails) {
                         for (Map.Entry<String, StringBuilder> entry : templateEntries.entrySet()) {
-                            String templateName = entry.getKey();
+                            String keyName = entry.getKey();
                             StringBuilder wdEntries = entry.getValue();
 
                             // 마지막 쉼표와 공백을 제거하고 닫는 괄호 추가
@@ -367,12 +380,9 @@ public class ExcelService {
                             cell.setCellValue(wdEntries.toString());
                             colNum++;
 
-                            long totalCount = filteredResult.stream()
-                                    .filter(result -> templateName.equals(result.get("Template Name")) && (int) result.get("Count") >= 1)
-                                    .count();
-
                             Cell cell2 = row.createCell(colNum);
-                            cell2.setCellValue(templateName + " 일치 단어 전체 개수 (" + totalCount + ")");
+                            Map<String, Object> keyInfo = keyCountMap.get(keyName);
+                            cell2.setCellValue(keyInfo.get("TemplateName") + "(" + String.join(",", (List<String>) keyInfo.get("Languages")) + ")" + " 일치 단어 전체 개수 (" + keyInfo.get("Count") + ")");
                             colNum++;
                         }
                     }
@@ -392,7 +402,7 @@ public class ExcelService {
             Cell fileNameCell = firstRow.createCell(0); // A열에 해당
             fileNameCell.setCellValue("파일이름");
             Cell fileNameCell2 = firstRow.createCell(1);
-            fileNameCell2.setCellValue(fileName.replace("_OCR_result", "")); // B열에 해당
+            fileNameCell2.setCellValue(fileName.replace("_result", "")); // B열에 해당
 
             // Writing resultList
             int startRow = sheet.getLastRowNum() + 1;
@@ -409,7 +419,7 @@ public class ExcelService {
 
                     if (configLoader.writeExcelDetails) {
                         for (Map.Entry<String, StringBuilder> entry : templateEntries.entrySet()) {
-                            String templateName = entry.getKey();
+                            String keyName = entry.getKey();
                             StringBuilder wdEntries = entry.getValue();
 
                             // 마지막 쉼표와 공백을 제거하고 닫는 괄호 추가
@@ -422,12 +432,9 @@ public class ExcelService {
                             cell.setCellValue(wdEntries.toString());
                             colNum++;
 
-                            long totalCount = filteredResult.stream()
-                                    .filter(result -> templateName.equals(result.get("Template Name")) && (int) result.get("Count") >= 1)
-                                    .count();
-
                             Cell cell2 = row.createCell(colNum);
-                            cell2.setCellValue(templateName + " 일치 단어 전체 개수 (" + totalCount + ")");
+                            Map<String, Object> keyInfo = keyCountMap.get(keyName);
+                            cell2.setCellValue(keyInfo.get("TemplateName") + "(" + String.join(",", (List<String>) keyInfo.get("Languages")) + ")" + " 일치 단어 전체 개수 (" + keyInfo.get("Count") + ")");
                             colNum++;
                         }
                     }

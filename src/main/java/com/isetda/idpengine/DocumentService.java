@@ -215,16 +215,20 @@ public class DocumentService {
                             resultMap.put("KR", kr);
                             resultMap.put("Count", count);
 
-                            filteredResult.add(resultMap);
+                            // 중복 확인
+                            if (!filteredResult.contains(resultMap)) {
+                                filteredResult.add(resultMap);
+                            }
                         }
                     }
                 }
             }
         }
 
-        // Country, Template 으로 정렬
+        // Country, Template, Language로 정렬
         filteredResult.sort(Comparator.comparing((Map<String, Object> r) -> (String) r.get("Country"))
-                .thenComparing(r -> (String) r.get("Template Name")));
+                .thenComparing(r -> (String) r.get("Template Name"))
+                .thenComparing(r -> String.join(",", (List<String>) r.get("Language"))));
 
         // Count가 높은 순서로 정렬
         filteredResult.sort(Comparator.comparing((Map<String, Object> r) -> (int) r.get("Count")).reversed());
@@ -247,54 +251,120 @@ public class DocumentService {
         List<String> documentType = new ArrayList<>();
         documentType.add("문서 양식");
 
-        // Country, Template 별로 최상위 WT의 count 합계를 찾기
+        // 국가, 언어, 템플릿 조합별로 최상위 WT의 Count 합계를 계산
+        Map<String, Double> maxWtMap = new HashMap<>();
         Map<String, Integer> templateCountSum = new HashMap<>();
+        Map<String, Integer> nonMaxWtCountSum = new HashMap<>();
+        Map<String, Double> matchWtSum = new HashMap<>();
+
+//        for (Map<String, Object> res : filteredResult) {
+//            String key = res.get("Country") + "|" + res.get("Language") + "|" + res.get("Template Name");
+//            double weight = (double) res.get("WT");
+//            int count = (int) res.get("Count");
+//
+//            // 현재 조합의 최대 WT를 갱신
+//            if (!maxWtMap.containsKey(key) || weight > maxWtMap.get(key)) {
+//                maxWtMap.put(key, weight);
+//                templateCountSum.put(key, count);
+//            } else if (weight == maxWtMap.get(key)) {
+//                // 동일한 WT일 경우 Count를 누적
+//                templateCountSum.put(key, templateCountSum.get(key) + count);
+//            }
+//        }
+
+//        // 최상위 WT를 제외한 항목들의 count 합계를 구하는 코드
+//        for (Map<String, Object> res : filteredResult) {
+//            String key = res.get("Country") + "|" + res.get("Language") + "|" + res.get("Template Name");
+//            double weight = (double) res.get("WT");
+//            int count = (int) res.get("Count");
+//
+//            // 최상위 WT를 제외한 항목들의 count 합계 계산
+//            if (weight != maxWtMap.get(key)) {
+//                nonMaxWtCountSum.put(key, nonMaxWtCountSum.getOrDefault(key, 0) + count);
+//            }
+//
+//            // 각 양식 별 일치 단어 WT 합계 계산
+//            if (count > 0) {
+//                matchWtSum.put(key, matchWtSum.getOrDefault(key, 0.0) + weight);
+//            }
+//        }
+
+        // 최대 WT를 찾기
+        double globalMaxWt = Double.MIN_VALUE;
         for (Map<String, Object> res : filteredResult) {
-            String templateName = (String) res.get("Template Name");
+            double weight = (double) res.get("WT");
+            if (weight > globalMaxWt) {
+                globalMaxWt = weight;
+            }
+        }
+
+        // 최대 WT에 대해서 조합별로 count를 계산
+        for (Map<String, Object> res : filteredResult) {
+            String key = res.get("Country") + "|" + res.get("Language") + "|" + res.get("Template Name");
+            double weight = (double) res.get("WT");
             int count = (int) res.get("Count");
 
-            templateCountSum.put(templateName, templateCountSum.getOrDefault(templateName, 0) + count);
+            if (weight == globalMaxWt) {
+                // 최대 WT일 경우 Count를 누적
+                templateCountSum.put(key, templateCountSum.getOrDefault(key, 0) + count);
+            } else {
+                // 최대 WT를 제외한 항목들의 count 합계 계산
+                nonMaxWtCountSum.put(key, nonMaxWtCountSum.getOrDefault(key, 0) + count);
+            }
+
+            // 각 양식 별 일치 단어 WT 합계 계산
+            if (count > 0) {
+                matchWtSum.put(key, matchWtSum.getOrDefault(key, 0.0) + weight);
+            }
+        }
+
+        log.info("Calculate the Count sum of the highest WT");
+        for (Map.Entry<String, Integer> entry : templateCountSum.entrySet()) {
+            log.info("Key: {}, Count Sum: {}", entry.getKey(), entry.getValue());
+        }
+
+        log.info("Calculate the Count sum of the non-max WT");
+        for (Map.Entry<String, Integer> entry : nonMaxWtCountSum.entrySet()) {
+            log.info("Non-Max WT Key: {}, Count Sum: {}", entry.getKey(), entry.getValue());
         }
 
         if (!templateCountSum.isEmpty()) {
-            // 합계가 가장 높은 Template들 찾기
-            int maxTotalCount = Collections.max(templateCountSum.values());
-            List<String> topTemplates = new ArrayList<>();
+            // templateCountSum 의 value 값이 가장 높은 항목 찾기
+            String maxKey = null;
+            int maxValue = Integer.MIN_VALUE;
+
             for (Map.Entry<String, Integer> entry : templateCountSum.entrySet()) {
-                if (entry.getValue() == maxTotalCount) {
-                    topTemplates.add(entry.getKey());
+                int value = entry.getValue();
+                if (value > maxValue) {
+                    maxKey = entry.getKey();
+                    maxValue = value;
+                } else if (value == maxValue) {
+                    // 동일한 값이 존재하면 nonMaxWtCountSum 에서 비교
+                    int nonMaxValue1 = nonMaxWtCountSum.getOrDefault(maxKey, 0);
+                    int nonMaxValue2 = nonMaxWtCountSum.getOrDefault(entry.getKey(), 0);
+                    if (nonMaxValue2 > nonMaxValue1) {
+                        maxKey = entry.getKey();
+                        maxValue = value;
+                    }
                 }
             }
 
+            log.info("Max Key: {}, Max Value: {}", maxKey, maxValue);
+
             // 최종적으로 합계가 가장 높은 Template 찾기
-            if (topTemplates.isEmpty()) {
+            if (maxKey.isEmpty()) {
                 finalTopTemplate = "미분류";
                 finalCountry = "미분류";
                 finalLanguage = "미분류";
                 finalMaxTotalCount = 0;
                 log.info("No valid template found. Setting default value.");
             } else {
-                finalTopTemplate = topTemplates.get(0);
-                finalMaxTotalCount = maxTotalCount;
-
-                // 최종 결과로 가져온 Template의 Country와 Language를 가져오기
-                for (Map<String, Object> res : filteredResult) { // 수정된 부분
-                    if (finalTopTemplate.equals(res.get("Template Name"))) {
-                        finalCountry = (String) res.get("Country");
-                        finalLanguage = String.join(", ", (List<String>) res.get("Language"));
-                        break;
-                    }
-                }
-
-                // 최종 템플릿에서 count가 1 이상인 항목의 WT 합계를 구하기
-                for (Map<String, Object> res : filteredResult) {
-                    if (finalTopTemplate.equals(res.get("Template Name"))) {
-                        int count = (int) res.get("Count");
-                        if (count > 0) {
-                            totalWtSum += (double) res.get("WT");
-                        }
-                    }
-                }
+                String[] parts = maxKey.split("\\|");
+                finalCountry = parts[0];
+                finalLanguage = parts[1];
+                finalTopTemplate = parts[2];
+                finalMaxTotalCount = maxValue;
+                totalWtSum = matchWtSum.get(maxKey);
             }
         } else {
             finalTopTemplate = "미분류";
@@ -373,7 +443,10 @@ public class DocumentService {
                             resultMap.put("KR", kr);
                             resultMap.put("Count", count);
 
-                            filteredResult.add(resultMap);
+                            // 중복 확인
+                            if (!filteredResult.contains(resultMap)) {
+                                filteredResult.add(resultMap);
+                            }
                         }
                     }
                 }
@@ -382,7 +455,8 @@ public class DocumentService {
 
         // Country, Template 으로 정렬
         filteredResult.sort(Comparator.comparing((Map<String, Object> r) -> (String) r.get("Country"))
-                .thenComparing(r -> (String) r.get("Template Name")));
+                .thenComparing(r -> (String) r.get("Template Name"))
+                .thenComparing(r -> String.join(",", (List<String>) r.get("Language"))));
 
         // Count가 높은 순서로 정렬
         filteredResult.sort(Comparator.comparing((Map<String, Object> r) -> (int) r.get("Count")).reversed());
@@ -405,54 +479,87 @@ public class DocumentService {
         List<String> documentType = new ArrayList<>();
         documentType.add("문서 양식");
 
-        // Country, Template 별로 최상위 WT의 count 합계를 찾기
+        Map<String, Double> maxWtMap = new HashMap<>();
         Map<String, Integer> templateCountSum = new HashMap<>();
+        Map<String, Integer> nonMaxWtCountSum = new HashMap<>();
+        Map<String, Double> matchWtSum = new HashMap<>();
+
+        // 최대 WT를 찾기
+        double globalMaxWt = Double.MIN_VALUE;
         for (Map<String, Object> res : filteredResult) {
-            String templateName = (String) res.get("Template Name");
+            double weight = (double) res.get("WT");
+            if (weight > globalMaxWt) {
+                globalMaxWt = weight;
+            }
+        }
+
+        // 최대 WT에 대해서 조합별로 count를 계산
+        for (Map<String, Object> res : filteredResult) {
+            String key = res.get("Country") + "|" + res.get("Language") + "|" + res.get("Template Name");
+            double weight = (double) res.get("WT");
             int count = (int) res.get("Count");
 
-            templateCountSum.put(templateName, templateCountSum.getOrDefault(templateName, 0) + count);
+            if (weight == globalMaxWt) {
+                // 최대 WT일 경우 Count를 누적
+                templateCountSum.put(key, templateCountSum.getOrDefault(key, 0) + count);
+            } else {
+                // 최대 WT를 제외한 항목들의 count 합계 계산
+                nonMaxWtCountSum.put(key, nonMaxWtCountSum.getOrDefault(key, 0) + count);
+            }
+
+            // 각 양식 별 일치 단어 WT 합계 계산
+            if (count > 0) {
+                matchWtSum.put(key, matchWtSum.getOrDefault(key, 0.0) + weight);
+            }
+        }
+
+        log.info("Calculate the Count sum of the highest WT");
+        for (Map.Entry<String, Integer> entry : templateCountSum.entrySet()) {
+            log.info("Key: {}, Count Sum: {}", entry.getKey(), entry.getValue());
+        }
+
+        log.info("Calculate the Count sum of the non-max WT");
+        for (Map.Entry<String, Integer> entry : nonMaxWtCountSum.entrySet()) {
+            log.info("Non-Max WT Key: {}, Count Sum: {}", entry.getKey(), entry.getValue());
         }
 
         if (!templateCountSum.isEmpty()) {
-            // 합계가 가장 높은 Template들 찾기
-            int maxTotalCount = Collections.max(templateCountSum.values());
-            List<String> topTemplates = new ArrayList<>();
+            // templateCountSum 의 value 값이 가장 높은 항목 찾기
+            String maxKey = null;
+            int maxValue = Integer.MIN_VALUE;
+
             for (Map.Entry<String, Integer> entry : templateCountSum.entrySet()) {
-                if (entry.getValue() == maxTotalCount) {
-                    topTemplates.add(entry.getKey());
+                int value = entry.getValue();
+                if (value > maxValue) {
+                    maxKey = entry.getKey();
+                    maxValue = value;
+                } else if (value == maxValue) {
+                    // 동일한 값이 존재하면 nonMaxWtCountSum 에서 비교
+                    int nonMaxValue1 = nonMaxWtCountSum.getOrDefault(maxKey, 0);
+                    int nonMaxValue2 = nonMaxWtCountSum.getOrDefault(entry.getKey(), 0);
+                    if (nonMaxValue2 > nonMaxValue1) {
+                        maxKey = entry.getKey();
+                        maxValue = value;
+                    }
                 }
             }
 
+            log.info("Max Key: {}, Max Value: {}", maxKey, maxValue);
+
             // 최종적으로 합계가 가장 높은 Template 찾기
-            if (topTemplates.isEmpty()) {
+            if (maxKey.isEmpty()) {
                 finalTopTemplate = "미분류";
                 finalCountry = "미분류";
                 finalLanguage = "미분류";
                 finalMaxTotalCount = 0;
                 log.info("No valid template found. Setting default value.");
             } else {
-                finalTopTemplate = topTemplates.get(0);
-                finalMaxTotalCount = maxTotalCount;
-
-                // 최종 결과로 가져온 Template의 Country와 Language를 가져오기
-                for (Map<String, Object> res : filteredResult) { // 수정된 부분
-                    if (finalTopTemplate.equals(res.get("Template Name"))) {
-                        finalCountry = (String) res.get("Country");
-                        finalLanguage = String.join(", ", (List<String>) res.get("Language"));
-                        break;
-                    }
-                }
-
-                // 최종 템플릿에서 count가 1 이상인 항목의 WT 합계를 구하기
-                for (Map<String, Object> res : filteredResult) {
-                    if (finalTopTemplate.equals(res.get("Template Name"))) {
-                        int count = (int) res.get("Count");
-                        if (count > 0) {
-                            totalWtSum += (double) res.get("WT");
-                        }
-                    }
-                }
+                String[] parts = maxKey.split("\\|");
+                finalCountry = parts[0];
+                finalLanguage = parts[1];
+                finalTopTemplate = parts[2];
+                finalMaxTotalCount = maxValue;
+                totalWtSum = matchWtSum.get(maxKey);
             }
         } else {
             finalTopTemplate = "미분류";
@@ -544,14 +651,18 @@ public class DocumentService {
                     resultMap.put("KR", kr);
                     resultMap.put("Count", count);
 
-                    filteredResult.add(resultMap);
+                    // 중복 확인
+                    if (!filteredResult.contains(resultMap)) {
+                        filteredResult.add(resultMap);
+                    }
                 }
             }
         }
 
         // Country, Template 으로 정렬
         filteredResult.sort(Comparator.comparing((Map<String, Object> r) -> (String) r.get("Country"))
-                .thenComparing(r -> (String) r.get("Template Name")));
+                .thenComparing(r -> (String) r.get("Template Name"))
+                .thenComparing(r -> String.join(",", (List<String>) r.get("Language"))));
 
         // Count가 높은 순서로 정렬
         filteredResult.sort(Comparator.comparing((Map<String, Object> r) -> (int) r.get("Count")).reversed());
@@ -572,54 +683,87 @@ public class DocumentService {
         List<String> documentType = new ArrayList<>();
         documentType.add("문서 양식");
 
-        // Country, Template 별로 최상위 WT의 count 합계를 찾기
+        Map<String, Double> maxWtMap = new HashMap<>();
         Map<String, Integer> templateCountSum = new HashMap<>();
+        Map<String, Integer> nonMaxWtCountSum = new HashMap<>();
+        Map<String, Double> matchWtSum = new HashMap<>();
+
+// 최대 WT를 찾기
+        double globalMaxWt = Double.MIN_VALUE;
         for (Map<String, Object> res : filteredResult) {
-            String templateName = (String) res.get("Template Name");
+            double weight = (double) res.get("WT");
+            if (weight > globalMaxWt) {
+                globalMaxWt = weight;
+            }
+        }
+
+        // 최대 WT에 대해서 조합별로 count를 계산
+        for (Map<String, Object> res : filteredResult) {
+            String key = res.get("Country") + "|" + res.get("Language") + "|" + res.get("Template Name");
+            double weight = (double) res.get("WT");
             int count = (int) res.get("Count");
 
-            templateCountSum.put(templateName, templateCountSum.getOrDefault(templateName, 0) + count);
+            if (weight == globalMaxWt) {
+                // 최대 WT일 경우 Count를 누적
+                templateCountSum.put(key, templateCountSum.getOrDefault(key, 0) + count);
+            } else {
+                // 최대 WT를 제외한 항목들의 count 합계 계산
+                nonMaxWtCountSum.put(key, nonMaxWtCountSum.getOrDefault(key, 0) + count);
+            }
+
+            // 각 양식 별 일치 단어 WT 합계 계산
+            if (count > 0) {
+                matchWtSum.put(key, matchWtSum.getOrDefault(key, 0.0) + weight);
+            }
+        }
+
+        log.info("Calculate the Count sum of the highest WT");
+        for (Map.Entry<String, Integer> entry : templateCountSum.entrySet()) {
+            log.info("Key: {}, Count Sum: {}", entry.getKey(), entry.getValue());
+        }
+
+        log.info("Calculate the Count sum of the non-max WT");
+        for (Map.Entry<String, Integer> entry : nonMaxWtCountSum.entrySet()) {
+            log.info("Non-Max WT Key: {}, Count Sum: {}", entry.getKey(), entry.getValue());
         }
 
         if (!templateCountSum.isEmpty()) {
-            // 합계가 가장 높은 Template들 찾기
-            int maxTotalCount = Collections.max(templateCountSum.values());
-            List<String> topTemplates = new ArrayList<>();
+            // templateCountSum 의 value 값이 가장 높은 항목 찾기
+            String maxKey = null;
+            int maxValue = Integer.MIN_VALUE;
+
             for (Map.Entry<String, Integer> entry : templateCountSum.entrySet()) {
-                if (entry.getValue() == maxTotalCount) {
-                    topTemplates.add(entry.getKey());
+                int value = entry.getValue();
+                if (value > maxValue) {
+                    maxKey = entry.getKey();
+                    maxValue = value;
+                } else if (value == maxValue) {
+                    // 동일한 값이 존재하면 nonMaxWtCountSum 에서 비교
+                    int nonMaxValue1 = nonMaxWtCountSum.getOrDefault(maxKey, 0);
+                    int nonMaxValue2 = nonMaxWtCountSum.getOrDefault(entry.getKey(), 0);
+                    if (nonMaxValue2 > nonMaxValue1) {
+                        maxKey = entry.getKey();
+                        maxValue = value;
+                    }
                 }
             }
 
+            log.info("Max Key: {}, Max Value: {}", maxKey, maxValue);
+
             // 최종적으로 합계가 가장 높은 Template 찾기
-            if (topTemplates.isEmpty()) {
+            if (maxKey.isEmpty()) {
                 finalTopTemplate = "미분류";
                 finalCountry = "미분류";
                 finalLanguage = "미분류";
                 finalMaxTotalCount = 0;
                 log.info("No valid template found. Setting default value.");
             } else {
-                finalTopTemplate = topTemplates.get(0);
-                finalMaxTotalCount = maxTotalCount;
-
-                // 최종 결과로 가져온 Template의 Country와 Language를 가져오기
-                for (Map<String, Object> res : filteredResult) { // 수정된 부분
-                    if (finalTopTemplate.equals(res.get("Template Name"))) {
-                        finalCountry = (String) res.get("Country");
-                        finalLanguage = String.join(", ", (List<String>) res.get("Language"));
-                        break;
-                    }
-                }
-
-                // 최종 템플릿에서 count가 1 이상인 항목의 WT 합계를 구하기
-                for (Map<String, Object> res : filteredResult) {
-                    if (finalTopTemplate.equals(res.get("Template Name"))) {
-                        int count = (int) res.get("Count");
-                        if (count > 0) {
-                            totalWtSum += (double) res.get("WT");
-                        }
-                    }
-                }
+                String[] parts = maxKey.split("\\|");
+                finalCountry = parts[0];
+                finalLanguage = parts[1];
+                finalTopTemplate = parts[2];
+                finalMaxTotalCount = maxValue;
+                totalWtSum = matchWtSum.get(maxKey);
             }
         } else {
             finalTopTemplate = "미분류";
@@ -654,7 +798,6 @@ public class DocumentService {
 
         log.info("Document classification results: Country({}), Language Code({}), Document Type({}))", finalCountry, finalLanguage, finalTopTemplate);
     }
-
 
     // 이전 코드 cd1, cd2, cd3
 //    public void classifyDocuments1(Map<String, List<List<String[]>>> jsonData, String jsonLocale, String jsonDescription) {
@@ -1168,7 +1311,10 @@ public class DocumentService {
                             resultMap.put("KR", kr);
                             resultMap.put("Count", count);
 
-                            filteredResult.add(resultMap);
+                            // 중복 확인
+                            if (!filteredResult.contains(resultMap)) {
+                                filteredResult.add(resultMap);
+                            }
                         }
                     }
                 }
@@ -1192,7 +1338,6 @@ public class DocumentService {
         }
 
         // 일치 단어 중 가중치 ~(config로 설정) 이상인 단어 count에 상관 없이 1회만 합계 구하기
-
         List<String> countryType = new ArrayList<>();
         countryType.add("국가");
 
@@ -1276,7 +1421,10 @@ public class DocumentService {
                             resultMap.put("KR", kr);
                             resultMap.put("Count", count);
 
-                            filteredResult.add(resultMap);
+                            // 중복 확인
+                            if (!filteredResult.contains(resultMap)) {
+                                filteredResult.add(resultMap);
+                            }
                         }
                     }
                 }
@@ -1386,7 +1534,10 @@ public class DocumentService {
                     resultMap.put("KR", kr);
                     resultMap.put("Count", count);
 
-                    filteredResult.add(resultMap);
+                    // 중복 확인
+                    if (!filteredResult.contains(resultMap)) {
+                        filteredResult.add(resultMap);
+                    }
                 }
             }
         }
