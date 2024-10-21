@@ -210,7 +210,7 @@ public class JsonService {
     //json을 통해서 2차 매칭 (y축 기준으로 그룹화)[경우의 수를 통한 그룹화]
     //CD3 전용
     public static List<Map<String, Object>> findMatchingWords(List<Map<String, Object>> words) {
-        words = sortAnnotations(words);
+//        words = sortAnnotations(words);
         List<Map<String, Object>> results = new ArrayList<>();
         jsonCollection2 = new ArrayList<>();
         int a = 0;
@@ -785,6 +785,7 @@ public class JsonService {
                 return Integer.compare(heightDiffA, heightDiffB);
             });
         }
+//        log.info("확인  : {}",jsonCollection2);
 
         // Step 4: Flatten the groups back into a single list
         return groups.stream()
