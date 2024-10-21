@@ -42,6 +42,9 @@ public class ConfigLoader {
 
     public boolean markingCheck;
 
+    public boolean cdBUsageFlag;
+    public double cdBAllowableWeight;
+
     private String configFilePath = "Config.xml";
     //jar파일 만들 때 상대경로 config 파일 빼놓기 위한 경로
 
@@ -186,6 +189,20 @@ public class ConfigLoader {
             } else {
                 log.error("The markingCheck tag does not exist in Config.xml. Application will terminate.");
                 throw new RuntimeException("Missing required configuration: markingCheck");
+            }
+
+            if (root.getElementsByTagName("cdBUsageFlag").getLength() > 0) {
+                cdBUsageFlag = Boolean.parseBoolean(root.getElementsByTagName("cdBUsageFlag").item(0).getTextContent().trim());
+            } else {
+                log.error("The cdBUsageFlag tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: cdBUsageFlag");
+            }
+
+            if (root.getElementsByTagName("cdBAllowableWeight").getLength() > 0) {
+                cdBAllowableWeight = Double.parseDouble(root.getElementsByTagName("cdBAllowableWeight").item(0).getTextContent().trim());
+            } else {
+                log.error("The cdBAllowableWeight tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: cdBAllowableWeight");
             }
 
         } catch (Exception e) {

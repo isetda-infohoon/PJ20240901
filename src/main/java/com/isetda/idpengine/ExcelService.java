@@ -307,7 +307,7 @@ public class ExcelService {
         workbook.close();
     }
 
-    public void createExcel2(List<List<String>> resultList, List<Map<String, Object>> filteredResult, String fileName, String saveFilePath, int a) throws IOException {
+    public void createExcel2(List<List<String>> resultList, List<Map<String, Object>> filteredResult, String fileName, String saveFilePath, String a) throws IOException {
         File file = new File(saveFilePath);
         Workbook workbook;
         Sheet sheet;
@@ -441,7 +441,7 @@ public class ExcelService {
 
         try (FileOutputStream fileOut = new FileOutputStream(saveFilePath)) {
             workbook.write(fileOut);
-            log.info("엑셀 파일 생성 완료: {} ", saveFilePath);
+            log.info("Excel file creation completed: {} ", saveFilePath);
         }
         workbook.close();
     }

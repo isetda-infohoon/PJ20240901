@@ -82,18 +82,25 @@ public class DocumentService {
 //                allWords.append(item.get("description"));
 //            }
 
-            classifyDocuments1(jsonData, jsonService.jsonLocal, allWords);
-            postProcessing(1);
-            classifyDocuments2(jsonData, jsonService.jsonLocal, jsonService.jsonCollection);
-            postProcessing(2);
+            classifyDocuments1(jsonData, allWords);
+            postProcessing("A1");
+            classifyDocuments2(jsonData, jsonService.jsonCollection);
+            postProcessing("A2");
             JsonService.sortAnnotations(jsonService.jsonCollection);
             JsonService.findMatchingWords(jsonService.jsonCollection);
-            classifyDocuments3(jsonData,jsonService.jsonLocal,JsonService.jsonCollection2);
-            postProcessing(3);
-//            JsonService.sortAnnotations2(jsonService.jsonCollection);
-//            JsonService.findMatchingWords(jsonService.jsonCollection);
-//            classifyDocuments4(jsonData,jsonService.jsonLocal,JsonService.jsonCollection2);
-//            postProcessing(4);
+            classifyDocuments3(jsonData, JsonService.jsonCollection2);
+            postProcessing("A3");
+
+            if (configLoader.cdBUsageFlag) {
+                classifyDocuments_B1(jsonData, allWords);
+                postProcessing("B1");
+                classifyDocuments_B2(jsonData, jsonService.jsonCollection);
+                postProcessing("B2");
+                JsonService.sortAnnotations(jsonService.jsonCollection);
+                JsonService.findMatchingWords(jsonService.jsonCollection);
+                classifyDocuments_B3(jsonData, JsonService.jsonCollection2);
+                postProcessing("B3");
+            }
 
 
 //            classifyDocuments4(jsonData,jsonService.jsonLocal,JsonService.jsonCollection2);
@@ -149,7 +156,7 @@ public class DocumentService {
 //        }
 //    }
 
-    public void postProcessing(int a) throws Exception {
+    public void postProcessing(String a) throws Exception {
 //        log.info("문서 타입 55 :{}",docType);
 //        log.info("문서 타입 54 :{}",documentType);
 //        log.info("문서 타입 56 :{}",resultList);
@@ -157,7 +164,7 @@ public class DocumentService {
         excelService.configLoader = configLoader;
 
         if(configLoader.markingCheck){
-            imgService.processMarking(matchjsonWord, configLoader.resultFilePath,imgFileName,a,docType);
+            imgService.processMarking(matchjsonWord, configLoader.resultFilePath, imgFileName, a, docType);
         }
         log.info("matchjsonWord : {}",matchjsonWord);
 
@@ -170,7 +177,7 @@ public class DocumentService {
     }
 
     // 합쳐진 추출 단어(description)로 일치 단어 비교
-    public void classifyDocuments1(Map<String, List<Map<String, Object>>> jsonData, String jsonLocale, String jsonDescription) {
+    public void classifyDocuments1(Map<String, List<Map<String, Object>>> jsonData, String jsonDescription) {
         filteredResult = new ArrayList<>();
         resultList = new ArrayList<>();
 
@@ -242,20 +249,12 @@ public class DocumentService {
 
         // Country, Template 별로 최상위 WT의 count 합계를 찾기
         Map<String, Integer> templateCountSum = new HashMap<>();
-        Map<String, Map<String, List<String>>> templateInfo = new HashMap<>();
         for (Map<String, Object> res : filteredResult) {
             String templateName = (String) res.get("Template Name");
             int count = (int) res.get("Count");
 
             templateCountSum.put(templateName, templateCountSum.getOrDefault(templateName, 0) + count);
-
-            Map<String, List<String>> languageMap = new HashMap<>();
-            languageMap.put("Country", List.of((String) res.get("Country"))); // Country를 리스트로 변환
-            languageMap.put("Language", (List<String>) res.get("Language"));
-
-            templateInfo.put(templateName, languageMap);
         }
-
 
         if (!templateCountSum.isEmpty()) {
             // 합계가 가장 높은 Template들 찾기
@@ -267,39 +266,27 @@ public class DocumentService {
                 }
             }
 
-            // 합계가 같은 Template들이 여러 개 있는 경우, 앞에서 찾은 WT 값이 높은 항목들을 제외하고 count가 1 이상인 항목들의 합계 비교
-            Map<String, Integer> filteredTemplateCountSum = new HashMap<>();
-            for (String templateName : topTemplates) {
-                for (Map<String, Object> res : filteredResult) {
-                    if (templateName.equals(res.get("Template Name"))) {
-                        int count = (int) res.get("Count");
-                        double weight = (double) res.get("WT");
-                        if (count > 0 && weight != (double) filteredResult.get(0).get("WT")) {
-                            filteredTemplateCountSum.put(templateName, filteredTemplateCountSum.getOrDefault(templateName, 0) + count);
-                        }
-                    }
-                }
-            }
-
             // 최종적으로 합계가 가장 높은 Template 찾기
-            if (filteredTemplateCountSum.isEmpty()) {
-                // filteredTemplateCountSum이 비어 있는 경우 처리
+            if (topTemplates.isEmpty()) {
                 finalTopTemplate = "미분류";
                 finalCountry = "미분류";
                 finalLanguage = "미분류";
                 finalMaxTotalCount = 0;
-                System.out.println("No valid template found. Setting default value.");
+                log.info("No valid template found. Setting default value.");
             } else {
-                finalTopTemplate = Collections.max(filteredTemplateCountSum.entrySet(), Map.Entry.comparingByValue()).getKey();
-                finalMaxTotalCount = filteredTemplateCountSum.get(finalTopTemplate);
+                finalTopTemplate = topTemplates.get(0);
+                finalMaxTotalCount = maxTotalCount;
 
                 // 최종 결과로 가져온 Template의 Country와 Language를 가져오기
-                finalCountry = templateInfo.get(finalTopTemplate).get("Country").get(0);
-                finalLanguage = String.join(", ", templateInfo.get(finalTopTemplate).get("Language"));
-
+                for (Map<String, Object> res : filteredResult) { // 수정된 부분
+                    if (finalTopTemplate.equals(res.get("Template Name"))) {
+                        finalCountry = (String) res.get("Country");
+                        finalLanguage = String.join(", ", (List<String>) res.get("Language"));
+                        break;
+                    }
+                }
 
                 // 최종 템플릿에서 count가 1 이상인 항목의 WT 합계를 구하기
-
                 for (Map<String, Object> res : filteredResult) {
                     if (finalTopTemplate.equals(res.get("Template Name"))) {
                         int count = (int) res.get("Count");
@@ -335,7 +322,7 @@ public class DocumentService {
         log.info("Document classification results: Country({}), Language Code({}), Document Type({}))", finalCountry, finalLanguage, finalTopTemplate);
     }
 
-    public void classifyDocuments2(Map<String, List<Map<String, Object>>> jsonData, String jsonLocale, List<Map<String, Object>> items) {
+    public void classifyDocuments2(Map<String, List<Map<String, Object>>> jsonData, List<Map<String, Object>> items) {
 
         //정다혀 추가
         Map<String, List<Map<String, Object>>> formMatchedWords = new HashMap<>();
@@ -420,17 +407,11 @@ public class DocumentService {
 
         // Country, Template 별로 최상위 WT의 count 합계를 찾기
         Map<String, Integer> templateCountSum = new HashMap<>();
-        Map<String, Map<String, List<String>>> templateInfo = new HashMap<>();
         for (Map<String, Object> res : filteredResult) {
             String templateName = (String) res.get("Template Name");
             int count = (int) res.get("Count");
+
             templateCountSum.put(templateName, templateCountSum.getOrDefault(templateName, 0) + count);
-
-            Map<String, List<String>> languageMap = new HashMap<>();
-            languageMap.put("Country", List.of((String) res.get("Country"))); // Country를 리스트로 변환
-            languageMap.put("Language", (List<String>) res.get("Language"));
-
-            templateInfo.put(templateName, languageMap);
         }
 
         if (!templateCountSum.isEmpty()) {
@@ -443,35 +424,25 @@ public class DocumentService {
                 }
             }
 
-            // 합계가 같은 Template들이 여러 개 있는 경우, 앞에서 찾은 WT 값이 높은 항목들을 제외하고 count가 1 이상인 항목들의 합계 비교
-            Map<String, Integer> filteredTemplateCountSum = new HashMap<>();
-            for (String templateName : topTemplates) {
-                for (Map<String, Object> res : filteredResult) {
-                    if (templateName.equals(res.get("Template Name"))) {
-                        int count = (int) res.get("Count");
-                        double weight = (double) res.get("WT");
-                        if (count > 0 && weight != (double) filteredResult.get(0).get("WT")) {
-                            filteredTemplateCountSum.put(templateName, filteredTemplateCountSum.getOrDefault(templateName, 0) + count);
-                        }
-                    }
-                }
-            }
-
             // 최종적으로 합계가 가장 높은 Template 찾기
-            if (filteredTemplateCountSum.isEmpty()) {
-                // filteredTemplateCountSum이 비어 있는 경우 처리
+            if (topTemplates.isEmpty()) {
                 finalTopTemplate = "미분류";
                 finalCountry = "미분류";
                 finalLanguage = "미분류";
                 finalMaxTotalCount = 0;
                 log.info("No valid template found. Setting default value.");
             } else {
-                finalTopTemplate = Collections.max(filteredTemplateCountSum.entrySet(), Map.Entry.comparingByValue()).getKey();
-                finalMaxTotalCount = filteredTemplateCountSum.get(finalTopTemplate);
+                finalTopTemplate = topTemplates.get(0);
+                finalMaxTotalCount = maxTotalCount;
 
                 // 최종 결과로 가져온 Template의 Country와 Language를 가져오기
-                finalCountry = templateInfo.get(finalTopTemplate).get("Country").get(0);
-                finalLanguage = String.join(", ", templateInfo.get(finalTopTemplate).get("Language"));
+                for (Map<String, Object> res : filteredResult) { // 수정된 부분
+                    if (finalTopTemplate.equals(res.get("Template Name"))) {
+                        finalCountry = (String) res.get("Country");
+                        finalLanguage = String.join(", ", (List<String>) res.get("Language"));
+                        break;
+                    }
+                }
 
                 // 최종 템플릿에서 count가 1 이상인 항목의 WT 합계를 구하기
                 for (Map<String, Object> res : filteredResult) {
@@ -525,7 +496,7 @@ public class DocumentService {
     }
 
     //정다현 추가 내용
-    public void classifyDocuments3(Map<String, List<Map<String, Object>>> jsonData, String jsonLocale, List<Map<String, Object>> items) {
+    public void classifyDocuments3(Map<String, List<Map<String, Object>>> jsonData, List<Map<String, Object>> items) {
         //정다혀 추가
         Map<String, List<Map<String, Object>>> formMatchedWords = new HashMap<>();
 
@@ -603,18 +574,11 @@ public class DocumentService {
 
         // Country, Template 별로 최상위 WT의 count 합계를 찾기
         Map<String, Integer> templateCountSum = new HashMap<>();
-        Map<String, Map<String, List<String>>> templateInfo = new HashMap<>();
         for (Map<String, Object> res : filteredResult) {
             String templateName = (String) res.get("Template Name");
             int count = (int) res.get("Count");
+
             templateCountSum.put(templateName, templateCountSum.getOrDefault(templateName, 0) + count);
-
-            Map<String, List<String>> languageMap = new HashMap<>();
-            languageMap.put("Country", List.of((String) res.get("Country"))); // Country를 리스트로 변환
-            languageMap.put("Language", (List<String>) res.get("Language"));
-
-            templateInfo.put(templateName, languageMap);
-
         }
 
         if (!templateCountSum.isEmpty()) {
@@ -627,217 +591,27 @@ public class DocumentService {
                 }
             }
 
-            // 합계가 같은 Template들이 여러 개 있는 경우, 앞에서 찾은 WT 값이 높은 항목들을 제외하고 count가 1 이상인 항목들의 합계 비교
-            Map<String, Integer> filteredTemplateCountSum = new HashMap<>();
-            for (String templateName : topTemplates) {
-                for (Map<String, Object> res : filteredResult) {
-                    if (templateName.equals(res.get("Template Name"))) {
-                        int count = (int) res.get("Count");
-                        double weight = (double) res.get("WT");
-                        if (count > 0 && weight != (double) filteredResult.get(0).get("WT")) {
-                            filteredTemplateCountSum.put(templateName, filteredTemplateCountSum.getOrDefault(templateName, 0) + count);
-                        }
-                    }
-                }
-            }
-
             // 최종적으로 합계가 가장 높은 Template 찾기
-            if (filteredTemplateCountSum.isEmpty()) {
-                // filteredTemplateCountSum이 비어 있는 경우 처리
+            if (topTemplates.isEmpty()) {
                 finalTopTemplate = "미분류";
                 finalCountry = "미분류";
                 finalLanguage = "미분류";
                 finalMaxTotalCount = 0;
-                System.out.println("No valid template found. Setting default value.");
+                log.info("No valid template found. Setting default value.");
             } else {
-                // 최종적으로 합계가 가장 높은 Template 찾기
-                finalTopTemplate = Collections.max(filteredTemplateCountSum.entrySet(), Map.Entry.comparingByValue()).getKey();
-                finalMaxTotalCount = filteredTemplateCountSum.get(finalTopTemplate);
+                finalTopTemplate = topTemplates.get(0);
+                finalMaxTotalCount = maxTotalCount;
 
                 // 최종 결과로 가져온 Template의 Country와 Language를 가져오기
-                finalCountry = templateInfo.get(finalTopTemplate).get("Country").get(0);
-                finalLanguage = String.join(", ", templateInfo.get(finalTopTemplate).get("Language"));
-
-                // 최종 템플릿에서 count가 1 이상인 항목의 WT 합계를 구하기
-
-                for (Map<String, Object> res : filteredResult) {
+                for (Map<String, Object> res : filteredResult) { // 수정된 부분
                     if (finalTopTemplate.equals(res.get("Template Name"))) {
-                        int count = (int) res.get("Count");
-                        if (count > 0) {
-                            totalWtSum += (double) res.get("WT");
-                        }
+                        finalCountry = (String) res.get("Country");
+                        finalLanguage = String.join(", ", (List<String>) res.get("Language"));
+                        break;
                     }
                 }
-            }
-        } else {
-            finalTopTemplate = "미분류";
-            finalCountry = "미분류";
-            finalLanguage = "미분류";
-            log.info("templateCountSum is null or empty");
-        }
-
-        // WT 합계가 0.5 이하인 경우 Country 값을 "미분류"로 저장
-        if (totalWtSum <= 0.5) {
-            finalTopTemplate = "미분류";
-            finalCountry = "미분류";
-            finalLanguage = "미분류";
-        }
-
-        if (finalTopTemplate.equals("미분류")) {
-            matchjsonWord = new ArrayList<>();
-        } else {
-            matchjsonWord = formMatchedWords.getOrDefault(finalTopTemplate, new ArrayList<>());
-        }
-
-        log.debug("가장 일치 단어 개수가 많은 양식: '{}'", finalTopTemplate);
-        log.debug("일치하는 단어와 좌표: {}", matchjsonWord);
-
-        countryType.add(finalCountry);
-        languageCode.add(finalLanguage);
-        documentType.add(finalTopTemplate);
-
-        resultList.add(countryType);
-        resultList.add(languageCode);
-        resultList.add(documentType);
-
-        log.info("Document classification results: Country({}), Language Code({}), Document Type({}))", finalCountry, finalLanguage, finalTopTemplate);
-    }
-
-    public void classifyDocuments4(Map<String, List<Map<String, Object>>> jsonData, String jsonLocale, List<Map<String, Object>> items) {
-        //정다혀 추가
-        Map<String, List<Map<String, Object>>> formMatchedWords = new HashMap<>();
-
-        filteredResult = new ArrayList<>();
-        resultList = new ArrayList<>();
-
-        String finalTopTemplate;
-        int finalMaxTotalCount;
-
-        String finalCountry = "";
-        String finalLanguage = "";
-        double totalWtSum = 0;
-
-        for (Map.Entry<String, List<Map<String, Object>>> countryEntry : jsonData.entrySet()) {
-            String countryName = countryEntry.getKey();
-            List<Map<String, Object>> formList = countryEntry.getValue();
-
-            for (Map<String, Object> formMap : formList) {
-                String formName = (String) formMap.get("Template Name");
-                List<String> languages = (List<String>) formMap.get("Language");
-
-                // H-RULE
-                List<Map<String, Object>> hRules = (List<Map<String, Object>>) formMap.get("H-RULE");
-                for (Map<String, Object> hRule : hRules) {
-                    String word = (String) hRule.get("WD");
-                    double weight = (double) hRule.get("WT");
-                    String kr = (String) hRule.get("KR");
-                    int count = 0;
-
-                    // items를 순회하며 description과 일치하는 word의 개수를 카운트
-                    for (Map<String, Object> item : items) {
-                        String description = (String) item.get("description");
-                        if (description.equals(word)) {
-                            count++;
-                            formMatchedWords.computeIfAbsent(formName, k -> new ArrayList<>()).add(item);
-                        }
-                    }
-
-                    Map<String, Object> resultMap = new HashMap<>();
-                    resultMap.put("Country", countryName);
-                    resultMap.put("Template Name", formName);
-                    resultMap.put("Language", languages);
-                    resultMap.put("WD", word);
-                    resultMap.put("WT", weight);
-                    resultMap.put("KR", kr);
-                    resultMap.put("Count", count);
-
-                    filteredResult.add(resultMap);
-                }
-            }
-        }
-
-        // Country, Template 으로 정렬
-        filteredResult.sort(Comparator.comparing((Map<String, Object> r) -> (String) r.get("Country"))
-                .thenComparing(r -> (String) r.get("Template Name")));
-
-        // Count가 높은 순서로 정렬
-        filteredResult.sort(Comparator.comparing((Map<String, Object> r) -> (int) r.get("Count")).reversed());
-
-        // WT가 높은 순서로 정렬
-        filteredResult.sort(Comparator.comparing((Map<String, Object> r) -> (double) r.get("WT")).reversed());
-
-        // 결과 출력
-        for (Map<String, Object> res : filteredResult) {
-            log.info("Sort Result : Country({}), Language Code({}), Template Name({}), Word({}), Weight({}), KR({}), Count({})",
-                    res.get("Country"), res.get("Language"), res.get("Template Name"), res.get("WD"), res.get("WT"), res.get("KR"), res.get("Count"));
-        }
-
-        List<String> countryType = new ArrayList<>();
-        countryType.add("국가");
-        List<String> languageCode = new ArrayList<>();
-        languageCode.add("언어");
-        List<String> documentType = new ArrayList<>();
-        documentType.add("문서 양식");
-
-        // Country, Template 별로 최상위 WT의 count 합계를 찾기
-        Map<String, Integer> templateCountSum = new HashMap<>();
-        Map<String, Map<String, List<String>>> templateInfo = new HashMap<>();
-        for (Map<String, Object> res : filteredResult) {
-            String templateName = (String) res.get("Template Name");
-            int count = (int) res.get("Count");
-            templateCountSum.put(templateName, templateCountSum.getOrDefault(templateName, 0) + count);
-
-            Map<String, List<String>> languageMap = new HashMap<>();
-            languageMap.put("Country", List.of((String) res.get("Country"))); // Country를 리스트로 변환
-            languageMap.put("Language", (List<String>) res.get("Language"));
-
-            templateInfo.put(templateName, languageMap);
-
-        }
-
-        if (!templateCountSum.isEmpty()) {
-            // 합계가 가장 높은 Template들 찾기
-            int maxTotalCount = Collections.max(templateCountSum.values());
-            List<String> topTemplates = new ArrayList<>();
-            for (Map.Entry<String, Integer> entry : templateCountSum.entrySet()) {
-                if (entry.getValue() == maxTotalCount) {
-                    topTemplates.add(entry.getKey());
-                }
-            }
-
-            // 합계가 같은 Template들이 여러 개 있는 경우, 앞에서 찾은 WT 값이 높은 항목들을 제외하고 count가 1 이상인 항목들의 합계 비교
-            Map<String, Integer> filteredTemplateCountSum = new HashMap<>();
-            for (String templateName : topTemplates) {
-                for (Map<String, Object> res : filteredResult) {
-                    if (templateName.equals(res.get("Template Name"))) {
-                        int count = (int) res.get("Count");
-                        double weight = (double) res.get("WT");
-                        if (count > 0 && weight != (double) filteredResult.get(0).get("WT")) {
-                            filteredTemplateCountSum.put(templateName, filteredTemplateCountSum.getOrDefault(templateName, 0) + count);
-                        }
-                    }
-                }
-            }
-
-            // 최종적으로 합계가 가장 높은 Template 찾기
-            if (filteredTemplateCountSum.isEmpty()) {
-                // filteredTemplateCountSum이 비어 있는 경우 처리
-                finalTopTemplate = "미분류";
-                finalCountry = "미분류";
-                finalLanguage = "미분류";
-                finalMaxTotalCount = 0;
-                System.out.println("No valid template found. Setting default value.");
-            } else {
-                // 최종적으로 합계가 가장 높은 Template 찾기
-                finalTopTemplate = Collections.max(filteredTemplateCountSum.entrySet(), Map.Entry.comparingByValue()).getKey();
-                finalMaxTotalCount = filteredTemplateCountSum.get(finalTopTemplate);
-
-                // 최종 결과로 가져온 Template의 Country와 Language를 가져오기
-                finalCountry = templateInfo.get(finalTopTemplate).get("Country").get(0);
-                finalLanguage = String.join(", ", templateInfo.get(finalTopTemplate).get("Language"));
 
                 // 최종 템플릿에서 count가 1 이상인 항목의 WT 합계를 구하기
-
                 for (Map<String, Object> res : filteredResult) {
                     if (finalTopTemplate.equals(res.get("Template Name"))) {
                         int count = (int) res.get("Count");
@@ -893,7 +667,7 @@ public class DocumentService {
 //
 //        resultList = new ArrayList<>();
 //        resultWord = new ArrayList<>();
-//        // TODO
+//
 //        resultWeightOneWord = new ArrayList<>();
 //        //List<String> matchedCountries = new ArrayList<>();
 //
@@ -930,7 +704,6 @@ public class DocumentService {
 //                        cnt = countOccurrences(jsonDescription, value);
 //                        matchingValues.add(value + "(" + cnt + ")");
 //
-//                        // TODO : cd2, cd3 내용 추가
 //                        if (configLoader.weightCountFlag) {
 //                            if (weight == 1.0) {
 //                                weightOneValues.add(value + "(" + cnt + ")");
@@ -1359,4 +1132,344 @@ public class DocumentService {
 ////            log.debug("filteredMatchJsonWord2 : {}", filteredMatchJsonWord2);
 //
 //    }
+
+    public void classifyDocuments_B1(Map<String, List<Map<String, Object>>> jsonData, String jsonDescription) {
+        filteredResult = new ArrayList<>();
+        resultList = new ArrayList<>();
+
+        String finalTopTemplate = "미분류";
+        String finalCountry = "미분류";
+        String finalLanguage = "미분류";
+
+        for (Map.Entry<String, List<Map<String, Object>>> countryEntry : jsonData.entrySet()) {
+            String countryName = countryEntry.getKey();
+            List<Map<String, Object>> formList = countryEntry.getValue();
+
+            for (Map<String, Object> formMap : formList) {
+                String formName = (String) formMap.get("Template Name");
+                List<String> languages = (List<String>) formMap.get("Language");
+
+                // H-RULE
+                List<Map<String, Object>> hRules = (List<Map<String, Object>>) formMap.get("H-RULE");
+                if (hRules != null) {
+                    for (Map<String, Object> hRule : hRules) {
+                        String word = (String) hRule.get("WD");
+                        Double weight = (Double) hRule.get("WT");
+                        String kr = (String) hRule.get("KR");
+                        if (word != null && weight != null) {
+                            int count = countOccurrences(jsonDescription, word);
+
+                            Map<String, Object> resultMap = new HashMap<>();
+                            resultMap.put("Country", countryName);
+                            resultMap.put("Template Name", formName);
+                            resultMap.put("Language", languages);
+                            resultMap.put("WD", word);
+                            resultMap.put("WT", weight);
+                            resultMap.put("KR", kr);
+                            resultMap.put("Count", count);
+
+                            filteredResult.add(resultMap);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Country, Template 으로 정렬
+        filteredResult.sort(Comparator.comparing((Map<String, Object> r) -> (String) r.get("Country"))
+                .thenComparing(r -> (String) r.get("Template Name")));
+
+        // Count가 높은 순서로 정렬
+        filteredResult.sort(Comparator.comparing((Map<String, Object> r) -> (int) r.get("Count")).reversed());
+
+        // WT가 높은 순서로 정렬
+        filteredResult.sort(Comparator.comparing((Map<String, Object> r) -> (double) r.get("WT")).reversed());
+
+        // 결과 출력
+        for (Map<String, Object> res : filteredResult) {
+            log.info("Sort Result : Country({}), Language Code({}), Template Name({}), Word({}), Weight({}), KR({}), Count({})",
+                    res.get("Country"), res.get("Language"), res.get("Template Name"), res.get("WD"), res.get("WT"), res.get("KR"), res.get("Count"));
+        }
+
+        // 일치 단어 중 가중치 ~(config로 설정) 이상인 단어 count에 상관 없이 1회만 합계 구하기
+
+        List<String> countryType = new ArrayList<>();
+        countryType.add("국가");
+
+        List<String> languageCode = new ArrayList<>();
+        languageCode.add("언어");
+
+        List<String> documentType = new ArrayList<>();
+        documentType.add("문서 양식");
+
+        Map<String, Double> weightSum = sumFilteredWeights();
+
+        double maxTotalWeight = 0;
+
+        for (Map.Entry<String, Double> entry : weightSum.entrySet()) {
+            if (entry.getValue() > maxTotalWeight) {
+                maxTotalWeight = entry.getValue();
+                String[] parts = entry.getKey().split("\\|");
+                finalCountry = parts[0];
+                finalTopTemplate = parts[1];
+                finalLanguage = parts[2];
+            }
+        }
+
+        countryType.add(finalCountry);
+        languageCode.add(finalLanguage);
+        documentType.add(finalTopTemplate);
+
+        resultList.add(countryType);
+        resultList.add(languageCode);
+        resultList.add(documentType);
+
+        //log.info("Final template with highest adjusted WT sum count: {}, Count: {}", finalTopTemplate, finalMaxTotalCount);
+        log.info("Document classification results (B1 version): Country({}), Language Code({}), Document Type({}), maxTotalWeight({}))", finalCountry, finalLanguage, finalTopTemplate, maxTotalWeight);
+    }
+
+    public void classifyDocuments_B2(Map<String, List<Map<String, Object>>> jsonData, List<Map<String, Object>> items) {
+
+        //정다혀 추가
+        Map<String, List<Map<String, Object>>> formMatchedWords = new HashMap<>();
+
+        filteredResult = new ArrayList<>();
+        resultList = new ArrayList<>();
+
+        String finalTopTemplate = "미분류";
+        String finalCountry = "미분류";
+        String finalLanguage = "미분류";
+
+        for (Map.Entry<String, List<Map<String, Object>>> countryEntry : jsonData.entrySet()) {
+            String countryName = countryEntry.getKey();
+            List<Map<String, Object>> formList = countryEntry.getValue();
+
+            for (Map<String, Object> formMap : formList) {
+                String formName = (String) formMap.get("Template Name");
+                List<String> languages = (List<String>) formMap.get("Language");
+
+                // H-RULE
+                List<Map<String, Object>> hRules = (List<Map<String, Object>>) formMap.get("H-RULE");
+                if (hRules != null) {
+                    for (Map<String, Object> hRule : hRules) {
+                        String word = (String) hRule.get("WD");
+                        Double weight = (Double) hRule.get("WT");
+                        String kr = (String) hRule.get("KR");
+                        if (word != null && weight != null) {
+                            int count = 0;
+
+                            // items를 순회하며 description과 일치하는 word의 개수를 카운트
+                            for (Map<String, Object> item : items) {
+                                String description = (String) item.get("description");
+                                if (description != null && description.equals(word)) {
+                                    count++;
+                                    formMatchedWords.computeIfAbsent(formName, k -> new ArrayList<>()).add(item);
+                                }
+                            }
+
+                            Map<String, Object> resultMap = new HashMap<>();
+                            resultMap.put("Country", countryName);
+                            resultMap.put("Template Name", formName);
+                            resultMap.put("Language", languages);
+                            resultMap.put("WD", word);
+                            resultMap.put("WT", weight);
+                            resultMap.put("KR", kr);
+                            resultMap.put("Count", count);
+
+                            filteredResult.add(resultMap);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Country, Template 으로 정렬
+        filteredResult.sort(Comparator.comparing((Map<String, Object> r) -> (String) r.get("Country"))
+                .thenComparing(r -> (String) r.get("Template Name")));
+
+        // Count가 높은 순서로 정렬
+        filteredResult.sort(Comparator.comparing((Map<String, Object> r) -> (int) r.get("Count")).reversed());
+
+        // WT가 높은 순서로 정렬
+        filteredResult.sort(Comparator.comparing((Map<String, Object> r) -> (double) r.get("WT")).reversed());
+
+        // 결과 출력
+//        for (Map<String, Object> res : filteredResult) {
+//            log.info("Sort Result : Country({}), Language Code({}), Template Name({}), Word({}), Weight({}), KR({}), Count({})",
+//                    res.get("Country"), res.get("Language"), res.get("Template Name"), res.get("WD"), res.get("WT"), res.get("KR"), res.get("Count"));
+//        }
+
+        List<String> countryType = new ArrayList<>();
+        countryType.add("국가");
+
+        List<String> languageCode = new ArrayList<>();
+        languageCode.add("언어");
+
+        List<String> documentType = new ArrayList<>();
+        documentType.add("문서 양식");
+
+        Map<String, Double> weightSum = sumFilteredWeights();
+
+        double maxTotalWeight = 0;
+
+        for (Map.Entry<String, Double> entry : weightSum.entrySet()) {
+            if (entry.getValue() > maxTotalWeight) {
+                maxTotalWeight = entry.getValue();
+                String[] parts = entry.getKey().split("\\|");
+                finalCountry = parts[0];
+                finalTopTemplate = parts[1];
+                finalLanguage = parts[2];
+            }
+        }
+
+        if (finalTopTemplate.equals("미분류")) {
+            matchjsonWord = new ArrayList<>();
+        } else {
+            matchjsonWord = formMatchedWords.getOrDefault(finalTopTemplate, new ArrayList<>());
+        }
+
+        countryType.add(finalCountry);
+        languageCode.add(finalLanguage);
+        documentType.add(finalTopTemplate);
+
+        resultList.add(countryType);
+        resultList.add(languageCode);
+        resultList.add(documentType);
+
+        //log.info("Final template with highest adjusted WT sum count: {}, Count: {}", finalTopTemplate, finalMaxTotalCount);
+        log.info("Document classification results (B2 version): Country({}), Language Code({}), Document Type({}), maxTotalWeight({}))", finalCountry, finalLanguage, finalTopTemplate, maxTotalWeight);
+    }
+
+    //정다현 추가 내용
+    public void classifyDocuments_B3(Map<String, List<Map<String, Object>>> jsonData, List<Map<String, Object>> items) {
+        //정다혀 추가
+        Map<String, List<Map<String, Object>>> formMatchedWords = new HashMap<>();
+
+        filteredResult = new ArrayList<>();
+        resultList = new ArrayList<>();
+
+        String finalTopTemplate = "미분류";
+        String finalCountry = "미분류";
+        String finalLanguage = "미분류";
+
+        for (Map.Entry<String, List<Map<String, Object>>> countryEntry : jsonData.entrySet()) {
+            String countryName = countryEntry.getKey();
+            List<Map<String, Object>> formList = countryEntry.getValue();
+
+            for (Map<String, Object> formMap : formList) {
+                String formName = (String) formMap.get("Template Name");
+                List<String> languages = (List<String>) formMap.get("Language");
+
+                // H-RULE
+                List<Map<String, Object>> hRules = (List<Map<String, Object>>) formMap.get("H-RULE");
+                for (Map<String, Object> hRule : hRules) {
+                    String word = (String) hRule.get("WD");
+                    double weight = (double) hRule.get("WT");
+                    String kr = (String) hRule.get("KR");
+                    int count = 0;
+
+                    // items를 순회하며 description과 일치하는 word의 개수를 카운트
+                    for (Map<String, Object> item : items) {
+                        String description = (String) item.get("description");
+                        if (description.equals(word)) {
+                            count++;
+                            formMatchedWords.computeIfAbsent(formName, k -> new ArrayList<>()).add(item);
+                        }
+                    }
+
+                    Map<String, Object> resultMap = new HashMap<>();
+                    resultMap.put("Country", countryName);
+                    resultMap.put("Template Name", formName);
+                    resultMap.put("Language", languages);
+                    resultMap.put("WD", word);
+                    resultMap.put("WT", weight);
+                    resultMap.put("KR", kr);
+                    resultMap.put("Count", count);
+
+                    filteredResult.add(resultMap);
+                }
+            }
+        }
+
+        // Country, Template 으로 정렬
+        filteredResult.sort(Comparator.comparing((Map<String, Object> r) -> (String) r.get("Country"))
+                .thenComparing(r -> (String) r.get("Template Name")));
+
+        // Count가 높은 순서로 정렬
+        filteredResult.sort(Comparator.comparing((Map<String, Object> r) -> (int) r.get("Count")).reversed());
+
+        // WT가 높은 순서로 정렬
+        filteredResult.sort(Comparator.comparing((Map<String, Object> r) -> (double) r.get("WT")).reversed());
+
+        // 결과 출력
+//        for (Map<String, Object> res : filteredResult) {
+//            log.info("Sort Result : Country({}), Language Code({}), Template Name({}), Word({}), Weight({}), KR({}), Count({})",
+//                    res.get("Country"), res.get("Language"), res.get("Template Name"), res.get("WD"), res.get("WT"), res.get("KR"), res.get("Count"));
+//        }
+
+        List<String> countryType = new ArrayList<>();
+        countryType.add("국가");
+        List<String> languageCode = new ArrayList<>();
+        languageCode.add("언어");
+        List<String> documentType = new ArrayList<>();
+        documentType.add("문서 양식");
+
+        Map<String, Double> weightSum = sumFilteredWeights();
+
+        double maxTotalWeight = 0;
+
+        for (Map.Entry<String, Double> entry : weightSum.entrySet()) {
+            if (entry.getValue() > maxTotalWeight) {
+                maxTotalWeight = entry.getValue();
+                String[] parts = entry.getKey().split("\\|");
+                finalCountry = parts[0];
+                finalTopTemplate = parts[1];
+                finalLanguage = parts[2];
+            }
+        }
+
+        if (finalTopTemplate.equals("미분류")) {
+            matchjsonWord = new ArrayList<>();
+        } else {
+            matchjsonWord = formMatchedWords.getOrDefault(finalTopTemplate, new ArrayList<>());
+        }
+
+        log.debug("가장 일치 단어 개수가 많은 양식: '{}'", finalTopTemplate);
+        log.debug("일치하는 단어와 좌표: {}", matchjsonWord);
+
+        countryType.add(finalCountry);
+        languageCode.add(finalLanguage);
+        documentType.add(finalTopTemplate);
+
+        resultList.add(countryType);
+        resultList.add(languageCode);
+        resultList.add(documentType);
+
+        log.info("Document classification results (B3 version): Country({}), Language Code({}), Document Type({}), maxTotalWeight({}))", finalCountry, finalLanguage, finalTopTemplate,maxTotalWeight);
+    }
+
+    public Map<String, Double> sumFilteredWeights() {
+        Map<String, Double> templateWeightSum = new HashMap<>();
+        double allowableWeight = configLoader.cdBAllowableWeight;
+
+        for (Map<String, Object> resultMap : filteredResult) {
+            String country = (String) resultMap.get("Country");
+            String templateName = (String) resultMap.get("Template Name");
+            List<String> languages = (List<String>) resultMap.get("Language");
+            int count = (int) resultMap.get("Count");
+            double weight = (double) resultMap.get("WT");
+
+            if (count >= 1 && weight >= allowableWeight) {
+                String key = country + "|" + templateName + "|" + String.join(",", languages);
+                templateWeightSum.put(key, templateWeightSum.getOrDefault(key, 0.0) + weight);
+            }
+        }
+
+        // 결과 출력 (선택 사항)
+        for (Map.Entry<String, Double> entry : templateWeightSum.entrySet()) {
+            log.info("Key: " + entry.getKey() + ", Total WT: " + entry.getValue());
+        }
+
+        return templateWeightSum;
+    }
 }
