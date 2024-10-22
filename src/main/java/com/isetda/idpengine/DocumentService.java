@@ -352,7 +352,7 @@ public class DocumentService {
             log.info("Max Key: {}, Max Value: {}", maxKey, maxValue);
 
             // 최종적으로 합계가 가장 높은 Template 찾기
-            if (maxKey.isEmpty()) {
+            if (maxKey == null || maxKey.isEmpty()) {
                 finalTopTemplate = "미분류";
                 finalCountry = "미분류";
                 finalLanguage = "미분류";
@@ -364,7 +364,7 @@ public class DocumentService {
                 finalLanguage = parts[1];
                 finalTopTemplate = parts[2];
                 finalMaxTotalCount = maxValue;
-                totalWtSum = matchWtSum.get(maxKey);
+                totalWtSum = matchWtSum.getOrDefault(maxKey, 0.0);
             }
         } else {
             finalTopTemplate = "미분류";
@@ -492,6 +492,7 @@ public class DocumentService {
                 globalMaxWt = weight;
             }
         }
+        log.info("max weight: {}", globalMaxWt);
 
         // 최대 WT에 대해서 조합별로 count를 계산
         for (Map<String, Object> res : filteredResult) {
@@ -547,7 +548,7 @@ public class DocumentService {
             log.info("Max Key: {}, Max Value: {}", maxKey, maxValue);
 
             // 최종적으로 합계가 가장 높은 Template 찾기
-            if (maxKey.isEmpty()) {
+            if (maxKey == null || maxKey.isEmpty()) {
                 finalTopTemplate = "미분류";
                 finalCountry = "미분류";
                 finalLanguage = "미분류";
@@ -559,7 +560,7 @@ public class DocumentService {
                 finalLanguage = parts[1];
                 finalTopTemplate = parts[2];
                 finalMaxTotalCount = maxValue;
-                totalWtSum = matchWtSum.get(maxKey);
+                totalWtSum = matchWtSum.getOrDefault(maxKey, 0.0);
             }
         } else {
             finalTopTemplate = "미분류";
@@ -688,7 +689,7 @@ public class DocumentService {
         Map<String, Integer> nonMaxWtCountSum = new HashMap<>();
         Map<String, Double> matchWtSum = new HashMap<>();
 
-// 최대 WT를 찾기
+        // 최대 WT를 찾기
         double globalMaxWt = Double.MIN_VALUE;
         for (Map<String, Object> res : filteredResult) {
             double weight = (double) res.get("WT");
@@ -751,7 +752,7 @@ public class DocumentService {
             log.info("Max Key: {}, Max Value: {}", maxKey, maxValue);
 
             // 최종적으로 합계가 가장 높은 Template 찾기
-            if (maxKey.isEmpty()) {
+            if (maxKey == null || maxKey.isEmpty()) {
                 finalTopTemplate = "미분류";
                 finalCountry = "미분류";
                 finalLanguage = "미분류";
@@ -763,7 +764,7 @@ public class DocumentService {
                 finalLanguage = parts[1];
                 finalTopTemplate = parts[2];
                 finalMaxTotalCount = maxValue;
-                totalWtSum = matchWtSum.get(maxKey);
+                totalWtSum = matchWtSum.getOrDefault(maxKey, 0.0);
             }
         } else {
             finalTopTemplate = "미분류";
@@ -1347,18 +1348,31 @@ public class DocumentService {
         List<String> documentType = new ArrayList<>();
         documentType.add("문서 양식");
 
-        Map<String, Double> weightSum = sumFilteredWeights();
+        Map<String, Double> weightSum;
+        try {
+            weightSum = sumFilteredWeights();
+        } catch (Exception e) {
+            log.error("Error in sumFilteredWeights: ", e);
+            weightSum = new HashMap<>();
+        }
 
         double maxTotalWeight = 0;
 
-        for (Map.Entry<String, Double> entry : weightSum.entrySet()) {
-            if (entry.getValue() > maxTotalWeight) {
-                maxTotalWeight = entry.getValue();
-                String[] parts = entry.getKey().split("\\|");
-                finalCountry = parts[0];
-                finalTopTemplate = parts[1];
-                finalLanguage = parts[2];
+        try {
+            for (Map.Entry<String, Double> entry : weightSum.entrySet()) {
+                if (entry.getValue() > maxTotalWeight) {
+                    maxTotalWeight = entry.getValue();
+                    String[] parts = entry.getKey().split("\\|");
+                    finalCountry = parts[0];
+                    finalTopTemplate = parts[1];
+                    finalLanguage = parts[2];
+                }
             }
+        } catch (Exception e) {
+            log.error("Error processing weightSum entries: ", e);
+            finalCountry = "미분류";
+            finalTopTemplate = "미분류";
+            finalLanguage = "미분류";
         }
 
         countryType.add(finalCountry);
@@ -1456,18 +1470,31 @@ public class DocumentService {
         List<String> documentType = new ArrayList<>();
         documentType.add("문서 양식");
 
-        Map<String, Double> weightSum = sumFilteredWeights();
+        Map<String, Double> weightSum;
+        try {
+            weightSum = sumFilteredWeights();
+        } catch (Exception e) {
+            log.error("Error in sumFilteredWeights: ", e);
+            weightSum = new HashMap<>();
+        }
 
         double maxTotalWeight = 0;
 
-        for (Map.Entry<String, Double> entry : weightSum.entrySet()) {
-            if (entry.getValue() > maxTotalWeight) {
-                maxTotalWeight = entry.getValue();
-                String[] parts = entry.getKey().split("\\|");
-                finalCountry = parts[0];
-                finalTopTemplate = parts[1];
-                finalLanguage = parts[2];
+        try {
+            for (Map.Entry<String, Double> entry : weightSum.entrySet()) {
+                if (entry.getValue() > maxTotalWeight) {
+                    maxTotalWeight = entry.getValue();
+                    String[] parts = entry.getKey().split("\\|");
+                    finalCountry = parts[0];
+                    finalTopTemplate = parts[1];
+                    finalLanguage = parts[2];
+                }
             }
+        } catch (Exception e) {
+            log.error("Error processing weightSum entries: ", e);
+            finalCountry = "미분류";
+            finalTopTemplate = "미분류";
+            finalLanguage = "미분류";
         }
 
         if (finalTopTemplate.equals("미분류")) {
@@ -1565,18 +1592,31 @@ public class DocumentService {
         List<String> documentType = new ArrayList<>();
         documentType.add("문서 양식");
 
-        Map<String, Double> weightSum = sumFilteredWeights();
+        Map<String, Double> weightSum;
+        try {
+            weightSum = sumFilteredWeights();
+        } catch (Exception e) {
+            log.error("Error in sumFilteredWeights: ", e);
+            weightSum = new HashMap<>();
+        }
 
         double maxTotalWeight = 0;
 
-        for (Map.Entry<String, Double> entry : weightSum.entrySet()) {
-            if (entry.getValue() > maxTotalWeight) {
-                maxTotalWeight = entry.getValue();
-                String[] parts = entry.getKey().split("\\|");
-                finalCountry = parts[0];
-                finalTopTemplate = parts[1];
-                finalLanguage = parts[2];
+        try {
+            for (Map.Entry<String, Double> entry : weightSum.entrySet()) {
+                if (entry.getValue() > maxTotalWeight) {
+                    maxTotalWeight = entry.getValue();
+                    String[] parts = entry.getKey().split("\\|");
+                    finalCountry = parts[0];
+                    finalTopTemplate = parts[1];
+                    finalLanguage = parts[2];
+                }
             }
+        } catch (Exception e) {
+            log.error("Error processing weightSum entries: ", e);
+            finalCountry = "미분류";
+            finalTopTemplate = "미분류";
+            finalLanguage = "미분류";
         }
 
         if (finalTopTemplate.equals("미분류")) {
