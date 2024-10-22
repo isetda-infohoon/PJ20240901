@@ -13,6 +13,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class IDPEngineController {
@@ -210,7 +212,7 @@ public class IDPEngineController {
         taskThread.setDaemon(true);
         taskThread.start();
 //        btn1files.setText("filse in source folder : " +IOService.allFilesInSourceFolder.size()); // 파일 개수를 UI에 표시
-
+        //ExcelService.dataWriteExcel(documentService.jsonData);
     }
 
 //        JsonService.processMarking(folderPath, jsonFolderPath);
@@ -289,4 +291,36 @@ public class IDPEngineController {
         documentService.createFinalResultFile();
 //        imgService.processMarking(documentService.matchjsonWord, configLoader.resultFilePath,);
     }
+
+//    public void getDataset() {
+//        Thread taskThread = new Thread(() -> {
+//            byte[] jsonToByte = null;
+//            try {
+//                jsonToByte = Files.readAllBytes(Paths.get(configLoader.jsonFilePath));
+//            } catch (IOException e) {
+//                throw new RuntimeException(e);
+//            }
+//            try {
+//                documentService.jsonData = JsonService.getJsonDictionary2(JsonService.aesDecode(jsonToByte));
+//            } catch (Exception e) {
+//                throw new RuntimeException(e);
+//            }
+//            //errorLabel.setText("all success");
+//            //btn2files.setText("json files in result folder : "+documentService.jsonFiles.length);
+////            // 모든 파일이 처리된 후 최종 50%로 고정
+////            Platform.runLater(() -> {
+////                btn2.setDisable(false);
+////
+////            });
+//        });
+//
+//        // 백그라운드 스레드 시작
+//        taskThread.setDaemon(true);
+//        taskThread.start();
+//
+//        excelService.configLoader = configLoader;
+//        documentService.configLoader = configLoader;
+//
+//        documentService.dataWriteExcel();
+//    }
 }
