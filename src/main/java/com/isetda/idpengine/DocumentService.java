@@ -2,11 +2,18 @@ package com.isetda.idpengine;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.*;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class DocumentService {
     private static final Logger log = LogManager.getLogger(DocumentService.class);
@@ -28,6 +35,7 @@ public class DocumentService {
     public String fileName;
     public List<String> documentType = new ArrayList<>();
     String saveFilePath;
+    String datasetSavePath;
 
     //정다현 추가
      public String imgFileName;
@@ -68,6 +76,7 @@ public class DocumentService {
 
             fileName = curFile.getName().substring(0, curFile.getName().lastIndexOf("."));
             saveFilePath = configLoader.resultFilePath + "\\" + fileName + ".xlsx";
+            datasetSavePath = configLoader.resultFilePath + "\\" + fileName + "filtered_result2.xlsx";
 
             imgFileName = fileName.replace("_result","");
 
@@ -101,6 +110,20 @@ public class DocumentService {
                 classifyDocuments_B3(jsonData, JsonService.jsonCollection2);
                 postProcessing("B3");
             }
+
+            classifyDocuments_C1(jsonData, allWords);
+            postProcessing("C1");
+            classifyDocuments_C2(jsonData, jsonService.jsonCollection);
+            postProcessing("C2");
+            JsonService.sortAnnotations(jsonService.jsonCollection);
+            JsonService.findMatchingWords(jsonService.jsonCollection);
+            classifyDocuments_C3(jsonData, JsonService.jsonCollection2);
+            postProcessing("C3");
+
+
+            // dataset 엑셀 작성
+//            datasetSorting(jsonData, allWords);
+//            excelService.dataWriteExcel2(filteredResult);
 
 
 //            classifyDocuments4(jsonData,jsonService.jsonLocal,JsonService.jsonCollection2);
@@ -1625,7 +1648,7 @@ public class DocumentService {
             matchjsonWord = formMatchedWords.getOrDefault(finalTopTemplate, new ArrayList<>());
         }
 
-        log.debug("가장 일치 단어 개수가 많은 양식: '{}'", finalTopTemplate);
+        log.debug("결과 양식: '{}'", finalTopTemplate);
         log.debug("일치하는 단어와 좌표: {}", matchjsonWord);
 
         countryType.add(finalCountry);
@@ -1663,4 +1686,403 @@ public class DocumentService {
 
         return templateWeightSum;
     }
+
+//    public void datasetSorting(Map<String, List<Map<String, Object>>> jsonData, String jsonDescription) {
+//        filteredResult = new ArrayList<>();
+//        resultList = new ArrayList<>();
+//
+//        for (Map.Entry<String, List<Map<String, Object>>> countryEntry : jsonData.entrySet()) {
+//            String countryName = countryEntry.getKey();
+//            List<Map<String, Object>> formList = countryEntry.getValue();
+//
+//            for (Map<String, Object> formMap : formList) {
+//                String formName = (String) formMap.get("Template Name");
+//                List<String> languages = (List<String>) formMap.get("Language");
+//
+//                // H-RULE
+//                List<Map<String, Object>> hRules = (List<Map<String, Object>>) formMap.get("H-RULE");
+//                if (hRules != null) {
+//                    for (Map<String, Object> hRule : hRules) {
+//                        String word = (String) hRule.get("WD");
+//                        Double weight = (Double) hRule.get("WT");
+//                        String kr = (String) hRule.get("KR");
+//                        if (word != null && weight != null) {
+//                            int count = countOccurrences(jsonDescription, word);
+//
+//                            Map<String, Object> resultMap = new HashMap<>();
+//                            resultMap.put("Country", countryName);
+//                            resultMap.put("Template Name", formName);
+//                            resultMap.put("Language", languages);
+//                            resultMap.put("WD", word);
+//                            resultMap.put("WT", weight);
+//                            resultMap.put("KR", kr);
+//                            resultMap.put("Count", count);
+//
+//                            // 중복 확인
+//                            if (!filteredResult.contains(resultMap)) {
+//                                filteredResult.add(resultMap);
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//
+//        // Country, Template, Language로 정렬
+//        filteredResult.sort(Comparator.comparing((Map<String, Object> r) -> (String) r.get("Country"))
+//                .thenComparing(r -> (String) r.get("Template Name"))
+//                .thenComparing(r -> String.join(",", (List<String>) r.get("Language"))));
+//
+//        // WT가 높은 순서로 정렬
+//        filteredResult.sort(Comparator.comparing((Map<String, Object> r) -> (double) r.get("WT")).reversed());
+//
+//        // Count가 높은 순서로 정렬
+//        filteredResult.sort(Comparator.comparing((Map<String, Object> r) -> (int) r.get("Count")).reversed());
+//
+//        // 결과 출력
+//        for (Map<String, Object> res : filteredResult) {
+//            log.info("Sort Result : Country({}), Language Code({}), Template Name({}), Word({}), Weight({}), KR({}), Count({})",
+//                    res.get("Country"), res.get("Language"), res.get("Template Name"), res.get("WD"), res.get("WT"), res.get("KR"), res.get("Count"));
+//        }
+//    }
+
+    public void classifyDocuments_C1(Map<String, List<Map<String, Object>>> jsonData, String jsonDescription) {
+        filteredResult = new ArrayList<>();
+        resultList = new ArrayList<>();
+
+        for (Map.Entry<String, List<Map<String, Object>>> countryEntry : jsonData.entrySet()) {
+            String countryName = countryEntry.getKey();
+            List<Map<String, Object>> formList = countryEntry.getValue();
+
+            for (Map<String, Object> formMap : formList) {
+                String formName = (String) formMap.get("Template Name");
+                List<String> languages = (List<String>) formMap.get("Language");
+
+                // H-RULE
+                List<Map<String, Object>> hRules = (List<Map<String, Object>>) formMap.get("H-RULE");
+                if (hRules != null) {
+                    for (Map<String, Object> hRule : hRules) {
+                        String word = (String) hRule.get("WD");
+                        Double weight = (Double) hRule.get("WT");
+                        String kr = (String) hRule.get("KR");
+                        if (word != null && weight != null) {
+                            int count = countOccurrences(jsonDescription, word);
+
+                            Map<String, Object> resultMap = new HashMap<>();
+                            resultMap.put("Country", countryName);
+                            resultMap.put("Template Name", formName);
+                            resultMap.put("Language", languages);
+                            resultMap.put("WD", word);
+                            resultMap.put("WT", weight);
+                            resultMap.put("KR", kr);
+                            resultMap.put("Count", count);
+
+                            // 중복 확인
+                            if (!filteredResult.contains(resultMap)) {
+                                filteredResult.add(resultMap);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        filterAndGroupResults();
+    }
+
+    public void classifyDocuments_C2(Map<String, List<Map<String, Object>>> jsonData, List<Map<String, Object>> items) {
+        //정다혀 추가
+        Map<String, List<Map<String, Object>>> formMatchedWords = new HashMap<>();
+
+        filteredResult = new ArrayList<>();
+        resultList = new ArrayList<>();
+
+        for (Map.Entry<String, List<Map<String, Object>>> countryEntry : jsonData.entrySet()) {
+            String countryName = countryEntry.getKey();
+            List<Map<String, Object>> formList = countryEntry.getValue();
+
+            for (Map<String, Object> formMap : formList) {
+                String formName = (String) formMap.get("Template Name");
+                List<String> languages = (List<String>) formMap.get("Language");
+
+                // H-RULE
+                List<Map<String, Object>> hRules = (List<Map<String, Object>>) formMap.get("H-RULE");
+                if (hRules != null) {
+                    for (Map<String, Object> hRule : hRules) {
+                        String word = (String) hRule.get("WD");
+                        Double weight = (Double) hRule.get("WT");
+                        String kr = (String) hRule.get("KR");
+                        if (word != null && weight != null) {
+                            int count = 0;
+
+                            // items를 순회하며 description과 일치하는 word의 개수를 카운트
+                            for (Map<String, Object> item : items) {
+                                String description = (String) item.get("description");
+                                if (description != null && description.equals(word)) {
+                                    count++;
+                                    formMatchedWords.computeIfAbsent(formName, k -> new ArrayList<>()).add(item);
+                                }
+                            }
+
+                            Map<String, Object> resultMap = new HashMap<>();
+                            resultMap.put("Country", countryName);
+                            resultMap.put("Template Name", formName);
+                            resultMap.put("Language", languages);
+                            resultMap.put("WD", word);
+                            resultMap.put("WT", weight);
+                            resultMap.put("KR", kr);
+                            resultMap.put("Count", count);
+
+                            // 중복 확인
+                            if (!filteredResult.contains(resultMap)) {
+                                filteredResult.add(resultMap);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        filterAndGroupResults();
+    }
+
+    //정다현 추가 내용
+    public void classifyDocuments_C3(Map<String, List<Map<String, Object>>> jsonData, List<Map<String, Object>> items) {
+        //정다혀 추가
+        Map<String, List<Map<String, Object>>> formMatchedWords = new HashMap<>();
+
+        filteredResult = new ArrayList<>();
+        resultList = new ArrayList<>();
+
+        String finalTemplate = "미분류";
+        String finalCountry = "미분류";
+        String finalLanguage = "미분류";
+
+        for (Map.Entry<String, List<Map<String, Object>>> countryEntry : jsonData.entrySet()) {
+            String countryName = countryEntry.getKey();
+            List<Map<String, Object>> formList = countryEntry.getValue();
+
+            for (Map<String, Object> formMap : formList) {
+                String formName = (String) formMap.get("Template Name");
+                List<String> languages = (List<String>) formMap.get("Language");
+
+                // H-RULE
+                List<Map<String, Object>> hRules = (List<Map<String, Object>>) formMap.get("H-RULE");
+                for (Map<String, Object> hRule : hRules) {
+                    String word = (String) hRule.get("WD");
+                    double weight = (double) hRule.get("WT");
+                    String kr = (String) hRule.get("KR");
+                    int count = 0;
+
+                    // items를 순회하며 description과 일치하는 word의 개수를 카운트
+                    for (Map<String, Object> item : items) {
+                        String description = (String) item.get("description");
+                        if (description.equals(word)) {
+                            count++;
+                            formMatchedWords.computeIfAbsent(formName, k -> new ArrayList<>()).add(item);
+                        }
+                    }
+
+                    Map<String, Object> resultMap = new HashMap<>();
+                    resultMap.put("Country", countryName);
+                    resultMap.put("Template Name", formName);
+                    resultMap.put("Language", languages);
+                    resultMap.put("WD", word);
+                    resultMap.put("WT", weight);
+                    resultMap.put("KR", kr);
+                    resultMap.put("Count", count);
+
+                    // 중복 확인
+                    if (!filteredResult.contains(resultMap)) {
+                        filteredResult.add(resultMap);
+                    }
+                }
+            }
+        }
+
+        List<String> countryType = new ArrayList<>();
+        countryType.add("국가");
+        List<String> languageCode = new ArrayList<>();
+        languageCode.add("언어");
+        List<String> documentType = new ArrayList<>();
+        documentType.add("문서 양식");
+
+        // 조건에 맞는 항목 필터링
+        List<Map<String, Object>> filtered = filteredResult.stream()
+                .filter(r -> (int) r.get("Count") >= 1 && (double) r.get("WT") >= 0.5)
+                .collect(Collectors.toList());
+
+        // 그룹핑 및 카운트
+        Map<String, Long> grouped = filtered.stream()
+                .collect(Collectors.groupingBy(
+                        r -> r.get("Country") + "|" + r.get("Template Name") + "|" + String.join(",", (List<String>) r.get("Language")),
+                        Collectors.counting()
+                ));
+
+        // 그룹핑 결과를 새 리스트로 저장
+        List<Map<String, Object>> groupedResult = new ArrayList<>();
+        for (Map.Entry<String, Long> entry : grouped.entrySet()) {
+            String[] keys = entry.getKey().split("\\|");
+            String country = keys[0];
+            String templateName = keys[1];
+            List<String> languages = Arrays.asList(keys[2].split(","));
+
+            // 해당 그룹의 모든 항목을 필터링하여 저장
+            List<Map<String, Object>> groupItems = filtered.stream()
+                    .filter(r -> r.get("Country").equals(country)
+                            && r.get("Template Name").equals(templateName)
+                            && String.join(",", (List<String>) r.get("Language")).equals(String.join(",", languages)))
+                    .collect(Collectors.toList());
+
+            for (Map<String, Object> item : groupItems) {
+                Map<String, Object> resultMap = new HashMap<>(item);
+                resultMap.put("Count", entry.getValue());
+                groupedResult.add(resultMap);
+            }
+        }
+
+        // 그룹핑 결과를 로그로 출력
+        for (Map<String, Object> res : groupedResult) {
+            log.info("Grouped Result - Country: {}, Template Name: {}, Language: {}, WD: {}, WT: {}, KR: {}, Count: {}",
+                    res.get("Country"), res.get("Template Name"), res.get("Language"), res.get("WD"), res.get("WT"), res.get("KR"), res.get("Count"));
+        }
+
+        //excelService.dataWriteExcel3(groupedResult, datasetSavePath);
+
+        // 카운트가 가장 높은 그룹 찾기
+        try {
+            Map.Entry<String, Long> maxEntry = grouped.entrySet().stream()
+                    .max(Map.Entry.comparingByValue())
+                    .orElseThrow(() -> new NoSuchElementException("No max element found"));
+
+            // maxEntry 결과를 로그로 출력
+            log.info("Filtering And Grouping Result Max Entry: Key{}, Count{}", maxEntry.getKey(), maxEntry.getValue());
+
+            // 결과 저장
+            String[] resultKeys = maxEntry.getKey().split("\\|");
+            finalCountry = resultKeys[0];
+            finalTemplate = resultKeys[1];
+            finalLanguage = resultKeys[2];
+            //finalLanguage = String.valueOf(Arrays.asList(resultKeys[2].split(",")));
+        } catch (NoSuchElementException e) {
+            finalCountry = "미분류";
+            finalLanguage = "미분류";
+            finalTemplate = "미분류";
+            log.info("No max element found - Classified as unclassified : {}", e);
+        }
+
+        if (finalTemplate.equals("미분류")) {
+            matchjsonWord = new ArrayList<>();
+        } else {
+            matchjsonWord = formMatchedWords.getOrDefault(finalTemplate, new ArrayList<>());
+        }
+
+        countryType.add(finalCountry);
+        languageCode.add(finalLanguage);
+        documentType.add(finalTemplate);
+
+        resultList.add(countryType);
+        resultList.add(languageCode);
+        resultList.add(documentType);
+
+        log.info("Document classification results (C version): Country({}), Language Code({}), Document Type({}), maxTotalWeight({}))", finalCountry, finalLanguage, finalTemplate);
+    }
+
+    public List<List<String>> filterAndGroupResults() {
+        List<String> countryType = new ArrayList<>();
+        countryType.add("국가");
+        List<String> languageCode = new ArrayList<>();
+        languageCode.add("언어");
+        List<String> documentType = new ArrayList<>();
+        documentType.add("문서 양식");
+
+        String finalCountry = "미분류";
+        String finalLanguage = "미분류";
+        String finalTemplate = "미분류";
+
+        // 조건에 맞는 항목 필터링
+        List<Map<String, Object>> filtered = filteredResult.stream()
+                .filter(r -> (int) r.get("Count") >= 1 && (double) r.get("WT") >= configLoader.cdBAllowableWeight)
+                .collect(Collectors.toList());
+
+        // 그룹핑 및 카운트
+        Map<String, Long> grouped = filtered.stream()
+                .collect(Collectors.groupingBy(
+                        r -> r.get("Country") + "|" + r.get("Template Name") + "|" + String.join(",", (List<String>) r.get("Language")),
+                        Collectors.counting()
+                ));
+
+        // 그룹핑 결과를 새 리스트로 저장
+        List<Map<String, Object>> groupedResult = new ArrayList<>();
+        for (Map.Entry<String, Long> entry : grouped.entrySet()) {
+            String[] keys = entry.getKey().split("\\|");
+            String country = keys[0];
+            String templateName = keys[1];
+            List<String> languages = Arrays.asList(keys[2].split(","));
+
+            // 해당 그룹의 모든 항목을 필터링하여 저장
+            List<Map<String, Object>> groupItems = filtered.stream()
+                    .filter(r -> r.get("Country").equals(country)
+                            && r.get("Template Name").equals(templateName)
+                            && String.join(",", (List<String>) r.get("Language")).equals(String.join(",", languages)))
+                    .collect(Collectors.toList());
+
+            for (Map<String, Object> item : groupItems) {
+                Map<String, Object> resultMap = new HashMap<>(item);
+                resultMap.put("Count", entry.getValue());
+                groupedResult.add(resultMap);
+            }
+        }
+
+        // 그룹핑 결과를 로그로 출력
+        for (Map<String, Object> res : groupedResult) {
+            log.info("Grouped Result - Country: {}, Template Name: {}, Language: {}, WD: {}, WT: {}, KR: {}, Count: {}",
+                    res.get("Country"), res.get("Template Name"), res.get("Language"), res.get("WD"), res.get("WT"), res.get("KR"), res.get("Count"));
+        }
+
+        //excelService.dataWriteExcel3(groupedResult, datasetSavePath);
+
+        // 카운트가 가장 높은 그룹 찾기
+        try {
+            Map.Entry<String, Long> maxEntry = grouped.entrySet().stream()
+                    .max(Map.Entry.comparingByValue())
+                    .orElseThrow(() -> new NoSuchElementException("No max element found"));
+
+            // maxEntry 결과를 로그로 출력
+            log.info("Filtering And Grouping Result Max Entry: Key{}, Count{}", maxEntry.getKey(), maxEntry.getValue());
+
+            // 결과 저장
+            String[] resultKeys = maxEntry.getKey().split("\\|");
+            finalCountry = resultKeys[0];
+            finalTemplate = resultKeys[1];
+            finalLanguage = resultKeys[2];
+            //finalLanguage = String.valueOf(Arrays.asList(resultKeys[2].split(",")));
+        } catch (NoSuchElementException e) {
+            finalCountry = "미분류";
+            finalLanguage = "미분류";
+            finalTemplate = "미분류";
+            log.info("No max element found - Classified as unclassified : {}", e);
+        }
+
+        Map<String, List<Map<String, Object>>> formMatchedWords = new HashMap<>();
+
+        if (finalTemplate.equals("미분류")) {
+            matchjsonWord = new ArrayList<>();
+        } else {
+            matchjsonWord = formMatchedWords.getOrDefault(finalTemplate, new ArrayList<>());
+        }
+
+        countryType.add(finalCountry);
+        languageCode.add(finalLanguage);
+        documentType.add(finalTemplate);
+
+        resultList.add(countryType);
+        resultList.add(languageCode);
+        resultList.add(documentType);
+
+        log.info("Document classification results (C version): Country({}), Language Code({}), Document Type({}), maxTotalWeight({}))", finalCountry, finalLanguage, finalTemplate);
+
+        return resultList;
+    }
+
 }

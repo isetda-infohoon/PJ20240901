@@ -7,8 +7,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 import java.io.*;
 import java.util.*;
@@ -453,5 +451,161 @@ public class ExcelService {
         workbook.close();
     }
 
+
+    public static void datasetWriteExcel(Map<String, List<Map<String, Object>>> jsonData) {
+        try (Workbook workbook = new XSSFWorkbook()) {
+            for (String sheetName : jsonData.keySet()) {
+                Sheet sheet = workbook.createSheet(sheetName);
+                List<Map<String, Object>> rows = jsonData.get(sheetName);
+
+                if (!rows.isEmpty()) {
+                    // 헤더 생성
+                    Row headerRow = sheet.createRow(0);
+                    Map<String, Object> firstRow = rows.get(0);
+                    int headerCellIndex = 0;
+                    for (String key : firstRow.keySet()) {
+                        if (!key.equals("H-RULE") && !key.equals("Language")) {
+                            Cell cell = headerRow.createCell(headerCellIndex++);
+                            cell.setCellValue(key);
+                        }
+                    }
+                    // Language 헤더 추가
+                    headerRow.createCell(headerCellIndex++).setCellValue("Language");
+                    // H-RULE 헤더 추가
+                    headerRow.createCell(headerCellIndex++).setCellValue("WD");
+                    headerRow.createCell(headerCellIndex++).setCellValue("WT");
+                    headerRow.createCell(headerCellIndex++).setCellValue("KR");
+
+                    // 데이터 행 생성
+                    int rowIndex = 1;
+                    for (Map<String, Object> rowData : rows) {
+                        Row row = sheet.createRow(rowIndex++);
+                        int cellIndex = 0;
+                        for (String key : rowData.keySet()) {
+                            if (!key.equals("H-RULE") && !key.equals("Language")) {
+                                Cell cell = row.createCell(cellIndex++);
+                                Object value = rowData.get(key);
+                                if (value instanceof String) {
+                                    cell.setCellValue((String) value);
+                                } else if (value instanceof Integer) {
+                                    cell.setCellValue((Integer) value);
+                                } else if (value instanceof Double) {
+                                    cell.setCellValue((Double) value);
+                                }
+                            }
+                        }
+                        // Language 데이터 추가
+                        List<String> languageList = (List<String>) rowData.get("Language");
+                        String languages = String.join(", ", languageList);
+                        row.createCell(cellIndex++).setCellValue(languages);
+
+                        // H-RULE 데이터 추가
+                        List<Map<String, Object>> hRuleList = (List<Map<String, Object>>) rowData.get("H-RULE");
+                        for (Map<String, Object> hRule : hRuleList) {
+                            row.createCell(cellIndex++).setCellValue(hRule.get("WD").toString());
+                            row.createCell(cellIndex++).setCellValue(Double.parseDouble(hRule.get("WT").toString()));
+                            row.createCell(cellIndex++).setCellValue(hRule.get("KR").toString());
+                        }
+                    }
+                }
+            }
+
+            // 엑셀 파일 저장
+            try (FileOutputStream fileOut = new FileOutputStream("C:\\Users\\suaah\\IdeaProjects\\test\\result\\dataset.xlsx")) {
+                workbook.write(fileOut);
+            }
+
+            System.out.println("엑셀 파일이 성공적으로 생성되었습니다!");
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void datasetWriteExcel2(List<Map<String, Object>> filteredResult) {
+        // filteredResult를 엑셀 파일로 작성
+        try (Workbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet("Filtered Result");
+
+            // 헤더 생성
+            Row headerRow = sheet.createRow(0);
+            String[] headers = {"Country", "Template Name", "Language", "WD", "WT", "KR", "Count"};
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+            }
+
+            // 데이터 행 생성
+            int rowIndex = 1;
+            for (Map<String, Object> resultMap : filteredResult) {
+                Row row = sheet.createRow(rowIndex++);
+                int cellIndex = 0;
+
+                row.createCell(cellIndex++).setCellValue((String) resultMap.get("Country"));
+                row.createCell(cellIndex++).setCellValue((String) resultMap.get("Template Name"));
+                row.createCell(cellIndex++).setCellValue(String.join(", ", (List<String>) resultMap.get("Language")));
+                row.createCell(cellIndex++).setCellValue((String) resultMap.get("WD"));
+                row.createCell(cellIndex++).setCellValue((Double) resultMap.get("WT"));
+                row.createCell(cellIndex++).setCellValue((String) resultMap.get("KR"));
+                row.createCell(cellIndex++).setCellValue((Integer) resultMap.get("Count"));
+            }
+
+            // 엑셀 파일 저장
+            try (FileOutputStream fileOut = new FileOutputStream("C:\\Users\\suaah\\IdeaProjects\\test\\result\\dataset_filtered_result2.xlsx")) {
+                workbook.write(fileOut);
+            }
+
+            System.out.println("엑셀 파일이 성공적으로 생성되었습니다!");
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void datasetWriteExcel3(List<Map<String, Object>> jsonData, String filePath) {
+        try (Workbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet("Grouped Result");
+
+            // 헤더 생성
+            Row headerRow = sheet.createRow(0);
+            String[] headers = {"Country", "Template Name", "Language", "WD", "WT", "KR", "Count"};
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+            }
+
+            // 데이터 행 생성
+            int rowIndex = 1;
+            for (Map<String, Object> resultMap : jsonData) {
+                Row row = sheet.createRow(rowIndex++);
+                int cellIndex = 0;
+
+                row.createCell(cellIndex++).setCellValue((String) resultMap.get("Country"));
+                row.createCell(cellIndex++).setCellValue((String) resultMap.get("Template Name"));
+                row.createCell(cellIndex++).setCellValue(String.join(", ", (List<String>) resultMap.get("Language")));
+                row.createCell(cellIndex++).setCellValue((String) resultMap.get("WD"));
+                row.createCell(cellIndex++).setCellValue((Double) resultMap.get("WT"));
+                row.createCell(cellIndex++).setCellValue((String) resultMap.get("KR"));
+
+                // Count 필드 처리
+                Object countValue = resultMap.get("Count");
+                if (countValue instanceof Long) {
+                    row.createCell(cellIndex++).setCellValue(((Long) countValue).doubleValue());
+                } else if (countValue instanceof Integer) {
+                    row.createCell(cellIndex++).setCellValue(((Integer) countValue).doubleValue());
+                }
+            }
+
+            // 엑셀 파일 저장
+            try (FileOutputStream fileOut = new FileOutputStream(filePath)) {
+                workbook.write(fileOut);
+            }
+
+            System.out.println("엑셀 파일이 성공적으로 생성되었습니다!");
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 }
 
