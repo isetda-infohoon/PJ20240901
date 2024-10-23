@@ -326,7 +326,7 @@ public class ExcelService {
                 String key = country + "(" + String.join(",", languages) + ")" + templateName;
 
                 // 해당 키가 없다면 초기화하고, WD와 Count 값을 추가
-                templateEntries.putIfAbsent(key, new StringBuilder(templateName).append("(").append(String.join(",", languages)).append(") 일치 단어 리스트 ("));
+                templateEntries.putIfAbsent(key, new StringBuilder(templateName).append("(").append(country).append(" - ").append(String.join(",", languages)).append(") 일치 단어 리스트 ("));
                 StringBuilder sb = templateEntries.get(key);
                 sb.append(wd).append("[").append(wt).append("]").append("(").append(count).append("), ");
 
@@ -334,6 +334,7 @@ public class ExcelService {
                 keyCountMap.putIfAbsent(key, new HashMap<>());
                 Map<String, Object> keyInfo = keyCountMap.get(key);
                 keyInfo.put("Count", (int) keyInfo.getOrDefault("Count", 0) + 1);
+                keyInfo.put("Country", country);
                 keyInfo.put("Languages", languages);
                 keyInfo.put("TemplateName", templateName);
             }
@@ -380,7 +381,7 @@ public class ExcelService {
 
                             Cell cell2 = row.createCell(colNum);
                             Map<String, Object> keyInfo = keyCountMap.get(keyName);
-                            cell2.setCellValue(keyInfo.get("TemplateName") + "(" + String.join(",", (List<String>) keyInfo.get("Languages")) + ")" + " 일치 단어 전체 개수 (" + keyInfo.get("Count") + ")");
+                            cell2.setCellValue(keyInfo.get("TemplateName") + "(" + keyInfo.get("Country") + " - " + String.join(",", (List<String>) keyInfo.get("Languages")) + ")" + " 일치 단어 전체 개수 (" + keyInfo.get("Count") + ")");
                             colNum++;
                         }
                     }
@@ -432,7 +433,7 @@ public class ExcelService {
 
                             Cell cell2 = row.createCell(colNum);
                             Map<String, Object> keyInfo = keyCountMap.get(keyName);
-                            cell2.setCellValue(keyInfo.get("TemplateName") + "(" + String.join(",", (List<String>) keyInfo.get("Languages")) + ")" + " 일치 단어 전체 개수 (" + keyInfo.get("Count") + ")");
+                            cell2.setCellValue(keyInfo.get("TemplateName") + "(" + keyInfo.get("Country") + " - " + String.join(",", (List<String>) keyInfo.get("Languages")) + ")" + " 일치 단어 전체 개수 (" + keyInfo.get("Count") + ")");
                             colNum++;
                         }
                     }
