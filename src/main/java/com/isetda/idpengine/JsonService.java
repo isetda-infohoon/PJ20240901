@@ -565,23 +565,23 @@ public class JsonService {
 
         for (Map.Entry<String, List<Map<String, Object>>> countryEntry : jsonDictionary.entrySet()) {
             String countryName = countryEntry.getKey();
-            log.info("Country: " + countryName);
+            System.out.println("Country: " + countryName);
 
             List<Map<String, Object>> formList = countryEntry.getValue();
             for (Map<String, Object> formMap : formList) {
                 String formName = (String) formMap.get("Template Name");
                 List<String> languages = (List<String>) formMap.get("Language");
-                log.info("  Template Name: " + formName);
-                log.info("  Languages: " + languages);
+                System.out.println("  Template Name: " + formName);
+                System.out.println("  Languages: " + languages);
 
                 List<Map<String, Object>> hRules = (List<Map<String, Object>>) formMap.get("H-RULE");
-                log.info("    H-RULE:");
+                System.out.println("    H-RULE:");
                 for (Map<String, Object> hRule : hRules) {
                     String word = (String) hRule.get("WD");
                     double weight = (double) hRule.get("WT");
                     int pl = (int) hRule.get("PL");
                     String kr = (String) hRule.get("KR");
-                    log.debug("      WD: " + word + ", WT: " + weight + ", PL: " + pl + ", KR: " + kr);
+                    System.out.println("      WD: " + word + ", WT: " + weight + ", PL: " + pl + ", KR: " + kr);
                 }
 
 //                List<Map<String, Object>> aiRules = (List<Map<String, Object>>) formMap.get("AI-RULE");

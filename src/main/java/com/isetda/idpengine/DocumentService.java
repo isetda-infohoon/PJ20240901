@@ -2035,6 +2035,36 @@ public class DocumentService {
             log.info("No max element found - Classified as unclassified : {}", e);
         }
 
+        // 필터링된 결과에서 count가 1 이상이고 pl이 1인 항목을 찾음
+        List<Map<String, Object>> pl1Items = groupedResult.stream()
+                .filter(res -> ((Number) res.get("Count")).longValue() >= 1 && ((Number) res.get("PL")).intValue() == 1)
+                .collect(Collectors.toList());
+
+        // 필터링된 결과에서 count가 1 이상이고 pl이 2인 항목을 찾음
+        List<Map<String, Object>> pl2Items = groupedResult.stream()
+                .filter(res -> ((Number) res.get("Count")).longValue() >= 1 && ((Number) res.get("PL")).intValue() == 2)
+                .collect(Collectors.toList());
+
+        // 두 조건을 모두 만족하는 그룹을 찾음
+        Map<String, Object> matchedItem = pl1Items.stream()
+                .filter(pl1Item -> pl2Items.stream().anyMatch(pl2Item ->
+                        pl1Item.get("Country").equals(pl2Item.get("Country"))
+                                && pl1Item.get("Template Name").equals(pl2Item.get("Template Name"))
+                                && pl1Item.get("Language").equals(pl2Item.get("Language"))
+                ))
+                .findFirst()
+                .orElse(null);
+
+        if (matchedItem != null) {
+            finalCountry = (String) matchedItem.get("Country");
+            finalTemplate = (String) matchedItem.get("Template Name");
+            finalLanguage = String.join(",", (List<String>) matchedItem.get("Language"));
+            System.out.println("Match found: Country=" + finalCountry + ", Template=" + finalTemplate + ", Language=" + finalLanguage);
+            log.info("PL Match found: Country({}), Template=({}), Language({})", finalCountry, finalTemplate, finalLanguage);
+        } else {
+            log.info("No matching group found.");
+        }
+
         if (finalTemplate.equals("미분류")) {
             matchjsonWord = new ArrayList<>();
         } else {
@@ -2102,6 +2132,8 @@ public class DocumentService {
         for (Map<String, Object> res : groupedResult) {
             log.info("Grouped Result - Country: {}, Template Name: {}, Language: {}, WD: {}, WT: {}, KR: {}, Count: {}",
                     res.get("Country"), res.get("Template Name"), res.get("Language"), res.get("WD"), res.get("WT"), res.get("KR"), res.get("Count"));
+//            System.out.println("Grouped Result - Country: " + res.get("Country") + ", Template Name: " + res.get("Template Name") + ", Language: " + res.get("Language") +
+//                    ", WD: " + res.get("WD") + ", WT: " + res.get("WT") + ", PL: " + res.get("PL") + ", KR: " + res.get("KR") + ", Count: " + res.get("Count"));
         }
 
         //excelService.dataWriteExcel3(groupedResult, datasetSavePath);
@@ -2130,28 +2162,32 @@ public class DocumentService {
 
         // 필터링된 결과에서 count가 1 이상이고 pl이 1인 항목을 찾음
         List<Map<String, Object>> pl1Items = groupedResult.stream()
-                .filter(res -> res != null && res.get("Count") instanceof Integer && res.get("PL") instanceof Integer)
-                .filter(res -> (int) res.get("Count") >= 1 && (int) res.get("PL") == 1)
+                .filter(res -> ((Number) res.get("Count")).longValue() >= 1 && ((Number) res.get("PL")).intValue() == 1)
                 .collect(Collectors.toList());
 
         // 필터링된 결과에서 count가 1 이상이고 pl이 2인 항목을 찾음
         List<Map<String, Object>> pl2Items = groupedResult.stream()
-                .filter(res -> res != null && res.get("Count") instanceof Integer && res.get("PL") instanceof Integer)
-                .filter(res -> (int) res.get("Count") >= 1 && (int) res.get("PL") == 2)
+                .filter(res -> ((Number) res.get("Count")).longValue() >= 1 && ((Number) res.get("PL")).intValue() == 2)
                 .collect(Collectors.toList());
 
         // 두 조건을 모두 만족하는 그룹을 찾음
-        for (Map<String, Object> pl1Item : pl1Items) {
-            for (Map<String, Object> pl2Item : pl2Items) {
-                if (pl1Item.get("Country").equals(pl2Item.get("Country"))
-                        && pl1Item.get("Template Name").equals(pl2Item.get("Template Name"))
-                        && pl1Item.get("Language").equals(pl2Item.get("Language"))) {
-                    finalCountry = (String) pl1Item.get("Country");
-                    finalTemplate = (String) pl1Item.get("Template Name");
-                    finalLanguage = String.join(",", (List<String>) pl1Item.get("Language"));
-                    break;
-                }
-            }
+        Map<String, Object> matchedItem = pl1Items.stream()
+                .filter(pl1Item -> pl2Items.stream().anyMatch(pl2Item ->
+                        pl1Item.get("Country").equals(pl2Item.get("Country"))
+                                && pl1Item.get("Template Name").equals(pl2Item.get("Template Name"))
+                                && pl1Item.get("Language").equals(pl2Item.get("Language"))
+                ))
+                .findFirst()
+                .orElse(null);
+
+        if (matchedItem != null) {
+            finalCountry = (String) matchedItem.get("Country");
+            finalTemplate = (String) matchedItem.get("Template Name");
+            finalLanguage = String.join(",", (List<String>) matchedItem.get("Language"));
+            System.out.println("Match found: Country=" + finalCountry + ", Template=" + finalTemplate + ", Language=" + finalLanguage);
+            log.info("PL Match found: Country({}), Template=({}), Language({})", finalCountry, finalTemplate, finalLanguage);
+        } else {
+            log.info("No matching group found.");
         }
 
         Map<String, List<Map<String, Object>>> formMatchedWords = new HashMap<>();
@@ -2170,7 +2206,8 @@ public class DocumentService {
         resultList.add(languageCode);
         resultList.add(documentType);
 
-        log.info("Document classification results (C version): Country({}), Language Code({}), Document Type({}), maxTotalWeight({}))", finalCountry, finalLanguage, finalTemplate);
+        log.info("Document classification results (C version): Country({}), Language Code({}), Document Type({})", finalCountry, finalLanguage, finalTemplate);
+        //System.out.println("Document classification results (C version): Country(" + finalCountry + "), Language Code(" +  finalLanguage +"), Document Type(" + finalTemplate + "))");
 
         return resultList;
     }
