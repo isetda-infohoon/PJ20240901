@@ -527,13 +527,15 @@ public class JsonService {
                         JSONObject hrule = hrules.getJSONObject(k);
                         String word = hrule.optString("WD", ""); // 기본값 설정
                         double weight = hrule.optDouble("WT", 0.0); // 기본값 설정
+                        int pl = hrule.optInt("PL", 0);
                         String kr = hrule.optString("KR", ""); // 기본값 설정
                         Map<String, Object> ruleMap = new HashMap<>();
                         ruleMap.put("WD", word);
                         ruleMap.put("WT", weight);
+                        ruleMap.put("PL", pl);
                         ruleMap.put("KR", kr);
                         hRuleList.add(ruleMap);
-                        log.debug("WD: {}, WT: {}, KR: {}", word, weight, kr);
+                        log.debug("WD: {}, WT: {}, PL: {}, KR: {}", word, weight, pl, kr);
                     }
                     formMap.put("H-RULE", hRuleList);
 
@@ -577,8 +579,9 @@ public class JsonService {
                 for (Map<String, Object> hRule : hRules) {
                     String word = (String) hRule.get("WD");
                     double weight = (double) hRule.get("WT");
+                    int pl = (int) hRule.get("PL");
                     String kr = (String) hRule.get("KR");
-                    log.debug("      WD: " + word + ", WT: " + weight + ", KR: " + kr);
+                    log.debug("      WD: " + word + ", WT: " + weight + ", PL: " + pl + ", KR: " + kr);
                 }
 
 //                List<Map<String, Object>> aiRules = (List<Map<String, Object>>) formMap.get("AI-RULE");

@@ -1804,6 +1804,7 @@ public class DocumentService {
                     for (Map<String, Object> hRule : hRules) {
                         String word = (String) hRule.get("WD");
                         Double weight = (Double) hRule.get("WT");
+                        Integer pl = (Integer) hRule.get("PL");
                         String kr = (String) hRule.get("KR");
                         if (word != null && weight != null) {
                             int count = countOccurrences(jsonDescription, word);
@@ -1814,6 +1815,7 @@ public class DocumentService {
                             resultMap.put("Language", languages);
                             resultMap.put("WD", word);
                             resultMap.put("WT", weight);
+                            resultMap.put("PL", pl);
                             resultMap.put("KR", kr);
                             resultMap.put("Count", count);
 
@@ -1851,6 +1853,7 @@ public class DocumentService {
                     for (Map<String, Object> hRule : hRules) {
                         String word = (String) hRule.get("WD");
                         Double weight = (Double) hRule.get("WT");
+                        Integer pl = (Integer) hRule.get("PL");
                         String kr = (String) hRule.get("KR");
                         if (word != null && weight != null) {
                             int count = 0;
@@ -1879,6 +1882,7 @@ public class DocumentService {
                             resultMap.put("Language", languages);
                             resultMap.put("WD", word);
                             resultMap.put("WT", weight);
+                            resultMap.put("PL", pl);
                             resultMap.put("KR", kr);
                             resultMap.put("Count", count);
 
@@ -1920,6 +1924,7 @@ public class DocumentService {
                 for (Map<String, Object> hRule : hRules) {
                     String word = (String) hRule.get("WD");
                     double weight = (double) hRule.get("WT");
+                    Integer pl = (Integer) hRule.get("PL");
                     String kr = (String) hRule.get("KR");
                     int count = 0;
 
@@ -1947,6 +1952,7 @@ public class DocumentService {
                     resultMap.put("Language", languages);
                     resultMap.put("WD", word);
                     resultMap.put("WT", weight);
+                    resultMap.put("PL", pl);
                     resultMap.put("KR", kr);
                     resultMap.put("Count", count);
 
@@ -2120,6 +2126,32 @@ public class DocumentService {
             finalLanguage = "미분류";
             finalTemplate = "미분류";
             log.info("No max element found - Classified as unclassified : {}", e);
+        }
+
+        // 필터링된 결과에서 count가 1 이상이고 pl이 1인 항목을 찾음
+        List<Map<String, Object>> pl1Items = groupedResult.stream()
+                .filter(res -> res != null && res.get("Count") instanceof Integer && res.get("PL") instanceof Integer)
+                .filter(res -> (int) res.get("Count") >= 1 && (int) res.get("PL") == 1)
+                .collect(Collectors.toList());
+
+        // 필터링된 결과에서 count가 1 이상이고 pl이 2인 항목을 찾음
+        List<Map<String, Object>> pl2Items = groupedResult.stream()
+                .filter(res -> res != null && res.get("Count") instanceof Integer && res.get("PL") instanceof Integer)
+                .filter(res -> (int) res.get("Count") >= 1 && (int) res.get("PL") == 2)
+                .collect(Collectors.toList());
+
+        // 두 조건을 모두 만족하는 그룹을 찾음
+        for (Map<String, Object> pl1Item : pl1Items) {
+            for (Map<String, Object> pl2Item : pl2Items) {
+                if (pl1Item.get("Country").equals(pl2Item.get("Country"))
+                        && pl1Item.get("Template Name").equals(pl2Item.get("Template Name"))
+                        && pl1Item.get("Language").equals(pl2Item.get("Language"))) {
+                    finalCountry = (String) pl1Item.get("Country");
+                    finalTemplate = (String) pl1Item.get("Template Name");
+                    finalLanguage = String.join(",", (List<String>) pl1Item.get("Language"));
+                    break;
+                }
+            }
         }
 
         Map<String, List<Map<String, Object>>> formMatchedWords = new HashMap<>();
