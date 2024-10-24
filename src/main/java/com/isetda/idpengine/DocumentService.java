@@ -1909,7 +1909,7 @@ public class DocumentService {
 
         // 조건에 맞는 항목 필터링
         List<Map<String, Object>> filtered = filteredResult.stream()
-                .filter(r -> (int) r.get("Count") >= 1 && (double) r.get("WT") >= 0.5)
+                .filter(r -> (int) r.get("Count") >= 1 && (double) r.get("WT") >= configLoader.cdBAllowableWeight)
                 .collect(Collectors.toList());
 
         // 그룹핑 및 카운트
