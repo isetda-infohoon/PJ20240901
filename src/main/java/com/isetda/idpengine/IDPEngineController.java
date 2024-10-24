@@ -6,6 +6,7 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.text.Text;
+import javafx.stage.Stage;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -84,6 +85,12 @@ public class IDPEngineController {
     public ProgressBar progressBar;
 
     public void onButton1Click() throws IOException {
+        // 현재 Stage 가져오기
+        Stage stage = (Stage) btn1.getScene().getWindow();
+
+        // 버튼을 누르면 프로그램 최소화
+        stage.setIconified(true);
+
         btn1.setDisable(true);
         IOService IOService = new IOService();
         GoogleService googleService = new GoogleService();
@@ -165,6 +172,9 @@ public class IDPEngineController {
 
                 log.info("Number of image file copies: {}", imageAndPdfFiles.length);
                 btn1.setDisable(false);
+
+                // 작업이 완료되면 프로그램을 다시 최대화
+                stage.setIconified(false);
             });
         });
 
@@ -177,6 +187,12 @@ public class IDPEngineController {
     public double c;
 
     public void onButton2Click(ActionEvent event) throws Exception {
+        // 현재 Stage 가져오기
+        Stage stage = (Stage) btn2.getScene().getWindow();
+
+        // 버튼을 누르면 프로그램 최소화
+        stage.setIconified(true);
+
         Thread taskThread = new Thread(() -> {
             int a = 1;
             btn2.setDisable(true);
@@ -184,6 +200,7 @@ public class IDPEngineController {
             try {
                 jsonToByte = Files.readAllBytes(Paths.get(configLoader.jsonFilePath));
             } catch (IOException e) {
+                errorLabel.setText("all success");
                 throw new RuntimeException(e);
             }
 //        documentService.jsonData = JsonService.getJsonDictionary(JsonService.aesDecode(jsonToByte));
@@ -192,11 +209,13 @@ public class IDPEngineController {
             try {
                 documentService.jsonData = JsonService.getJsonDictionary2(JsonService.aesDecode(jsonToByte));
             } catch (Exception e) {
+                errorLabel.setText("all success");
                 throw new RuntimeException(e);
             }
             try {
                 classificationDocument();
             } catch (Exception e) {
+                errorLabel.setText("all success");
                 throw new RuntimeException(e);
             }
             errorLabel.setText("all success");
@@ -205,6 +224,8 @@ public class IDPEngineController {
             Platform.runLater(() -> {
                 btn2.setDisable(false);
 
+                // 작업이 완료되면 프로그램을 다시 최대화
+                stage.setIconified(false);
             });
         });
 
