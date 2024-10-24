@@ -44,6 +44,7 @@ public class ConfigLoader {
 
     public boolean cdBUsageFlag;
     public double cdBAllowableWeight;
+    public boolean checkCase;
 
     private String configFilePath = "Config.xml";
     //jar파일 만들 때 상대경로 config 파일 빼놓기 위한 경로
@@ -200,6 +201,13 @@ public class ConfigLoader {
 
             if (root.getElementsByTagName("cdBAllowableWeight").getLength() > 0) {
                 cdBAllowableWeight = Double.parseDouble(root.getElementsByTagName("cdBAllowableWeight").item(0).getTextContent().trim());
+            } else {
+                log.error("The cdBAllowableWeight tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: cdBAllowableWeight");
+            }
+
+            if (root.getElementsByTagName("checkCase").getLength() > 0) {
+                checkCase = Boolean.parseBoolean(root.getElementsByTagName("checkCase").item(0).getTextContent().trim());
             } else {
                 log.error("The cdBAllowableWeight tag does not exist in Config.xml. Application will terminate.");
                 throw new RuntimeException("Missing required configuration: cdBAllowableWeight");

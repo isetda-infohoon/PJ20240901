@@ -451,9 +451,18 @@ public class DocumentService {
                             // items를 순회하며 description과 일치하는 word의 개수를 카운트
                             for (Map<String, Object> item : items) {
                                 String description = (String) item.get("description");
-                                if (description != null && description.equals(word)) {
-                                    count++;
-                                    formMatchedWords.computeIfAbsent(formName, k -> new ArrayList<>()).add(item);
+
+                                // 대소문자 구별 여부에 따른 비교
+                                if (configLoader.checkCase) { // 대소문자 구별
+                                    if (description != null && description.equals(word)) {
+                                        count++;
+                                        formMatchedWords.computeIfAbsent(formName, k -> new ArrayList<>()).add(item);
+                                    }
+                                } else { // 대소문자 구별하지 않음
+                                    if (description != null && description.equalsIgnoreCase(word)) {
+                                        count++;
+                                        formMatchedWords.computeIfAbsent(formName, k -> new ArrayList<>()).add(item);
+                                    }
                                 }
                             }
 
@@ -618,9 +627,13 @@ public class DocumentService {
     }
 
     // 단어 카운트
-    public static int countOccurrences(String input, String word) {
+    public int countOccurrences(String input, String word) {
         if (word.isEmpty()) {
             return 0;
+        }
+        if (!configLoader.checkCase) {
+            input = input.toLowerCase();
+            word = word.toLowerCase();
         }
         String[] parts = input.split(Pattern.quote(word));
         return parts.length - 1;
@@ -660,9 +673,18 @@ public class DocumentService {
                     // items를 순회하며 description과 일치하는 word의 개수를 카운트
                     for (Map<String, Object> item : items) {
                         String description = (String) item.get("description");
-                        if (description.equals(word)) {
-                            count++;
-                            formMatchedWords.computeIfAbsent(formName, k -> new ArrayList<>()).add(item);
+
+                        // 대소문자 구별 여부에 따른 비교
+                        if (configLoader.checkCase) { // 대소문자 구별
+                            if (description != null && description.equals(word)) {
+                                count++;
+                                formMatchedWords.computeIfAbsent(formName, k -> new ArrayList<>()).add(item);
+                            }
+                        } else { // 대소문자 구별하지 않음
+                            if (description != null && description.equalsIgnoreCase(word)) {
+                                count++;
+                                formMatchedWords.computeIfAbsent(formName, k -> new ArrayList<>()).add(item);
+                            }
                         }
                     }
 
@@ -1443,9 +1465,18 @@ public class DocumentService {
                             // items를 순회하며 description과 일치하는 word의 개수를 카운트
                             for (Map<String, Object> item : items) {
                                 String description = (String) item.get("description");
-                                if (description != null && description.equals(word)) {
-                                    count++;
-                                    formMatchedWords.computeIfAbsent(formName, k -> new ArrayList<>()).add(item);
+
+                                // 대소문자 구별 여부에 따른 비교
+                                if (configLoader.checkCase) { // 대소문자 구별
+                                    if (description != null && description.equals(word)) {
+                                        count++;
+                                        formMatchedWords.computeIfAbsent(formName, k -> new ArrayList<>()).add(item);
+                                    }
+                                } else { // 대소문자 구별하지 않음
+                                    if (description != null && description.equalsIgnoreCase(word)) {
+                                        count++;
+                                        formMatchedWords.computeIfAbsent(formName, k -> new ArrayList<>()).add(item);
+                                    }
                                 }
                             }
 
@@ -1569,9 +1600,18 @@ public class DocumentService {
                     // items를 순회하며 description과 일치하는 word의 개수를 카운트
                     for (Map<String, Object> item : items) {
                         String description = (String) item.get("description");
-                        if (description.equals(word)) {
-                            count++;
-                            formMatchedWords.computeIfAbsent(formName, k -> new ArrayList<>()).add(item);
+
+                        // 대소문자 구별 여부에 따른 비교
+                        if (configLoader.checkCase) { // 대소문자 구별
+                            if (description != null && description.equals(word)) {
+                                count++;
+                                formMatchedWords.computeIfAbsent(formName, k -> new ArrayList<>()).add(item);
+                            }
+                        } else { // 대소문자 구별하지 않음
+                            if (description != null && description.equalsIgnoreCase(word)) {
+                                count++;
+                                formMatchedWords.computeIfAbsent(formName, k -> new ArrayList<>()).add(item);
+                            }
                         }
                     }
 
@@ -1818,9 +1858,18 @@ public class DocumentService {
                             // items를 순회하며 description과 일치하는 word의 개수를 카운트
                             for (Map<String, Object> item : items) {
                                 String description = (String) item.get("description");
-                                if (description != null && description.equals(word)) {
-                                    count++;
-                                    formMatchedWords.computeIfAbsent(formName, k -> new ArrayList<>()).add(item);
+
+                                // 대소문자 구별 여부에 따른 비교
+                                if (configLoader.checkCase) { // 대소문자 구별
+                                    if (description != null && description.equals(word)) {
+                                        count++;
+                                        formMatchedWords.computeIfAbsent(formName, k -> new ArrayList<>()).add(item);
+                                    }
+                                } else { // 대소문자 구별하지 않음
+                                    if (description != null && description.equalsIgnoreCase(word)) {
+                                        count++;
+                                        formMatchedWords.computeIfAbsent(formName, k -> new ArrayList<>()).add(item);
+                                    }
                                 }
                             }
 
@@ -1877,9 +1926,18 @@ public class DocumentService {
                     // items를 순회하며 description과 일치하는 word의 개수를 카운트
                     for (Map<String, Object> item : items) {
                         String description = (String) item.get("description");
-                        if (description.equals(word)) {
-                            count++;
-                            formMatchedWords.computeIfAbsent(formName, k -> new ArrayList<>()).add(item);
+
+                        // 대소문자 구별 여부에 따른 비교
+                        if (configLoader.checkCase) { // 대소문자 구별
+                            if (description != null && description.equals(word)) {
+                                count++;
+                                formMatchedWords.computeIfAbsent(formName, k -> new ArrayList<>()).add(item);
+                            }
+                        } else { // 대소문자 구별하지 않음
+                            if (description != null && description.equalsIgnoreCase(word)) {
+                                count++;
+                                formMatchedWords.computeIfAbsent(formName, k -> new ArrayList<>()).add(item);
+                            }
                         }
                     }
 
