@@ -4,6 +4,7 @@
     <root id="root">
       <element id="file-copy" path="$PROJECT_DIR$/Config.xml" />
       <element id="file-copy" path="$PROJECT_DIR$/RULES.json" />
+      <element id="file-copy" path="$PROJECT_DIR$/log4j2.xml" />
     </root>
   </artifact>
 </component>
