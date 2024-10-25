@@ -2,14 +2,8 @@ package com.isetda.idpengine;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.*;
 import java.util.regex.Pattern;
@@ -91,14 +85,16 @@ public class DocumentService {
 //                allWords.append(item.get("description"));
 //            }
 
-            classifyDocuments1(jsonData, allWords);
-            postProcessing("A1");
-            classifyDocuments2(jsonData, jsonService.jsonCollection);
-            postProcessing("A2");
-            JsonService.sortAnnotations(jsonService.jsonCollection);
-            JsonService.findMatchingWords(jsonService.jsonCollection);
-            classifyDocuments3(jsonData, JsonService.jsonCollection2);
-            postProcessing("A3");
+            if (configLoader.cdAUsageFlag) {
+                classifyDocuments1(jsonData, allWords);
+                postProcessing("A1");
+                classifyDocuments2(jsonData, jsonService.jsonCollection);
+                postProcessing("A2");
+                JsonService.sortAnnotations(jsonService.jsonCollection);
+                JsonService.findMatchingWords(jsonService.jsonCollection);
+                classifyDocuments3(jsonData, JsonService.jsonCollection2);
+                postProcessing("A3");
+            }
 
             if (configLoader.cdBUsageFlag) {
                 classifyDocuments_B1(jsonData, allWords);
@@ -111,14 +107,16 @@ public class DocumentService {
                 postProcessing("B3");
             }
 
-            classifyDocuments_C1(jsonData, allWords);
-            postProcessing("C1");
-            classifyDocuments_C2(jsonData, jsonService.jsonCollection);
-            postProcessing("C2");
-            JsonService.sortAnnotations(jsonService.jsonCollection);
-            JsonService.findMatchingWords(jsonService.jsonCollection);
-            classifyDocuments_C3(jsonData, JsonService.jsonCollection2);
-            postProcessing("C3");
+            if (configLoader.cdCUsageFlag) {
+                classifyDocuments_C1(jsonData, allWords);
+                postProcessing("C1");
+                classifyDocuments_C2(jsonData, jsonService.jsonCollection);
+                postProcessing("C2");
+                JsonService.sortAnnotations(jsonService.jsonCollection);
+                JsonService.findMatchingWords(jsonService.jsonCollection);
+                classifyDocuments_C3(jsonData, JsonService.jsonCollection2);
+                postProcessing("C3");
+            }
 
 
             // dataset 엑셀 작성
@@ -1704,7 +1702,7 @@ public class DocumentService {
 
     public Map<String, Double> sumFilteredWeights() {
         Map<String, Double> templateWeightSum = new HashMap<>();
-        double allowableWeight = configLoader.cdBAllowableWeight;
+        double allowableWeight = configLoader.cdAllowableWeight;
 
         for (Map<String, Object> resultMap : filteredResult) {
             String country = (String) resultMap.get("Country");
@@ -1973,7 +1971,7 @@ public class DocumentService {
 
         // 조건에 맞는 항목 필터링
         List<Map<String, Object>> filtered = filteredResult.stream()
-                .filter(r -> (int) r.get("Count") >= 1 && (double) r.get("WT") >= configLoader.cdBAllowableWeight)
+                .filter(r -> (int) r.get("Count") >= 1 && (double) r.get("WT") >= configLoader.cdAllowableWeight)
                 .collect(Collectors.toList());
 
         // 그룹핑 및 카운트
@@ -2059,7 +2057,7 @@ public class DocumentService {
             finalCountry = (String) matchedItem.get("Country");
             finalTemplate = (String) matchedItem.get("Template Name");
             finalLanguage = String.join(",", (List<String>) matchedItem.get("Language"));
-            System.out.println("Match found: Country=" + finalCountry + ", Template=" + finalTemplate + ", Language=" + finalLanguage);
+            //System.out.println("Match found: Country=" + finalCountry + ", Template=" + finalTemplate + ", Language=" + finalLanguage);
             log.info("PL Match found: Country({}), Template=({}), Language({})", finalCountry, finalTemplate, finalLanguage);
         } else {
             log.info("No matching group found.");
@@ -2096,7 +2094,7 @@ public class DocumentService {
 
         // 조건에 맞는 항목 필터링
         List<Map<String, Object>> filtered = filteredResult.stream()
-                .filter(r -> (int) r.get("Count") >= 1 && (double) r.get("WT") >= configLoader.cdBAllowableWeight)
+                .filter(r -> (int) r.get("Count") >= 1 && (double) r.get("WT") >= configLoader.cdAllowableWeight)
                 .collect(Collectors.toList());
 
         // 그룹핑 및 카운트
@@ -2184,7 +2182,7 @@ public class DocumentService {
             finalCountry = (String) matchedItem.get("Country");
             finalTemplate = (String) matchedItem.get("Template Name");
             finalLanguage = String.join(",", (List<String>) matchedItem.get("Language"));
-            System.out.println("Match found: Country=" + finalCountry + ", Template=" + finalTemplate + ", Language=" + finalLanguage);
+            //System.out.println("Match found: Country=" + finalCountry + ", Template=" + finalTemplate + ", Language=" + finalLanguage);
             log.info("PL Match found: Country({}), Template=({}), Language({})", finalCountry, finalTemplate, finalLanguage);
         } else {
             log.info("No matching group found.");

@@ -42,8 +42,11 @@ public class ConfigLoader {
 
     public boolean markingCheck;
 
+    public boolean cdAUsageFlag;
     public boolean cdBUsageFlag;
-    public double cdBAllowableWeight;
+    public boolean cdCUsageFlag;
+
+    public double cdAllowableWeight;
     public boolean checkCase;
 
     private String configFilePath = "Config.xml";
@@ -192,6 +195,13 @@ public class ConfigLoader {
                 throw new RuntimeException("Missing required configuration: markingCheck");
             }
 
+            if (root.getElementsByTagName("cdAUsageFlag").getLength() > 0) {
+                cdAUsageFlag = Boolean.parseBoolean(root.getElementsByTagName("cdAUsageFlag").item(0).getTextContent().trim());
+            } else {
+                log.error("The cdAUsageFlag tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: cdAUsageFlag");
+            }
+
             if (root.getElementsByTagName("cdBUsageFlag").getLength() > 0) {
                 cdBUsageFlag = Boolean.parseBoolean(root.getElementsByTagName("cdBUsageFlag").item(0).getTextContent().trim());
             } else {
@@ -199,18 +209,25 @@ public class ConfigLoader {
                 throw new RuntimeException("Missing required configuration: cdBUsageFlag");
             }
 
-            if (root.getElementsByTagName("cdBAllowableWeight").getLength() > 0) {
-                cdBAllowableWeight = Double.parseDouble(root.getElementsByTagName("cdBAllowableWeight").item(0).getTextContent().trim());
+            if (root.getElementsByTagName("cdCUsageFlag").getLength() > 0) {
+                cdCUsageFlag = Boolean.parseBoolean(root.getElementsByTagName("cdCUsageFlag").item(0).getTextContent().trim());
             } else {
-                log.error("The cdBAllowableWeight tag does not exist in Config.xml. Application will terminate.");
-                throw new RuntimeException("Missing required configuration: cdBAllowableWeight");
+                log.error("The cdCUsageFlag tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: cdCUsageFlag");
+            }
+
+            if (root.getElementsByTagName("cdAllowableWeight").getLength() > 0) {
+                cdAllowableWeight = Double.parseDouble(root.getElementsByTagName("cdAllowableWeight").item(0).getTextContent().trim());
+            } else {
+                log.error("The cdAllowableWeight tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: cdAllowableWeight");
             }
 
             if (root.getElementsByTagName("checkCase").getLength() > 0) {
                 checkCase = Boolean.parseBoolean(root.getElementsByTagName("checkCase").item(0).getTextContent().trim());
             } else {
-                log.error("The cdBAllowableWeight tag does not exist in Config.xml. Application will terminate.");
-                throw new RuntimeException("Missing required configuration: cdBAllowableWeight");
+                log.error("The checkCase tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: checkCase");
             }
 
         } catch (Exception e) {
