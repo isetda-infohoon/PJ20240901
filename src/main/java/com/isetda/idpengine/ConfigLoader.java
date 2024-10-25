@@ -46,6 +46,10 @@ public class ConfigLoader {
     public boolean cdBUsageFlag;
     public boolean cdCUsageFlag;
 
+    public boolean cd1UsageFlag;
+    public boolean cd2UsageFlag;
+    public boolean cd3UsageFlag;
+
     public double cdAllowableWeight;
     public boolean checkCase;
 
@@ -214,6 +218,27 @@ public class ConfigLoader {
             } else {
                 log.error("The cdCUsageFlag tag does not exist in Config.xml. Application will terminate.");
                 throw new RuntimeException("Missing required configuration: cdCUsageFlag");
+            }
+
+            if (root.getElementsByTagName("cd1UsageFlag").getLength() > 0) {
+                cd1UsageFlag = Boolean.parseBoolean(root.getElementsByTagName("cd1UsageFlag").item(0).getTextContent().trim());
+            } else {
+                log.error("The cd1UsageFlag tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: cd1UsageFlag");
+            }
+
+            if (root.getElementsByTagName("cd2UsageFlag").getLength() > 0) {
+                cd2UsageFlag = Boolean.parseBoolean(root.getElementsByTagName("cd2UsageFlag").item(0).getTextContent().trim());
+            } else {
+                log.error("The cd2UsageFlag tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: cd2UsageFlag");
+            }
+
+            if (root.getElementsByTagName("cd3UsageFlag").getLength() > 0) {
+                cd3UsageFlag = Boolean.parseBoolean(root.getElementsByTagName("cd3UsageFlag").item(0).getTextContent().trim());
+            } else {
+                log.error("The cd3UsageFlag tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: cd3UsageFlag");
             }
 
             if (root.getElementsByTagName("cdAllowableWeight").getLength() > 0) {

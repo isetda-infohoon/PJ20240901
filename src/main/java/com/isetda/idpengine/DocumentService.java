@@ -86,36 +86,60 @@ public class DocumentService {
 //            }
 
             if (configLoader.cdAUsageFlag) {
-                classifyDocuments1(jsonData, allWords);
-                postProcessing("A1");
-                classifyDocuments2(jsonData, jsonService.jsonCollection);
-                postProcessing("A2");
-                JsonService.sortAnnotations(jsonService.jsonCollection);
-                JsonService.findMatchingWords(jsonService.jsonCollection);
-                classifyDocuments3(jsonData, JsonService.jsonCollection2);
-                postProcessing("A3");
+                if (configLoader.cd1UsageFlag) {
+                    classifyDocuments1(jsonData, allWords);
+                    postProcessing("A1");
+                }
+
+                if (configLoader.cd2UsageFlag) {
+                    classifyDocuments2(jsonData, jsonService.jsonCollection);
+                    postProcessing("A2");
+                }
+
+                if (configLoader.cd3UsageFlag) {
+                    JsonService.sortAnnotations(jsonService.jsonCollection);
+                    JsonService.findMatchingWords(jsonService.jsonCollection);
+                    classifyDocuments3(jsonData, JsonService.jsonCollection2);
+                    postProcessing("A3");
+                }
             }
 
             if (configLoader.cdBUsageFlag) {
-                classifyDocuments_B1(jsonData, allWords);
-                postProcessing("B1");
-                classifyDocuments_B2(jsonData, jsonService.jsonCollection);
-                postProcessing("B2");
-                JsonService.sortAnnotations(jsonService.jsonCollection);
-                JsonService.findMatchingWords(jsonService.jsonCollection);
-                classifyDocuments_B3(jsonData, JsonService.jsonCollection2);
-                postProcessing("B3");
+                if (configLoader.cd1UsageFlag) {
+                    classifyDocuments_B1(jsonData, allWords);
+                    postProcessing("B1");
+                }
+
+                if (configLoader.cd2UsageFlag) {
+                    classifyDocuments_B2(jsonData, jsonService.jsonCollection);
+                    postProcessing("B2");
+                }
+
+                if (configLoader.cd3UsageFlag) {
+                    JsonService.sortAnnotations(jsonService.jsonCollection);
+                    JsonService.findMatchingWords(jsonService.jsonCollection);
+                    classifyDocuments_B3(jsonData, JsonService.jsonCollection2);
+                    postProcessing("B3");
+                }
             }
 
             if (configLoader.cdCUsageFlag) {
-                classifyDocuments_C1(jsonData, allWords);
-                postProcessing("C1");
-                classifyDocuments_C2(jsonData, jsonService.jsonCollection);
-                postProcessing("C2");
-                JsonService.sortAnnotations(jsonService.jsonCollection);
-                JsonService.findMatchingWords(jsonService.jsonCollection);
-                classifyDocuments_C3(jsonData, JsonService.jsonCollection2);
-                postProcessing("C3");
+                if (configLoader.cd1UsageFlag) {
+                    classifyDocuments_C1(jsonData, allWords);
+                    postProcessing("C1");
+                }
+
+                if (configLoader.cd2UsageFlag) {
+                    classifyDocuments_C2(jsonData, jsonService.jsonCollection);
+                    postProcessing("C2");
+                }
+
+                if (configLoader.cd3UsageFlag) {
+                    JsonService.sortAnnotations(jsonService.jsonCollection);
+                    JsonService.findMatchingWords(jsonService.jsonCollection);
+                    classifyDocuments_C3(jsonData, JsonService.jsonCollection2);
+                    postProcessing("C3");
+                }
             }
 
 
