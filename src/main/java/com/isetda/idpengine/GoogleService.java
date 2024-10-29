@@ -90,7 +90,8 @@ public class GoogleService {
 
                 String responseBody = response.body().string();
                 String outputFileName = file.getName().substring(0, file.getName().lastIndexOf("."));
-                String outputPath = configLoader.resultFilePath + "\\" + outputFileName + "_result.json";
+                //json ->  dat로 변경
+                String outputPath = configLoader.resultFilePath + "\\" + outputFileName + "_result.dat";
                 try (FileWriter writer = new FileWriter(outputPath)) {
 
                     if(configLoader.encodingCheck==true){

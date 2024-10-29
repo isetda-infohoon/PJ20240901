@@ -33,7 +33,8 @@ public class ExcelService {
             @Override
             public boolean accept(File dir, String name) {
                 String lowercaseName = name.toLowerCase();
-                return lowercaseName.endsWith(".json");
+                //json -> dat로 변경
+                return lowercaseName.endsWith(".dat");
             }
         });
         if (files != null && files.length > 0) {
