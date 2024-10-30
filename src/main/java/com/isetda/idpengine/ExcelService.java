@@ -306,7 +306,59 @@ public class ExcelService {
     }
 
     public void createExcel2(List<List<String>> resultList, List<Map<String, Object>> filteredResult, String fileName, String saveFilePath, String a) throws IOException {
-        File file = new File(saveFilePath);
+        File saveFile = new File(saveFilePath);
+        String directoryPath = saveFile.getParent();
+        String folderName = fileName.replace("_result", "");
+
+        String templateNameFolder = resultList.get(2).get(1);
+        File file = null;
+        File folder = null;
+
+        if (configLoader.createFolders) {
+            // saveFilePath 안의 모든 폴더를 돌면서 엑셀 파일이 존재하는지 확인
+            File dir = new File(directoryPath);
+            File[] directories = dir.listFiles(File::isDirectory);
+            boolean fileExists = false;
+
+            if (directories != null) {
+                for (File dirFolder : directories) {
+                    file = new File(dirFolder, fileName + ".xlsx");
+                    if (file.exists()) {
+                        folder = dirFolder;
+                        fileExists = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!fileExists) {
+                // 엑셀 파일이 존재하지 않는 경우 폴더 생성
+                folder = new File(directoryPath, templateNameFolder);
+                if (!folder.exists()) {
+                    folder.mkdirs();
+                }
+                // 엑셀 파일 경로 설정
+                file = new File(folder, fileName + ".xlsx");
+            }
+
+            // 파일 이동
+            File[] matchingFiles = dir.listFiles((dir1, name) -> name.startsWith(folderName) && !name.equals(fileName));
+            if (matchingFiles != null) {
+                for (File matchingFile : matchingFiles) {
+                    File destFile = new File(folder, matchingFile.getName());
+                    if (destFile.exists()) {
+                        destFile.delete(); // 기존 파일 삭제
+                    }
+                    if (!matchingFile.renameTo(destFile)) {
+                        log.warn("Failed to move file: {}", matchingFile.getName());
+                    }
+                }
+            }
+        } else {
+            // 기존 방식으로 파일 경로 설정
+            file = new File(directoryPath, fileName + ".xlsx");
+        }
+
         Workbook workbook;
         Sheet sheet;
 
@@ -351,13 +403,11 @@ public class ExcelService {
             sheet = workbook.getSheetAt(0);
 
             int startRow = sheet.getLastRowNum();
-            //for (int i = 1; i < resultList.size(); i++) {
             for (int i = 0; i < resultList.size(); i++) {
-                Row row = sheet.createRow(startRow + i + 1); // 수정
+                Row row = sheet.createRow(startRow + i + 1);
                 for (int j = 0; j < resultList.get(i).size(); j++) {
                     Cell cell = row.createCell(j);
                     cell.setCellValue(resultList.get(i).get(j));
-//                    log.info("안녕 11 :{}  : {}", cell);
                 }
 
                 if (i == resultList.size() - 1) {
@@ -388,7 +438,7 @@ public class ExcelService {
 
                     // cd1, cd2, cd3 .. 분류 유형에 따라 파일 이름 작성
                     Cell cell3 = row.createCell(colNum);
-                    cell3.setCellValue(fileName + " (cd"+a+")");
+                    cell3.setCellValue(fileName + " (cd" + a + ")");
                 }
             }
         } else {
@@ -440,14 +490,14 @@ public class ExcelService {
 
                     // cd1, cd2, cd3 .. 분류 유형에 따라 파일 이름 작성
                     Cell cell3 = row.createCell(colNum);
-                    cell3.setCellValue(fileName + " (cd"+a+")");
+                    cell3.setCellValue(fileName + " (cd" + a + ")");
                 }
             }
         }
 
-        try (FileOutputStream fileOut = new FileOutputStream(saveFilePath)) {
+        try (FileOutputStream fileOut = new FileOutputStream(file)) {
             workbook.write(fileOut);
-            log.info("Excel file creation completed: {} ", saveFilePath);
+            log.info("Excel file creation completed: {} ", file.getAbsolutePath());
         }
         workbook.close();
     }

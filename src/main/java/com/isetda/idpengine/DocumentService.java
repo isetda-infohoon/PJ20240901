@@ -1921,7 +1921,6 @@ public class DocumentService {
         filterAndGroupResults();
     }
 
-    //정다현 추가 내용
     public void classifyDocuments_C3(Map<String, List<Map<String, Object>>> jsonData, List<Map<String, Object>> items) {
         //정다혀 추가
         Map<String, List<Map<String, Object>>> formMatchedWords = new HashMap<>();
@@ -2037,19 +2036,30 @@ public class DocumentService {
 
         // 카운트가 가장 높은 그룹 찾기
         try {
-            Map.Entry<String, Long> maxEntry = grouped.entrySet().stream()
-                    .max(Map.Entry.comparingByValue())
-                    .orElseThrow(() -> new NoSuchElementException("No max element found"));
+            // 최대 값을 가진 항목을 찾기
+            long maxCount = grouped.values().stream().max(Long::compare).orElseThrow(() -> new NoSuchElementException("No max element found"));
 
-            // maxEntry 결과를 로그로 출력
-            log.info("Filtering And Grouping Result Max Entry: Key{}, Count{}", maxEntry.getKey(), maxEntry.getValue());
+            // 최대 값이 여러 개 있는지 확인
+            long maxCountOccurrences = grouped.values().stream().filter(count -> count == maxCount).count();
 
-            // 결과 저장
-            String[] resultKeys = maxEntry.getKey().split("\\|");
-            finalCountry = resultKeys[0];
-            finalTemplate = resultKeys[1];
-            finalLanguage = resultKeys[2];
-            //finalLanguage = String.valueOf(Arrays.asList(resultKeys[2].split(",")));
+            if (maxCountOccurrences > 1) {
+                finalCountry = "미분류";
+                finalTemplate = "미분류";
+                finalLanguage = "미분류";
+                log.info("Multiple max elements found - Classified as unclassified");
+            } else {
+                Map.Entry<String, Long> maxEntry = grouped.entrySet().stream()
+                        .filter(entry -> entry.getValue() == maxCount)
+                        .findFirst()
+                        .orElseThrow(() -> new NoSuchElementException("No max element found"));
+
+                log.info("Filtering And Grouping Result Max Entry: Key{}, Count{}", maxEntry.getKey(), maxEntry.getValue());
+
+                String[] resultKeys = maxEntry.getKey().split("\\|");
+                finalCountry = resultKeys[0];
+                finalTemplate = resultKeys[1];
+                finalLanguage = resultKeys[2];
+            }
         } catch (NoSuchElementException e) {
             finalCountry = "미분류";
             finalLanguage = "미분류";
@@ -2162,19 +2172,30 @@ public class DocumentService {
 
         // 카운트가 가장 높은 그룹 찾기
         try {
-            Map.Entry<String, Long> maxEntry = grouped.entrySet().stream()
-                    .max(Map.Entry.comparingByValue())
-                    .orElseThrow(() -> new NoSuchElementException("No max element found"));
+            // 최대 값을 가진 항목을 찾기
+            long maxCount = grouped.values().stream().max(Long::compare).orElseThrow(() -> new NoSuchElementException("No max element found"));
 
-            // maxEntry 결과를 로그로 출력
-            log.info("Filtering And Grouping Result Max Entry: Key{}, Count{}", maxEntry.getKey(), maxEntry.getValue());
+            // 최대 값이 여러 개 있는지 확인
+            long maxCountOccurrences = grouped.values().stream().filter(count -> count == maxCount).count();
 
-            // 결과 저장
-            String[] resultKeys = maxEntry.getKey().split("\\|");
-            finalCountry = resultKeys[0];
-            finalTemplate = resultKeys[1];
-            finalLanguage = resultKeys[2];
-            //finalLanguage = String.valueOf(Arrays.asList(resultKeys[2].split(",")));
+            if (maxCountOccurrences > 1) {
+                finalCountry = "미분류";
+                finalTemplate = "미분류";
+                finalLanguage = "미분류";
+                log.info("Multiple max elements found - Classified as unclassified");
+            } else {
+                Map.Entry<String, Long> maxEntry = grouped.entrySet().stream()
+                        .filter(entry -> entry.getValue() == maxCount)
+                        .findFirst()
+                        .orElseThrow(() -> new NoSuchElementException("No max element found"));
+
+                log.info("Filtering And Grouping Result Max Entry: Key{}, Count{}", maxEntry.getKey(), maxEntry.getValue());
+
+                String[] resultKeys = maxEntry.getKey().split("\\|");
+                finalCountry = resultKeys[0];
+                finalTemplate = resultKeys[1];
+                finalLanguage = resultKeys[2];
+            }
         } catch (NoSuchElementException e) {
             finalCountry = "미분류";
             finalLanguage = "미분류";
