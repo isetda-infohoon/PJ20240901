@@ -84,7 +84,8 @@ public class IMGService {
 
         log.info("imageFile : {}", imageFile.getName());
         String baseName = imageFile.getName().substring(0, imageFile.getName().lastIndexOf('.'));
-        File jsonFile = new File(resultFilePath, baseName + "_result.json");
+        //json -> dat로 변경
+        File jsonFile = new File(resultFilePath, baseName + "_result.dat");
 
         if (jsonFile.exists()) {
             log.info("JSON file path: {}", jsonFile.getAbsolutePath());
