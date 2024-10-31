@@ -53,6 +53,7 @@ public class ConfigLoader {
     public double cdAllowableWeight;
     public boolean checkCase;
     public boolean createFolders;
+    public String foldersCriteria;
 
     private String configFilePath = "Config.xml";
     //jar파일 만들 때 상대경로 config 파일 빼놓기 위한 경로
@@ -261,6 +262,13 @@ public class ConfigLoader {
             } else {
                 log.error("The createFolders tag does not exist in Config.xml. Application will terminate.");
                 throw new RuntimeException("Missing required configuration: createFolders");
+            }
+
+            if (root.getElementsByTagName("foldersCriteria").getLength() > 0) {
+                foldersCriteria = root.getElementsByTagName("foldersCriteria").item(0).getTextContent().trim();
+            } else {
+                log.error("The foldersCriteria tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: foldersCriteria");
             }
 
         } catch (Exception e) {

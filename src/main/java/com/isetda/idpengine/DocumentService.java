@@ -31,6 +31,8 @@ public class DocumentService {
     String saveFilePath;
     String datasetSavePath;
 
+    Map<String, Map<String, String>> resultByVersion = new HashMap<>();
+
     //정다현 추가
      public String imgFileName;
 
@@ -84,6 +86,8 @@ public class DocumentService {
 //            for (Map<String, Object> item : jsonService.jsonCollection) {
 //                allWords.append(item.get("description"));
 //            }
+
+            resultByVersion.put(fileName.replace("_result", ""), new HashMap<>());
 
             if (configLoader.cdAUsageFlag) {
                 if (configLoader.cd1UsageFlag) {
@@ -153,6 +157,24 @@ public class DocumentService {
 
             cnt++;
         }
+
+        System.out.println();
+
+        for (Map.Entry<String, Map<String, String>> entry : resultByVersion.entrySet()) {
+            String filename = entry.getKey();
+            Map<String, String> versionMap = entry.getValue();
+
+            System.out.println("Filename: " + filename);
+            for (Map.Entry<String, String> versionEntry : versionMap.entrySet()) {
+                String version = versionEntry.getKey();
+                String value = versionEntry.getValue();
+                System.out.println("  Version: " + version + ", Value: " + value);
+            }
+        }
+
+        if (configLoader.createFolders) {
+            excelService.moveFiles(configLoader.resultFilePath, resultByVersion, configLoader.foldersCriteria);
+        }
     }
 
 //    public interface ProgressCallback {
@@ -208,6 +230,8 @@ public class DocumentService {
 
         excelService.configLoader = configLoader;
 
+        String baseFileName= fileName.replace("_result", "");
+
         if(configLoader.markingCheck){
             imgService.processMarking(matchjsonWord, configLoader.resultFilePath, imgFileName, a, docType);
         }
@@ -219,6 +243,7 @@ public class DocumentService {
             log.error("엑셀 파일 생성 실패: {}", e.getStackTrace()[0]);
         }
         matchjsonWord = new ArrayList<>();
+        resultByVersion.get(baseFileName).put(a, resultList.get(2).get(1));
     }
 
     // 합쳐진 추출 단어(description)로 일치 단어 비교

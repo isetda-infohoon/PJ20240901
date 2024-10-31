@@ -9,6 +9,9 @@ import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 
 
@@ -307,59 +310,7 @@ public class ExcelService {
     }
 
     public void createExcel2(List<List<String>> resultList, List<Map<String, Object>> filteredResult, String fileName, String saveFilePath, String a) throws IOException {
-        File saveFile = new File(saveFilePath);
-        String directoryPath = saveFile.getParent();
-        String folderName = fileName.replace("_result", "");
-
-        String templateNameFolder = resultList.get(2).get(1);
-        File file = null;
-        File folder = null;
-
-        if (configLoader.createFolders) {
-            // saveFilePath 안의 모든 폴더를 돌면서 엑셀 파일이 존재하는지 확인
-            File dir = new File(directoryPath);
-            File[] directories = dir.listFiles(File::isDirectory);
-            boolean fileExists = false;
-
-            if (directories != null) {
-                for (File dirFolder : directories) {
-                    file = new File(dirFolder, fileName + ".xlsx");
-                    if (file.exists()) {
-                        folder = dirFolder;
-                        fileExists = true;
-                        break;
-                    }
-                }
-            }
-
-            if (!fileExists) {
-                // 엑셀 파일이 존재하지 않는 경우 폴더 생성
-                folder = new File(directoryPath, templateNameFolder);
-                if (!folder.exists()) {
-                    folder.mkdirs();
-                }
-                // 엑셀 파일 경로 설정
-                file = new File(folder, fileName + ".xlsx");
-            }
-
-            // 파일 이동
-            File[] matchingFiles = dir.listFiles((dir1, name) -> name.startsWith(folderName) && !name.equals(fileName));
-            if (matchingFiles != null) {
-                for (File matchingFile : matchingFiles) {
-                    File destFile = new File(folder, matchingFile.getName());
-                    if (destFile.exists()) {
-                        destFile.delete(); // 기존 파일 삭제
-                    }
-                    if (!matchingFile.renameTo(destFile)) {
-                        log.warn("Failed to move file: {}", matchingFile.getName());
-                    }
-                }
-            }
-        } else {
-            // 기존 방식으로 파일 경로 설정
-            file = new File(directoryPath, fileName + ".xlsx");
-        }
-
+        File file = new File(saveFilePath);
         Workbook workbook;
         Sheet sheet;
 
@@ -404,11 +355,13 @@ public class ExcelService {
             sheet = workbook.getSheetAt(0);
 
             int startRow = sheet.getLastRowNum();
+            //for (int i = 1; i < resultList.size(); i++) {
             for (int i = 0; i < resultList.size(); i++) {
-                Row row = sheet.createRow(startRow + i + 1);
+                Row row = sheet.createRow(startRow + i + 1); // 수정
                 for (int j = 0; j < resultList.get(i).size(); j++) {
                     Cell cell = row.createCell(j);
                     cell.setCellValue(resultList.get(i).get(j));
+//                    log.info("안녕 11 :{}  : {}", cell);
                 }
 
                 if (i == resultList.size() - 1) {
@@ -439,7 +392,7 @@ public class ExcelService {
 
                     // cd1, cd2, cd3 .. 분류 유형에 따라 파일 이름 작성
                     Cell cell3 = row.createCell(colNum);
-                    cell3.setCellValue(fileName + " (cd" + a + ")");
+                    cell3.setCellValue(fileName + " (cd"+a+")");
                 }
             }
         } else {
@@ -491,18 +444,102 @@ public class ExcelService {
 
                     // cd1, cd2, cd3 .. 분류 유형에 따라 파일 이름 작성
                     Cell cell3 = row.createCell(colNum);
-                    cell3.setCellValue(fileName + " (cd" + a + ")");
+                    cell3.setCellValue(fileName + " (cd"+a+")");
                 }
             }
         }
 
-        try (FileOutputStream fileOut = new FileOutputStream(file)) {
+        try (FileOutputStream fileOut = new FileOutputStream(saveFilePath)) {
             workbook.write(fileOut);
-            log.info("Excel file creation completed: {} ", file.getAbsolutePath());
+            log.info("Excel file creation completed: {} ", saveFilePath);
         }
         workbook.close();
     }
 
+    public static void moveFiles(String resultFilePath, Map<String, Map<String, String>> resultByVersion, String version) {
+        File folder = new File(resultFilePath);
+        File[] listOfFiles = folder.listFiles((dir, name) -> name.endsWith(".xlsx"));
+
+        if (listOfFiles != null) {
+            for (File file : listOfFiles) {
+                String fileName = file.getName();
+                String baseName = fileName.replace("_result.xlsx", ""); // 파일 이름에서 확장자 제거
+                System.out.println("base name : " + baseName);
+
+                if (resultByVersion != null) {
+                    Map<String, String> valueList = resultByVersion.get(baseName);
+
+                    if (valueList != null) {
+                        String value = valueList.get(version); // 버전 별 결과 양식
+
+                        if (value != null) {
+                            Path targetDir = Paths.get(resultFilePath, value);
+                            if (!Files.exists(targetDir)) {
+                                try {
+                                    Files.createDirectories(targetDir);
+                                } catch (IOException e) {
+                                    log.info("Folder create failed");
+                                    e.printStackTrace();
+                                }
+                            }
+
+                            File[] relatedFiles = folder.listFiles((dir, name) -> name.startsWith(baseName));
+                            if (relatedFiles != null) {
+                                for (File relatedFile : relatedFiles) {
+                                    Path targetPath = targetDir.resolve(relatedFile.getName());
+                                    try {
+                                        Files.move(relatedFile.toPath(), targetPath);
+                                        log.info("Moved file : '{}' to '{}'",  relatedFile.getName(), targetPath);
+                                    } catch (IOException e) {
+                                        log.info("'{}' File move failed : {}", relatedFile.getName(), e);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // PDF 파일 이동 처리
+            File[] pdfFiles = folder.listFiles((dir, name) -> name.endsWith(".pdf"));
+            if (pdfFiles != null) {
+                for (File pdfFile : pdfFiles) {
+                    String pdfFileName = pdfFile.getName();
+                    String baseName = pdfFileName.replace(".pdf", "-page1"); // 파일 이름에 "page1" 추가
+                    //System.out.println("PDF base name : " + baseName);
+
+                    if (resultByVersion != null) {
+                        Map<String, String> valueList = resultByVersion.get(baseName);
+
+                        if (valueList != null) {
+                            String value = valueList.get(version); // 버전 별 결과 양식
+
+                            if (value != null) {
+                                Path targetDir = Paths.get(resultFilePath, value);
+                                if (!Files.exists(targetDir)) {
+                                    try {
+                                        Files.createDirectories(targetDir);
+                                    } catch (IOException e) {
+                                        log.info("Folder create failed");
+                                        e.printStackTrace();
+                                    }
+                                }
+
+                                Path targetPath = targetDir.resolve(pdfFile.getName());
+                                try {
+                                    Files.move(pdfFile.toPath(), targetPath);
+                                    log.info("Moved PDF file: '{}' to '{}' ", pdfFile.getName(), targetPath);
+                                } catch (IOException e) {
+                                    log.info("'{}' PDF File move failed: {} ", pdfFile.getName(), e);
+                                    e.printStackTrace();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     public static void datasetWriteExcel(Map<String, List<Map<String, Object>>> jsonData) {
         try (Workbook workbook = new XSSFWorkbook()) {
