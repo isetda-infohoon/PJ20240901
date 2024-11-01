@@ -14,6 +14,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 
 public class ExcelService {
     private static final Logger log = LogManager.getLogger(ExcelService.class);
@@ -495,46 +498,41 @@ public class ExcelService {
                                     }
                                 }
                             }
+
+                            // PDF 파일 이동 처리
+                            Pattern pattern = Pattern.compile("(.+)-page\\d+$");
+                            Matcher matcher = pattern.matcher(baseName);
+                            if (matcher.matches()) {
+                                String pdfBaseName = matcher.group(1); // -page?를 제외한 이름
+                                File[] pdfFiles = folder.listFiles((dir, name) -> name.startsWith(pdfBaseName) && name.endsWith(".pdf"));
+                                if (pdfFiles != null) {
+                                    for (File pdfFile : pdfFiles) {
+                                        Path targetPath = targetDir.resolve(pdfFile.getName());
+                                        try {
+                                            Files.copy(pdfFile.toPath(), targetPath);
+                                            log.info("Moved PDF file : '{}' to '{}'", pdfFile.getName(), targetPath);
+                                        } catch (IOException e) {
+                                            log.info("'{}' PDF file move failed : {}", pdfFile.getName(), e);
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
             }
+        }
 
-            // PDF 파일 이동 처리
-            File[] pdfFiles = folder.listFiles((dir, name) -> name.endsWith(".pdf"));
-            if (pdfFiles != null) {
-                for (File pdfFile : pdfFiles) {
-                    String pdfFileName = pdfFile.getName();
-                    String baseName = pdfFileName.replace(".pdf", "-page1"); // 파일 이름에 "page1" 추가
-                    //System.out.println("PDF base name : " + baseName);
-
-                    if (resultByVersion != null) {
-                        Map<String, String> valueList = resultByVersion.get(baseName);
-
-                        if (valueList != null) {
-                            String value = valueList.get(version); // 버전 별 결과 양식
-
-                            if (value != null) {
-                                Path targetDir = Paths.get(resultFilePath, value);
-                                if (!Files.exists(targetDir)) {
-                                    try {
-                                        Files.createDirectories(targetDir);
-                                    } catch (IOException e) {
-                                        log.info("Folder create failed");
-                                        e.printStackTrace();
-                                    }
-                                }
-
-                                Path targetPath = targetDir.resolve(pdfFile.getName());
-                                try {
-                                    Files.move(pdfFile.toPath(), targetPath);
-                                    log.info("Moved PDF file: '{}' to '{}' ", pdfFile.getName(), targetPath);
-                                } catch (IOException e) {
-                                    log.info("'{}' PDF File move failed: {} ", pdfFile.getName(), e);
-                                    e.printStackTrace();
-                                }
-                            }
-                        }
+        // 모든 파일을 확인한 후, 폴더를 제외하고 남아있는 PDF 파일 삭제
+        File[] remainingFiles = folder.listFiles();
+        if (remainingFiles != null) {
+            for (File remainingFile : remainingFiles) {
+                if (remainingFile.isFile() && remainingFile.getName().endsWith(".pdf")) {
+                    try {
+                        Files.delete(remainingFile.toPath());
+                        log.info("Deleted PDF file : '{}'", remainingFile.getName());
+                    } catch (IOException e) {
+                        log.info("'{}' PDF file delete failed : {}", remainingFile.getName(), e);
                     }
                 }
             }
