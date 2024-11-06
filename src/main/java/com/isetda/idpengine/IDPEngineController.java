@@ -23,6 +23,7 @@ public class IDPEngineController {
     public ConfigLoader configLoader = ConfigLoader.getInstance();
     public PasswordField inputImageFolderPath;
     public PasswordField inputResultFolderPath;
+    public TextField countryCode;
 
     public int jsonfiles;
 
