@@ -24,7 +24,7 @@ public class IDPEngineController {
     public ConfigLoader configLoader = ConfigLoader.getInstance();
     public PasswordField inputImageFolderPath;
     public PasswordField inputResultFolderPath;
-    public TextField countryCode;
+    public PasswordField countryCode;
 
     public int jsonfiles;
 
@@ -53,6 +53,8 @@ public class IDPEngineController {
         // 더블클릭 감지
         inputImageFolderPath.setOnMouseClicked(this::sourcehandleDoubleClick);
         inputResultFolderPath.setOnMouseClicked(this::resulthandleDoubleClick);
+        countryCode.setOnMouseClicked(this::countryCodehandleDoubleClick);
+
     }
 
     // 더블클릭 이벤트 핸들러
@@ -77,6 +79,18 @@ public class IDPEngineController {
             else if(!inputResultFolderPath.getPromptText().isEmpty()) {
                 inputResultFolderPath.setText(inputResultFolderPath.getPromptText());
                 inputResultFolderPath.setPromptText("");
+            }
+        }
+    }
+    private void countryCodehandleDoubleClick(MouseEvent event) {
+        if (event.getClickCount() == 2 && event.isShiftDown() && event.isControlDown()) {
+            if(!countryCode.getText().isEmpty()){
+                countryCode.setPromptText(countryCode.getText());
+                countryCode.setText("");
+            }
+            else if(!countryCode.getPromptText().isEmpty()) {
+                countryCode.setText(countryCode.getPromptText());
+                countryCode.setPromptText("");
             }
         }
     }
@@ -209,7 +223,7 @@ public class IDPEngineController {
                 RullFilePath = configLoader.jsonFilePath;
             }
             else {
-                RullFilePath = new StringBuilder(jsonFilePath).insert(jsonFilePath.indexOf('.'), "-"+countryName).toString();
+                RullFilePath = new StringBuilder(jsonFilePath).insert(jsonFilePath.indexOf('.'), "_"+countryName).toString();
             }
 
             // 결과 출력
