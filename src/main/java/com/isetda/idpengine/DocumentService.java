@@ -1844,31 +1844,34 @@ public class DocumentService {
             for (Map<String, Object> formMap : formList) {
                 String formName = (String) formMap.get("Template Name");
                 List<String> languages = (List<String>) formMap.get("Language");
+                Boolean disable = (boolean) formMap.get("Disable");
 
-                // H-RULE
-                List<Map<String, Object>> hRules = (List<Map<String, Object>>) formMap.get("H-RULE");
-                if (hRules != null) {
-                    for (Map<String, Object> hRule : hRules) {
-                        String word = (String) hRule.get("WD");
-                        Double weight = (Double) hRule.get("WT");
-                        Integer pl = (Integer) hRule.get("PL");
-                        String kr = (String) hRule.get("KR");
-                        if (word != null && weight != null) {
-                            int count = countOccurrences(jsonDescription, word);
+                if (!disable) {
+                    // H-RULE
+                    List<Map<String, Object>> hRules = (List<Map<String, Object>>) formMap.get("H-RULE");
+                    if (hRules != null) {
+                        for (Map<String, Object> hRule : hRules) {
+                            String word = (String) hRule.get("WD");
+                            Double weight = (Double) hRule.get("WT");
+                            Integer pl = (Integer) hRule.get("PL");
+                            String kr = (String) hRule.get("KR");
+                            if (word != null && weight != null) {
+                                int count = countOccurrences(jsonDescription, word);
 
-                            Map<String, Object> resultMap = new HashMap<>();
-                            resultMap.put("Country", countryName);
-                            resultMap.put("Template Name", formName);
-                            resultMap.put("Language", languages);
-                            resultMap.put("WD", word);
-                            resultMap.put("WT", weight);
-                            resultMap.put("PL", pl);
-                            resultMap.put("KR", kr);
-                            resultMap.put("Count", count);
+                                Map<String, Object> resultMap = new HashMap<>();
+                                resultMap.put("Country", countryName);
+                                resultMap.put("Template Name", formName);
+                                resultMap.put("Language", languages);
+                                resultMap.put("WD", word);
+                                resultMap.put("WT", weight);
+                                resultMap.put("PL", pl);
+                                resultMap.put("KR", kr);
+                                resultMap.put("Count", count);
 
-                            // 중복 확인
-                            if (!filteredResult.contains(resultMap)) {
-                                filteredResult.add(resultMap);
+                                // 중복 확인
+                                if (!filteredResult.contains(resultMap)) {
+                                    filteredResult.add(resultMap);
+                                }
                             }
                         }
                     }
@@ -1893,49 +1896,52 @@ public class DocumentService {
             for (Map<String, Object> formMap : formList) {
                 String formName = (String) formMap.get("Template Name");
                 List<String> languages = (List<String>) formMap.get("Language");
+                Boolean disable = (boolean) formMap.get("Disable");
 
-                // H-RULE
-                List<Map<String, Object>> hRules = (List<Map<String, Object>>) formMap.get("H-RULE");
-                if (hRules != null) {
-                    for (Map<String, Object> hRule : hRules) {
-                        String word = (String) hRule.get("WD");
-                        Double weight = (Double) hRule.get("WT");
-                        Integer pl = (Integer) hRule.get("PL");
-                        String kr = (String) hRule.get("KR");
-                        if (word != null && weight != null) {
-                            int count = 0;
+                if (!disable) {
+                    // H-RULE
+                    List<Map<String, Object>> hRules = (List<Map<String, Object>>) formMap.get("H-RULE");
+                    if (hRules != null) {
+                        for (Map<String, Object> hRule : hRules) {
+                            String word = (String) hRule.get("WD");
+                            Double weight = (Double) hRule.get("WT");
+                            Integer pl = (Integer) hRule.get("PL");
+                            String kr = (String) hRule.get("KR");
+                            if (word != null && weight != null) {
+                                int count = 0;
 
-                            // items를 순회하며 description과 일치하는 word의 개수를 카운트
-                            for (Map<String, Object> item : items) {
-                                String description = (String) item.get("description");
+                                // items를 순회하며 description과 일치하는 word의 개수를 카운트
+                                for (Map<String, Object> item : items) {
+                                    String description = (String) item.get("description");
 
-                                // 대소문자 구별 여부에 따른 비교
-                                if (configLoader.checkCase) { // 대소문자 구별
-                                    if (description != null && description.equals(word)) {
-                                        count++;
-                                        formMatchedWords.computeIfAbsent(formName, k -> new ArrayList<>()).add(item);
-                                    }
-                                } else { // 대소문자 구별하지 않음
-                                    if (description != null && description.equalsIgnoreCase(word)) {
-                                        count++;
-                                        formMatchedWords.computeIfAbsent(formName, k -> new ArrayList<>()).add(item);
+                                    // 대소문자 구별 여부에 따른 비교
+                                    if (configLoader.checkCase) { // 대소문자 구별
+                                        if (description != null && description.equals(word)) {
+                                            count++;
+                                            formMatchedWords.computeIfAbsent(formName, k -> new ArrayList<>()).add(item);
+                                        }
+                                    } else { // 대소문자 구별하지 않음
+                                        if (description != null && description.equalsIgnoreCase(word)) {
+                                            count++;
+                                            formMatchedWords.computeIfAbsent(formName, k -> new ArrayList<>()).add(item);
+                                        }
                                     }
                                 }
-                            }
 
-                            Map<String, Object> resultMap = new HashMap<>();
-                            resultMap.put("Country", countryName);
-                            resultMap.put("Template Name", formName);
-                            resultMap.put("Language", languages);
-                            resultMap.put("WD", word);
-                            resultMap.put("WT", weight);
-                            resultMap.put("PL", pl);
-                            resultMap.put("KR", kr);
-                            resultMap.put("Count", count);
+                                Map<String, Object> resultMap = new HashMap<>();
+                                resultMap.put("Country", countryName);
+                                resultMap.put("Template Name", formName);
+                                resultMap.put("Language", languages);
+                                resultMap.put("WD", word);
+                                resultMap.put("WT", weight);
+                                resultMap.put("PL", pl);
+                                resultMap.put("KR", kr);
+                                resultMap.put("Count", count);
 
-                            // 중복 확인
-                            if (!filteredResult.contains(resultMap)) {
-                                filteredResult.add(resultMap);
+                                // 중복 확인
+                                if (!filteredResult.contains(resultMap)) {
+                                    filteredResult.add(resultMap);
+                                }
                             }
                         }
                     }
@@ -1957,6 +1963,10 @@ public class DocumentService {
         String finalCountry = "미분류";
         String finalLanguage = "미분류";
 
+        String defaultCountry = "미분류";
+        String defaultLanguage = "미분류";
+        String defaultTemplate = "미분류";
+
         for (Map.Entry<String, List<Map<String, Object>>> countryEntry : jsonData.entrySet()) {
             String countryName = countryEntry.getKey();
             List<Map<String, Object>> formList = countryEntry.getValue();
@@ -1964,47 +1974,50 @@ public class DocumentService {
             for (Map<String, Object> formMap : formList) {
                 String formName = (String) formMap.get("Template Name");
                 List<String> languages = (List<String>) formMap.get("Language");
+                Boolean disable = (boolean) formMap.get("Disable");
 
-                // H-RULE
-                List<Map<String, Object>> hRules = (List<Map<String, Object>>) formMap.get("H-RULE");
-                for (Map<String, Object> hRule : hRules) {
-                    String word = (String) hRule.get("WD");
-                    double weight = (double) hRule.get("WT");
-                    Integer pl = (Integer) hRule.get("PL");
-                    String kr = (String) hRule.get("KR");
-                    int count = 0;
+                if (!disable) {
+                    // H-RULE
+                    List<Map<String, Object>> hRules = (List<Map<String, Object>>) formMap.get("H-RULE");
+                    for (Map<String, Object> hRule : hRules) {
+                        String word = (String) hRule.get("WD");
+                        double weight = (double) hRule.get("WT");
+                        Integer pl = (Integer) hRule.get("PL");
+                        String kr = (String) hRule.get("KR");
+                        int count = 0;
 
-                    // items를 순회하며 description과 일치하는 word의 개수를 카운트
-                    for (Map<String, Object> item : items) {
-                        String description = (String) item.get("description");
+                        // items를 순회하며 description과 일치하는 word의 개수를 카운트
+                        for (Map<String, Object> item : items) {
+                            String description = (String) item.get("description");
 
-                        // 대소문자 구별 여부에 따른 비교
-                        if (configLoader.checkCase) { // 대소문자 구별
-                            if (description != null && description.equals(word)) {
-                                count++;
-                                formMatchedWords.computeIfAbsent(formName, k -> new ArrayList<>()).add(item);
-                            }
-                        } else { // 대소문자 구별하지 않음
-                            if (description != null && description.equalsIgnoreCase(word)) {
-                                count++;
-                                formMatchedWords.computeIfAbsent(formName, k -> new ArrayList<>()).add(item);
+                            // 대소문자 구별 여부에 따른 비교
+                            if (configLoader.checkCase) { // 대소문자 구별
+                                if (description != null && description.equals(word)) {
+                                    count++;
+                                    formMatchedWords.computeIfAbsent(formName, k -> new ArrayList<>()).add(item);
+                                }
+                            } else { // 대소문자 구별하지 않음
+                                if (description != null && description.equalsIgnoreCase(word)) {
+                                    count++;
+                                    formMatchedWords.computeIfAbsent(formName, k -> new ArrayList<>()).add(item);
+                                }
                             }
                         }
-                    }
 
-                    Map<String, Object> resultMap = new HashMap<>();
-                    resultMap.put("Country", countryName);
-                    resultMap.put("Template Name", formName);
-                    resultMap.put("Language", languages);
-                    resultMap.put("WD", word);
-                    resultMap.put("WT", weight);
-                    resultMap.put("PL", pl);
-                    resultMap.put("KR", kr);
-                    resultMap.put("Count", count);
+                        Map<String, Object> resultMap = new HashMap<>();
+                        resultMap.put("Country", countryName);
+                        resultMap.put("Template Name", formName);
+                        resultMap.put("Language", languages);
+                        resultMap.put("WD", word);
+                        resultMap.put("WT", weight);
+                        resultMap.put("PL", pl);
+                        resultMap.put("KR", kr);
+                        resultMap.put("Count", count);
 
-                    // 중복 확인
-                    if (!filteredResult.contains(resultMap)) {
-                        filteredResult.add(resultMap);
+                        // 중복 확인
+                        if (!filteredResult.contains(resultMap)) {
+                            filteredResult.add(resultMap);
+                        }
                     }
                 }
             }
@@ -2055,6 +2068,8 @@ public class DocumentService {
         for (Map<String, Object> res : groupedResult) {
             log.info("Grouped Result - Country: {}, Template Name: {}, Language: {}, WD: {}, WT: {}, KR: {}, Count: {}",
                     res.get("Country"), res.get("Template Name"), res.get("Language"), res.get("WD"), res.get("WT"), res.get("KR"), res.get("Count"));
+//            System.out.println("Grouped Result - Country: " + res.get("Country") + ", Template Name: " + res.get("Template Name") + ", " +
+//                            "Language: " + res.get("Language") + ", WD: " + res.get("WD") + ", WT: " + res.get("WT") + ", KR: " + res.get("KR") + ", PL: " + res.get("PL") + ", Count: " + res.get("Count"));
         }
 
         //excelService.dataWriteExcel3(groupedResult, datasetSavePath);
@@ -2068,9 +2083,9 @@ public class DocumentService {
             long maxCountOccurrences = grouped.values().stream().filter(count -> count == maxCount).count();
 
             if (maxCountOccurrences > 1) {
-                finalCountry = "미분류";
-                finalTemplate = "미분류";
-                finalLanguage = "미분류";
+                defaultCountry = "미분류";
+                defaultTemplate = "미분류";
+                defaultLanguage = "미분류";
                 log.info("Multiple max elements found - Classified as unclassified");
             } else {
                 Map.Entry<String, Long> maxEntry = grouped.entrySet().stream()
@@ -2081,45 +2096,147 @@ public class DocumentService {
                 log.info("Filtering And Grouping Result Max Entry: Key{}, Count{}", maxEntry.getKey(), maxEntry.getValue());
 
                 String[] resultKeys = maxEntry.getKey().split("\\|");
-                finalCountry = resultKeys[0];
-                finalTemplate = resultKeys[1];
-                finalLanguage = resultKeys[2];
+                defaultCountry = resultKeys[0];
+                defaultTemplate = resultKeys[1];
+                defaultLanguage = resultKeys[2];
             }
         } catch (NoSuchElementException e) {
-            finalCountry = "미분류";
-            finalLanguage = "미분류";
-            finalTemplate = "미분류";
+            defaultCountry = "미분류";
+            defaultLanguage = "미분류";
+            defaultTemplate = "미분류";
             log.info("No max element found - Classified as unclassified : {}", e);
         }
 
-        // 필터링된 결과에서 count가 1 이상이고 pl이 1인 항목을 찾음
-        List<Map<String, Object>> pl1Items = groupedResult.stream()
-                .filter(res -> ((Number) res.get("Count")).longValue() >= 1 && ((Number) res.get("PL")).intValue() == 1)
-                .collect(Collectors.toList());
+//        // 필터링된 결과에서 count가 1 이상이고 pl이 1인 항목을 찾음
+//        List<Map<String, Object>> pl1Items = groupedResult.stream()
+//                .filter(res -> ((Number) res.get("Count")).longValue() >= 1 && ((Number) res.get("PL")).intValue() == 1)
+//                .collect(Collectors.toList());
+//
+//        // 필터링된 결과에서 count가 1 이상이고 pl이 2인 항목을 찾음
+//        List<Map<String, Object>> pl2Items = groupedResult.stream()
+//                .filter(res -> ((Number) res.get("Count")).longValue() >= 1 && ((Number) res.get("PL")).intValue() == 2)
+//                .collect(Collectors.toList());
+//
+//        // 두 조건을 모두 만족하는 그룹을 찾음
+//        Map<String, Object> matchedItem = pl1Items.stream()
+//                .filter(pl1Item -> pl2Items.stream().anyMatch(pl2Item ->
+//                        pl1Item.get("Country").equals(pl2Item.get("Country"))
+//                                && pl1Item.get("Template Name").equals(pl2Item.get("Template Name"))
+//                                && pl1Item.get("Language").equals(pl2Item.get("Language"))
+//                ))
+//                .findFirst()
+//                .orElse(null);
 
-        // 필터링된 결과에서 count가 1 이상이고 pl이 2인 항목을 찾음
-        List<Map<String, Object>> pl2Items = groupedResult.stream()
-                .filter(res -> ((Number) res.get("Count")).longValue() >= 1 && ((Number) res.get("PL")).intValue() == 2)
-                .collect(Collectors.toList());
+        // 필터링된 결과를 저장할 리스트
+        List<Map<String, Object>> matchedItems = new ArrayList<>();
+        Set<String> uniqueItems = new HashSet<>();
 
-        // 두 조건을 모두 만족하는 그룹을 찾음
-        Map<String, Object> matchedItem = pl1Items.stream()
-                .filter(pl1Item -> pl2Items.stream().anyMatch(pl2Item ->
-                        pl1Item.get("Country").equals(pl2Item.get("Country"))
-                                && pl1Item.get("Template Name").equals(pl2Item.get("Template Name"))
-                                && pl1Item.get("Language").equals(pl2Item.get("Language"))
-                ))
-                .findFirst()
-                .orElse(null);
+        // configLoader.plValue로 전달받은 숫자만큼 반복
+        for (int plValue = 1; plValue <= configLoader.plValue; plValue++) {
+            // 필터링된 결과에서 count가 1 이상이고 pl이 plValue인 항목을 찾음
+            int finalPlValue = plValue;
+            List<Map<String, Object>> plItems = groupedResult.stream()
+                    .filter(res -> ((Number) res.get("Count")).longValue() >= 1 && ((Number) res.get("PL")).intValue() == finalPlValue)
+                    .collect(Collectors.toList());
 
-        if (matchedItem != null) {
-            finalCountry = (String) matchedItem.get("Country");
-            finalTemplate = (String) matchedItem.get("Template Name");
-            finalLanguage = String.join(",", (List<String>) matchedItem.get("Language"));
+            // plValue인 항목이 없을 경우, plValue 이하의 수 중 가장 큰 수를 찾음
+            if (plItems.isEmpty()) {
+                for (int i = plValue - 1; i >= 1; i--) {
+                    int finalI = i;
+                    plItems = groupedResult.stream()
+                            .filter(res -> ((Number) res.get("Count")).longValue() >= 1 && ((Number) res.get("PL")).intValue() == finalI)
+                            .collect(Collectors.toList());
+                    if (!plItems.isEmpty()) {
+                        break;
+                    }
+                }
+            }
+
+            // 필터링된 항목들을 matchedItems에 추가
+            for (Map<String, Object> item : plItems) {
+                String uniqueKey = item.get("Country") + "|" + item.get("Template Name") + "|" + item.get("Language");
+                if (!uniqueItems.contains(uniqueKey)) {
+                    uniqueItems.add(uniqueKey);
+                    matchedItems.add(item);
+                } else {
+                    // 중복된 항목이 발견되면 "미분류"로 설정
+                    item.put("Country", "미분류");
+                    item.put("Template Name", "미분류");
+                    item.put("Language", List.of("미분류"));
+                    matchedItems.add(item);
+                }
+            }
+        }
+
+        // 연속된 PL 값을 포함하는 그룹을 찾음
+        Map<String, Object> finalMatchedItem = null;
+        int maxContinuousPL = 0;
+        List<Map<String, Object>> potentialMatches = new ArrayList<>();
+
+        for (Map<String, Object> item : matchedItems) {
+            String country = (String) item.get("Country");
+            String templateName = (String) item.get("Template Name");
+            List<String> language = (List<String>) item.get("Language");
+
+            int continuousPL = 0;
+            for (int i = 1; i <= configLoader.plValue; i++) {
+                int finalI = i;
+                boolean containsPL = matchedItems.stream().anyMatch(matchedItem ->
+                        matchedItem.get("Country").equals(country)
+                                && matchedItem.get("Template Name").equals(templateName)
+                                && matchedItem.get("Language").equals(language)
+                                && ((Number) matchedItem.get("PL")).intValue() == finalI
+                );
+                if (containsPL) {
+                    continuousPL = i;
+                } else {
+                    break;
+                }
+            }
+
+            if (continuousPL > maxContinuousPL) {
+                maxContinuousPL = continuousPL;
+                potentialMatches.clear();
+                potentialMatches.add(item);
+            } else if (continuousPL == maxContinuousPL) {
+                potentialMatches.add(item);
+            }
+        }
+
+        // 조건을 만족하는 결과가 여러 개일 경우 "미분류"로 설정
+        if (potentialMatches.size() > 1) {
+            finalMatchedItem = new HashMap<>();
+            finalMatchedItem.put("Country", "미분류");
+            finalMatchedItem.put("Template Name", "미분류");
+            finalMatchedItem.put("Language", List.of("미분류"));
+        } else if (!potentialMatches.isEmpty()) {
+            finalMatchedItem = potentialMatches.get(0);
+            log.info("PL comparison results are the same");
+        }
+
+        // 최종적으로 조건을 만족하는 항목을 찾음
+        if (finalMatchedItem == null) {
+            finalMatchedItem = matchedItems.stream()
+                    .filter(item -> matchedItems.stream().anyMatch(matchedItem ->
+                            matchedItem.get("Country").equals(item.get("Country"))
+                                    && matchedItem.get("Template Name").equals(item.get("Template Name"))
+                                    && matchedItem.get("Language").equals(item.get("Language"))
+                    ))
+                    .findFirst()
+                    .orElse(null);
+        }
+
+        // PL에 해당하는 값이 없을 경우, 기존 코드로 진행한 결과값을 저장
+        if (finalMatchedItem == null || "미분류".equals(finalMatchedItem.get("Country"))) {
+            finalCountry = defaultCountry;
+            finalTemplate = defaultTemplate;
+            finalLanguage = defaultLanguage;
+        } else {
+            finalCountry = (String) finalMatchedItem.get("Country");
+            finalTemplate = (String) finalMatchedItem.get("Template Name");
+            finalLanguage = String.join(",", (List<String>) finalMatchedItem.get("Language"));
             //System.out.println("Match found: Country=" + finalCountry + ", Template=" + finalTemplate + ", Language=" + finalLanguage);
             log.info("PL Match found: Country({}), Template=({}), Language({})", finalCountry, finalTemplate, finalLanguage);
-        } else {
-            log.info("No matching group found.");
         }
 
         if (finalTemplate.equals("미분류")) {
@@ -2150,6 +2267,10 @@ public class DocumentService {
         String finalCountry = "미분류";
         String finalLanguage = "미분류";
         String finalTemplate = "미분류";
+
+        String defaultCountry = "미분류";
+        String defaultLanguage = "미분류";
+        String defaultTemplate = "미분류";
 
         // 조건에 맞는 항목 필터링
         List<Map<String, Object>> filtered = filteredResult.stream()
@@ -2204,9 +2325,9 @@ public class DocumentService {
             long maxCountOccurrences = grouped.values().stream().filter(count -> count == maxCount).count();
 
             if (maxCountOccurrences > 1) {
-                finalCountry = "미분류";
-                finalTemplate = "미분류";
-                finalLanguage = "미분류";
+                defaultCountry = "미분류";
+                defaultTemplate = "미분류";
+                defaultLanguage = "미분류";
                 log.info("Multiple max elements found - Classified as unclassified");
             } else {
                 Map.Entry<String, Long> maxEntry = grouped.entrySet().stream()
@@ -2217,45 +2338,127 @@ public class DocumentService {
                 log.info("Filtering And Grouping Result Max Entry: Key{}, Count{}", maxEntry.getKey(), maxEntry.getValue());
 
                 String[] resultKeys = maxEntry.getKey().split("\\|");
-                finalCountry = resultKeys[0];
-                finalTemplate = resultKeys[1];
-                finalLanguage = resultKeys[2];
+                defaultCountry = resultKeys[0];
+                defaultTemplate = resultKeys[1];
+                defaultLanguage = resultKeys[2];
             }
         } catch (NoSuchElementException e) {
-            finalCountry = "미분류";
-            finalLanguage = "미분류";
-            finalTemplate = "미분류";
+            defaultCountry = "미분류";
+            defaultLanguage = "미분류";
+            defaultTemplate = "미분류";
             log.info("No max element found - Classified as unclassified : {}", e);
         }
 
-        // 필터링된 결과에서 count가 1 이상이고 pl이 1인 항목을 찾음
-        List<Map<String, Object>> pl1Items = groupedResult.stream()
-                .filter(res -> ((Number) res.get("Count")).longValue() >= 1 && ((Number) res.get("PL")).intValue() == 1)
-                .collect(Collectors.toList());
+        // 필터링된 결과를 저장할 리스트
+        List<Map<String, Object>> matchedItems = new ArrayList<>();
+        Set<String> uniqueItems = new HashSet<>();
 
-        // 필터링된 결과에서 count가 1 이상이고 pl이 2인 항목을 찾음
-        List<Map<String, Object>> pl2Items = groupedResult.stream()
-                .filter(res -> ((Number) res.get("Count")).longValue() >= 1 && ((Number) res.get("PL")).intValue() == 2)
-                .collect(Collectors.toList());
+        // configLoader.plValue로 전달받은 숫자만큼 반복
+        for (int plValue = 1; plValue <= configLoader.plValue; plValue++) {
+            // 필터링된 결과에서 count가 1 이상이고 pl이 plValue인 항목을 찾음
+            int finalPlValue = plValue;
+            List<Map<String, Object>> plItems = groupedResult.stream()
+                    .filter(res -> ((Number) res.get("Count")).longValue() >= 1 && ((Number) res.get("PL")).intValue() == finalPlValue)
+                    .collect(Collectors.toList());
 
-        // 두 조건을 모두 만족하는 그룹을 찾음
-        Map<String, Object> matchedItem = pl1Items.stream()
-                .filter(pl1Item -> pl2Items.stream().anyMatch(pl2Item ->
-                        pl1Item.get("Country").equals(pl2Item.get("Country"))
-                                && pl1Item.get("Template Name").equals(pl2Item.get("Template Name"))
-                                && pl1Item.get("Language").equals(pl2Item.get("Language"))
-                ))
-                .findFirst()
-                .orElse(null);
+            // plValue인 항목이 없을 경우, plValue 이하의 수 중 가장 큰 수를 찾음
+            if (plItems.isEmpty()) {
+                for (int i = plValue - 1; i >= 1; i--) {
+                    int finalI = i;
+                    plItems = groupedResult.stream()
+                            .filter(res -> ((Number) res.get("Count")).longValue() >= 1 && ((Number) res.get("PL")).intValue() == finalI)
+                            .collect(Collectors.toList());
+                    if (!plItems.isEmpty()) {
+                        break;
+                    }
+                }
+            }
 
-        if (matchedItem != null) {
-            finalCountry = (String) matchedItem.get("Country");
-            finalTemplate = (String) matchedItem.get("Template Name");
-            finalLanguage = String.join(",", (List<String>) matchedItem.get("Language"));
+            // 필터링된 항목들을 matchedItems에 추가
+            for (Map<String, Object> item : plItems) {
+                String uniqueKey = item.get("Country") + "|" + item.get("Template Name") + "|" + item.get("Language");
+                if (!uniqueItems.contains(uniqueKey)) {
+                    uniqueItems.add(uniqueKey);
+                    matchedItems.add(item);
+                } else {
+                    // 중복된 항목이 발견되면 "미분류"로 설정
+                    item.put("Country", "미분류");
+                    item.put("Template Name", "미분류");
+                    item.put("Language", List.of("미분류"));
+                    matchedItems.add(item);
+                }
+            }
+        }
+
+        // 연속된 PL 값을 포함하는 그룹을 찾음
+        Map<String, Object> finalMatchedItem = null;
+        int maxContinuousPL = 0;
+        List<Map<String, Object>> potentialMatches = new ArrayList<>();
+
+        for (Map<String, Object> item : matchedItems) {
+            String country = (String) item.get("Country");
+            String templateName = (String) item.get("Template Name");
+            List<String> language = (List<String>) item.get("Language");
+
+            int continuousPL = 0;
+            for (int i = 1; i <= configLoader.plValue; i++) {
+                int finalI = i;
+                boolean containsPL = matchedItems.stream().anyMatch(matchedItem ->
+                        matchedItem.get("Country").equals(country)
+                                && matchedItem.get("Template Name").equals(templateName)
+                                && matchedItem.get("Language").equals(language)
+                                && ((Number) matchedItem.get("PL")).intValue() == finalI
+                );
+                if (containsPL) {
+                    continuousPL = i;
+                } else {
+                    break;
+                }
+            }
+
+            if (continuousPL > maxContinuousPL) {
+                maxContinuousPL = continuousPL;
+                potentialMatches.clear();
+                potentialMatches.add(item);
+            } else if (continuousPL == maxContinuousPL) {
+                potentialMatches.add(item);
+            }
+        }
+
+        // 조건을 만족하는 결과가 여러 개일 경우 "미분류"로 설정
+        if (potentialMatches.size() > 1) {
+            finalMatchedItem = new HashMap<>();
+            finalMatchedItem.put("Country", "미분류");
+            finalMatchedItem.put("Template Name", "미분류");
+            finalMatchedItem.put("Language", List.of("미분류"));
+        } else if (!potentialMatches.isEmpty()) {
+            finalMatchedItem = potentialMatches.get(0);
+            log.info("PL comparison results are the same");
+        }
+
+        // 최종적으로 조건을 만족하는 항목을 찾음
+        if (finalMatchedItem == null) {
+            finalMatchedItem = matchedItems.stream()
+                    .filter(item -> matchedItems.stream().anyMatch(matchedItem ->
+                            matchedItem.get("Country").equals(item.get("Country"))
+                                    && matchedItem.get("Template Name").equals(item.get("Template Name"))
+                                    && matchedItem.get("Language").equals(item.get("Language"))
+                    ))
+                    .findFirst()
+                    .orElse(null);
+        }
+
+        // PL에 해당하는 값이 없을 경우, 기존 코드로 진행한 결과값을 저장
+        if (finalMatchedItem == null || "미분류".equals(finalMatchedItem.get("Country"))) {
+            finalCountry = defaultCountry;
+            finalTemplate = defaultTemplate;
+            finalLanguage = defaultLanguage;
+        } else {
+            finalCountry = (String) finalMatchedItem.get("Country");
+            finalTemplate = (String) finalMatchedItem.get("Template Name");
+            finalLanguage = String.join(",", (List<String>) finalMatchedItem.get("Language"));
             //System.out.println("Match found: Country=" + finalCountry + ", Template=" + finalTemplate + ", Language=" + finalLanguage);
             log.info("PL Match found: Country({}), Template=({}), Language({})", finalCountry, finalTemplate, finalLanguage);
-        } else {
-            log.info("No matching group found.");
         }
 
         Map<String, List<Map<String, Object>>> formMatchedWords = new HashMap<>();

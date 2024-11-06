@@ -55,6 +55,8 @@ public class ConfigLoader {
     public boolean createFolders;
     public String foldersCriteria;
 
+    public int plValue;
+
     private String configFilePath = "Config.xml";
     //jar파일 만들 때 상대경로 config 파일 빼놓기 위한 경로
 
@@ -269,6 +271,13 @@ public class ConfigLoader {
             } else {
                 log.error("The foldersCriteria tag does not exist in Config.xml. Application will terminate.");
                 throw new RuntimeException("Missing required configuration: foldersCriteria");
+            }
+
+            if (root.getElementsByTagName("plValue").getLength() > 0) {
+                plValue = Integer.parseInt(root.getElementsByTagName("plValue").item(0).getTextContent().trim());
+            } else {
+                log.error("The plValue tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: plValue");
             }
 
         } catch (Exception e) {

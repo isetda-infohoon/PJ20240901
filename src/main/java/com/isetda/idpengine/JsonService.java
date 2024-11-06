@@ -615,11 +615,15 @@ public class JsonService {
                     for (int l = 0; l < languageArray.length(); l++) {
                         languages.add(languageArray.getString(l));
                     }
-                    log.info("Template: {}, Languages: {}", formName, languages);
+                    String disable = form.optString("Disable", "false");
+                    log.info("Template: {}, Languages: {}, Disable: {}", formName, languages, disable);
+
+                    boolean disableValue = Boolean.parseBoolean(disable);
 
                     Map<String, Object> formMap = new HashMap<>();
                     formMap.put("Template Name", formName);
                     formMap.put("Language", languages);
+                    formMap.put("Disable", disableValue);
 
                     // H-RULE
                     JSONArray hrules = form.getJSONArray("H-RULE");
@@ -672,8 +676,10 @@ public class JsonService {
             for (Map<String, Object> formMap : formList) {
                 String formName = (String) formMap.get("Template Name");
                 List<String> languages = (List<String>) formMap.get("Language");
+                Boolean disable = (boolean) formMap.get("Disable");
                 System.out.println("  Template Name: " + formName);
                 System.out.println("  Languages: " + languages);
+                System.out.println("  Disable: " + disable);
 
                 List<Map<String, Object>> hRules = (List<Map<String, Object>>) formMap.get("H-RULE");
                 System.out.println("    H-RULE:");
