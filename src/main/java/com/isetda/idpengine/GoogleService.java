@@ -50,37 +50,53 @@ public class GoogleService {
             return;
         }
 
-        String accessToken = getAccessToken();
+        String accessToken;
+        try {
+            accessToken = getAccessToken();
+        } catch (IOException e) {
+            log.error("Error obtaining access token", e);
+            return;
+        }
+
         OkHttpClient client = new OkHttpClient();
 
+        String objectName = file.getName();
+        BlobId blobId = BlobId.of(configLoader.bucketNames.get(0), objectName);
 
-            String objectName = file.getName();
-            BlobId blobId = BlobId.of(configLoader.bucketNames.get(0), objectName);
+        // 버킷에 해당 파일이 있는지 확인
+        if (storage.get(blobId) != null) {
+            log.warn("Image file already exists in bucket: {}", objectName);
+            deleteFileInBucket(storage, blobId);
+        }
+        BlobInfo blobInfo = BlobInfo.newBuilder(blobId).build();
 
-            // 버킷에 해당 파일이 있는 지 확인
-            if (storage.get(blobId) != null) {
-                log.warn("Image file already exists in bucket: {}", objectName);
-                deleteFileInBucket(storage,blobId);
-            }
-            BlobInfo blobInfo = BlobInfo.newBuilder(blobId).build();
+        // 버킷 업로드
+        try {
+            storage.create(blobInfo, Files.readAllBytes(file.toPath()));
+            log.info("{} File upload successful", file.getName());
+        } catch (IOException e) {
+            log.error("Error uploading file: {}", file.getName(), e);
+            return;
+        }
 
-            // 버킷 업로드
-            try { // 이미지 버킷에 업로드
-                storage.create(blobInfo, Files.readAllBytes(file.toPath()));
-                log.info("{} File upload successful", file.getName());
-            } catch (IOException e) {
-                log.error("Error uploading file: {}", file.getName(), e);
-                throw e;
-            }
-
-            // OCR 수행
+        // OCR 수행
+        try {
             byte[] imgBytes = storage.readAllBytes(blobId);
             String imgBase64 = Base64.getEncoder().encodeToString(imgBytes);
 
-            String jsonRequest = new JSONObject().put("requests", new JSONArray().put(new JSONObject().put("image", new JSONObject().put("content", imgBase64)).put("features", new JSONArray().put(new JSONObject().put("type", "TEXT_DETECTION"))))).toString();
+            String jsonRequest = new JSONObject()
+                    .put("requests", new JSONArray()
+                            .put(new JSONObject()
+                                    .put("image", new JSONObject().put("content", imgBase64))
+                                    .put("features", new JSONArray().put(new JSONObject().put("type", "TEXT_DETECTION")))
+                            )).toString();
 
             RequestBody body = RequestBody.create(jsonRequest, MediaType.parse("application/json; charset=utf-8"));
-            Request request = new Request.Builder().url(configLoader.ocrUrl).addHeader("Authorization", "Bearer " + accessToken).post(body).build();
+            Request request = new Request.Builder()
+                    .url(configLoader.ocrUrl)
+                    .addHeader("Authorization", "Bearer " + accessToken)
+                    .post(body)
+                    .build();
 
             try (Response response = client.newCall(request).execute()) {
                 if (!response.isSuccessful()) {
@@ -90,31 +106,31 @@ public class GoogleService {
 
                 String responseBody = response.body().string();
                 String outputFileName = file.getName().substring(0, file.getName().lastIndexOf("."));
-                //json ->  dat로 변경
                 String outputPath = configLoader.resultFilePath + "\\" + outputFileName + "_result.dat";
-                try (FileWriter writer = new FileWriter(outputPath)) {
 
-                    if(configLoader.encodingCheck==true){
-                        //인코딩 디코딩 하는 메서드 ---------------------
+                try (FileWriter writer = new FileWriter(outputPath)) {
+                    if (configLoader.encodingCheck) {
                         byte[] encData = JsonService.aesEncode(responseBody);
-                        Files.write(Paths.get(outputPath),encData);
+                        Files.write(Paths.get(outputPath), encData);
 
                         byte[] fileContent = Files.readAllBytes(Paths.get(outputPath));
                         String decodedText = JsonService.aesDecode(fileContent);
                         log.debug("Decoding text: {}", decodedText);
-//                    ------------------------------------------------------------------
-                    }
-                    if (!configLoader.encodingCheck==true){
+                    } else {
                         writer.write(responseBody);
                     }
                     jsonFilePaths.add(outputPath); // JSON 파일 경로 리스트에 추가
                     log.info("JSON file download successful");
                 } catch (Exception e) {
-                    throw new RuntimeException(e);
+                    log.error("Error saving OCR response", e);
                 }
+
                 log.info("OCR request successful");
                 deleteFileInBucket(storage, blobId);
             }
+        } catch (IOException e) {
+            log.error("Network error during OCR request", e);
+        }
     }
 
     //구글 인증 토근 설정

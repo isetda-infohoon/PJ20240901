@@ -1,6 +1,9 @@
 package com.isetda.idpengine;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.math3.ml.clustering.Cluster;
+import org.apache.commons.math3.ml.clustering.DBSCANClusterer;
+import org.apache.commons.math3.ml.clustering.DoublePoint;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
@@ -92,6 +95,7 @@ public class JsonService {
         if (!currentGroup.isEmpty()) {
             groups.add(currentGroup);
         }
+        log.info("확인 :{}",groups);
 
         // Step 3: Sort each group by minX
         for (List<Map<String, Object>> group : groups) {
@@ -100,6 +104,48 @@ public class JsonService {
 
         // Step 4: Flatten the groups back into a single list
         return groups.stream()
+                .flatMap(List::stream)
+                .collect(Collectors.toList());
+    }
+
+    public static List<Map<String, Object>> sortAnnotations4(List<Map<String, Object>> items, double eps, int minPts) {
+        // Step 1: Convert each item to a DoublePoint for DBSCAN
+        List<DoublePoint> points = items.stream()
+                .map(item -> new DoublePoint(new double[]{
+                        (Integer) item.get("minX"),
+                        (Integer) item.get("minY")
+                }))
+                .collect(Collectors.toList());
+
+        // Step 2: Perform DBSCAN clustering
+        DBSCANClusterer<DoublePoint> clusterer = new DBSCANClusterer<>(eps, minPts);
+        List<Cluster<DoublePoint>> clusters = clusterer.cluster(points);
+
+        // Step 3: Group original items into clusters
+        List<List<Map<String, Object>>> groupedItems = new ArrayList<>();
+        for (Cluster<DoublePoint> cluster : clusters) {
+            List<Map<String, Object>> group = new ArrayList<>();
+            for (DoublePoint point : cluster.getPoints()) {
+                // Find the corresponding item by matching minX and minY
+                Map<String, Object> item = items.stream()
+                        .filter(i -> (Integer) i.get("minX") == (int) point.getPoint()[0]
+                                && (Integer) i.get("minY") == (int) point.getPoint()[1])
+                        .findFirst()
+                        .orElse(null);
+                if (item != null) {
+                    group.add(item);
+                }
+            }
+            groupedItems.add(group);
+        }
+
+        // Step 4: Sort each group by minX
+        for (List<Map<String, Object>> group : groupedItems) {
+            group.sort(Comparator.comparingInt(a -> (Integer) a.get("minX")));
+        }
+
+        // Step 5: Flatten the groups back into a single list
+        return groupedItems.stream()
                 .flatMap(List::stream)
                 .collect(Collectors.toList());
     }
@@ -376,21 +422,6 @@ public class JsonService {
 //
 //        return jsonCollection2;
 //    }
-
-    //TODO 아직 더 수정해야 됨 match2에서 단어 리스트와 동일한 것의 값을 가져오면서 그에 해당하는 좌표를 가져와야 함
-    public static List<Map<String, Object>>findtheword(Set<String> targetWords){
-        jsonCollection3 = new ArrayList<>();
-        for (Map<String, Object> item : jsonCollection2) {
-            String description = (String) item.get("description");
-            if (targetWords.contains(description)) {
-//                log.info("확인 : {}",item);
-                jsonCollection3.add(item);
-            }
-        }
-//        log.info("jsonCollection3 :{}",jsonCollection3);
-        return jsonCollection3;
-    }
-
 
     //모든 연속된 단어을 저장하는 것
     private static void addToCollection2(List<Map<String, Object>> checkText, String combinedText,

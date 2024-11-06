@@ -474,7 +474,6 @@ public class ExcelService {
 
                     if (valueList != null) {
                         String value = valueList.get(version); // 버전 별 결과 양식
-
                         if (value != null) {
                             Path targetDir = Paths.get(resultFilePath, value);
                             if (!Files.exists(targetDir)) {
