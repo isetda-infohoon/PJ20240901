@@ -16,6 +16,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class IDPEngineController {
@@ -191,6 +192,8 @@ public class IDPEngineController {
         // 현재 Stage 가져오기
         Stage stage = (Stage) btn2.getScene().getWindow();
 
+        String countryName = countryCode.getText();
+
         // 버튼을 누르면 프로그램 최소화
         stage.setIconified(true);
 
@@ -198,8 +201,21 @@ public class IDPEngineController {
             int a = 1;
             btn2.setDisable(true);
             byte[] jsonToByte = null;
+
+            String jsonFilePath = configLoader.jsonFilePath;
+            String RullFilePath="";
+
+            if(Objects.equals(countryName, "")){
+                RullFilePath = configLoader.jsonFilePath;
+            }
+            else {
+                RullFilePath = new StringBuilder(jsonFilePath).insert(jsonFilePath.indexOf('.'), "-"+countryName).toString();
+            }
+
+            // 결과 출력
+            System.out.println("결과: " + RullFilePath);
             try {
-                jsonToByte = Files.readAllBytes(Paths.get(configLoader.jsonFilePath));
+                jsonToByte = Files.readAllBytes(Paths.get(RullFilePath));
             } catch (IOException e) {
                 errorLabel.setText("all success");
                 throw new RuntimeException(e);
