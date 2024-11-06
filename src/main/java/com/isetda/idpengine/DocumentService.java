@@ -250,9 +250,7 @@ public class DocumentService {
             log.error("엑셀 파일 생성 실패: {}", e.getStackTrace()[0]);
         }
         matchjsonWord = new ArrayList<>();
-        log.info("확인 4:{}",resultList);
         resultByVersion.get(baseFileName).put(a, resultList.get(2).get(1)+"("+resultList.get(0).get(1)+")");
-        log.info("확인 5 : {}", resultByVersion);
 
     }
 
