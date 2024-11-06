@@ -32,7 +32,7 @@ public class DocumentService {
     String datasetSavePath;
 
     Map<String, Map<String, String>> resultByVersion = new HashMap<>();
-
+    Map<String, Map<String, String>> resultByVersionLan = new HashMap<>();
     //정다현 추가
      public String imgFileName;
 
@@ -139,6 +139,14 @@ public class DocumentService {
                 }
 
                 if (configLoader.cd3UsageFlag) {
+//                    double eps = jsonService.jsonCollection.size() < 100 ? 15.0 : 25.0;
+//                    int minPts = jsonService.jsonCollection.size() < 100 ? 2 : 3;
+//                    List<Map<String, Object>> sortedCollection = JsonService.sortAnnotations4(
+//                            jsonService.jsonCollection,
+//                            eps,
+//                            minPts
+//                    );
+//                    jsonService.jsonCollection = sortedCollection;
                     JsonService.sortAnnotations(jsonService.jsonCollection);
                     JsonService.findMatchingWords(jsonService.jsonCollection);
                     classifyDocuments_C3(jsonData, JsonService.jsonCollection2);
@@ -163,7 +171,6 @@ public class DocumentService {
         for (Map.Entry<String, Map<String, String>> entry : resultByVersion.entrySet()) {
             String filename = entry.getKey();
             Map<String, String> versionMap = entry.getValue();
-
             System.out.println("Filename: " + filename);
             for (Map.Entry<String, String> versionEntry : versionMap.entrySet()) {
                 String version = versionEntry.getKey();
@@ -243,7 +250,10 @@ public class DocumentService {
             log.error("엑셀 파일 생성 실패: {}", e.getStackTrace()[0]);
         }
         matchjsonWord = new ArrayList<>();
-        resultByVersion.get(baseFileName).put(a, resultList.get(2).get(1));
+        log.info("확인 4:{}",resultList);
+        resultByVersion.get(baseFileName).put(a, resultList.get(2).get(1)+"("+resultList.get(0).get(1)+")");
+        log.info("확인 5 : {}", resultByVersion);
+
     }
 
     // 합쳐진 추출 단어(description)로 일치 단어 비교

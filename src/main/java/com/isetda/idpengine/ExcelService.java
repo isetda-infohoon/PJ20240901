@@ -468,10 +468,11 @@ public class ExcelService {
 
                 if (resultByVersion != null) {
                     Map<String, String> valueList = resultByVersion.get(baseName);
+                    log.info("확인 :{}",valueList);
+//                    log.info("확인 3:{}",);
 
                     if (valueList != null) {
                         String value = valueList.get(version); // 버전 별 결과 양식
-
                         if (value != null) {
                             Path targetDir = Paths.get(resultFilePath, value);
                             if (!Files.exists(targetDir)) {

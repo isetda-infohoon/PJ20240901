@@ -128,6 +128,14 @@
         <artifactId>opencv</artifactId>
         <version>4.9.0-0</version>
       </dependency>
+
+<!--&lt;!&ndash;   정렬을 위한 라이브러리 math3 &ndash;&gt;-->
+<!--    <dependency>-->
+<!--      <groupId>org.apache.commons</groupId>-->
+<!--      <artifactId>commons-math3</artifactId>-->
+<!--      <version>3.6.1</version>-->
+<!--    </dependency>-->
+
   </dependencies>
 
   <build>
@@ -161,6 +169,7 @@
           </execution>
         </executions>
       </plugin>
+
 
       <!-- Build Number Plugin -->
       <plugin>
