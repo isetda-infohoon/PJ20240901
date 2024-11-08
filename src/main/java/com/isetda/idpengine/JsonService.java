@@ -95,7 +95,6 @@ public class JsonService {
         if (!currentGroup.isEmpty()) {
             groups.add(currentGroup);
         }
-        log.info("확인 :{}",groups);
 
         // Step 3: Sort each group by minX
         for (List<Map<String, Object>> group : groups) {
@@ -149,73 +148,6 @@ public class JsonService {
                 .flatMap(List::stream)
                 .collect(Collectors.toList());
     }
-//    public static List<Map<String, Object>> sortAnnotations(List<Map<String, Object>> items) {
-//        log.info("===== Starting Word Sorting Process =====");
-//
-//        // Step 1: Sort by minY
-//        items.sort(Comparator.comparingInt(a -> (Integer) a.getOrDefault("minY", Integer.MAX_VALUE)));
-//        log.info("Initial Y-axis sorting completed");
-//
-//        // Step 2: Group items with similar minY values
-//        List<List<Map<String, Object>>> groups = new ArrayList<>();
-//        List<Map<String, Object>> currentGroup = new ArrayList<>();
-//        currentGroup.add(items.get(0));
-//
-//        for (int i = 1; i < items.size(); i++) {
-//            Map<String, Object> current = items.get(i);
-//            Map<String, Object> previous = items.get(i - 1);
-//
-//            int currentMinY = (Integer) current.getOrDefault("minY", Integer.MAX_VALUE);
-//            int previousMinY = (Integer) previous.getOrDefault("minY", Integer.MAX_VALUE);
-//
-//            if (Math.abs(currentMinY - previousMinY) <= 10) {
-//                currentGroup.add(current);
-//            } else {
-//                groups.add(new ArrayList<>(currentGroup));
-//                currentGroup.clear();
-//                currentGroup.add(current);
-//            }
-//        }
-//        if (!currentGroup.isEmpty()) {
-//            groups.add(currentGroup);
-//        }
-//
-//        // Step 3: Sort each group by minX and log the groups
-//        log.info("===== Grouped Words by Y-axis (Groups separated by lines) =====");
-//        for (int groupIndex = 0; groupIndex < groups.size(); groupIndex++) {
-//            List<Map<String, Object>> group = groups.get(groupIndex);
-//            group.sort(Comparator.comparingInt(a -> (Integer) a.getOrDefault("minX", Integer.MAX_VALUE)));
-//
-//            // Log group header
-//            log.info("Group {}: {} words", groupIndex + 1, group.size());
-//
-//            // Log each word in the group with formatted coordinates
-//            for (Map<String, Object> item : group) {
-//                String word = (String) item.get("description");
-//                int minX = (Integer) item.getOrDefault("minX", 0);
-//                int minY = (Integer) item.getOrDefault("minY", 0);
-//                int maxX = (Integer) item.getOrDefault("maxX", 0);
-//                int maxY = (Integer) item.getOrDefault("maxY", 0);
-//
-//                log.info(String.format("%-30s | X[%4d-%4d] Y[%4d-%4d] | Width: %3d | Height: %3d",
-//                        word,
-//                        minX, maxX,
-//                        minY, maxY,
-//                        (maxX - minX),
-//                        (maxY - minY)));
-//            }
-//            log.info("----------------------------------------");
-//        }
-//
-//        // Step 4: Flatten the groups back into a single list
-//        List<Map<String, Object>> result = groups.stream()
-//                .flatMap(List::stream)
-//                .collect(Collectors.toList());
-//
-//        log.info("===== Sorting Complete: {} words processed =====\n", result.size());
-//
-//        return result;
-//    }
 
     //json에서 단어, 위치 가져와서 정렬 (1차)
     public void getWordPosition() {

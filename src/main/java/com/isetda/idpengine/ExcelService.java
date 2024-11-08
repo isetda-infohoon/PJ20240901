@@ -469,6 +469,7 @@ public class ExcelService {
                 String baseName = fileName.replace("_result.xlsx", ""); // 파일 이름에서 확장자 제거
                 System.out.println("base name : " + baseName);
 
+
                 if (resultByVersion != null) {
                     Map<String, String> valueList = resultByVersion.get(baseName);
 
@@ -503,12 +504,13 @@ public class ExcelService {
                             Matcher matcher = pattern.matcher(baseName);
                             if (matcher.matches()) {
                                 String pdfBaseName = matcher.group(1); // -page?를 제외한 이름
-                                File[] pdfFiles = folder.listFiles((dir, name) -> name.startsWith(pdfBaseName) && name.endsWith(".pdf"));
+                                //구버전
+                                File[] pdfFiles = folder.listFiles((dir, name) -> name.startsWith(pdfBaseName) && (name.toLowerCase().matches(".(pdf|jpg|png|jpeg)$")));;
                                 if (pdfFiles != null) {
                                     for (File pdfFile : pdfFiles) {
                                         Path targetPath = targetDir.resolve(pdfFile.getName());
                                         try {
-                                            Files.copy(pdfFile.toPath(), targetPath);
+                                            Files.move(pdfFile.toPath(), targetPath);
                                             log.info("Moved PDF file : '{}' to '{}'", pdfFile.getName(), targetPath);
                                         } catch (IOException e) {
                                             log.info("'{}' PDF file move failed : {}", pdfFile.getName(), e);
@@ -526,12 +528,12 @@ public class ExcelService {
         File[] remainingFiles = folder.listFiles();
         if (remainingFiles != null) {
             for (File remainingFile : remainingFiles) {
-                if (remainingFile.isFile() && remainingFile.getName().endsWith(".pdf")) {
+                if (remainingFile.isFile() && remainingFile.getName().toLowerCase().matches(".*\\.(pdf|jpg|png|jpeg)$")) {
                     try {
                         Files.delete(remainingFile.toPath());
-                        log.info("Deleted PDF file : '{}'", remainingFile.getName());
+                        log.info("Deleted PDF or IMG file : '{}'", remainingFile.getName());
                     } catch (IOException e) {
-                        log.info("'{}' PDF file delete failed : {}", remainingFile.getName(), e);
+                        log.info("'{}' PDF file or IMG delete failed : {}", remainingFile.getName(), e);
                     }
                 }
             }

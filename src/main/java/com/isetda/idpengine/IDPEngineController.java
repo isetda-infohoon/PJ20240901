@@ -14,6 +14,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -40,6 +41,10 @@ public class IDPEngineController {
 
     private ExcelService excelService = new ExcelService();
     private DocumentService documentService = new DocumentService();
+
+    List<File> badFileImg = new ArrayList<>();
+
+
 
     String resultFilePath = configLoader.resultFilePath;
     @FXML
@@ -128,10 +133,6 @@ public class IDPEngineController {
 
         configLoader.saveConfig(); // 변경된 경로를 XML 파일에 저장
 
-        File sourceFolder = new File(configLoader.imageFolderPath);
-        File[] sourceFiles = sourceFolder.listFiles(); // 폴더 안의 모든 파일 목록 가져오기
-
-
         documentService.configLoader = configLoader;
         IOService.configLoader = configLoader;
         googleService.configLoader = configLoader;
@@ -159,12 +160,21 @@ public class IDPEngineController {
             for (File file : imageAndPdfFiles) {
                 log.info("{} Start processing files: {}", a, file.getName());
                 try {
-                    IOService.copyFiles(file);
+                    if(file.getName().toLowerCase().endsWith(".pdf")){
+                        IOService.copyFiles(file);
+                        continue;
+                    }
+                    googleService.uploadAndOCR(file);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
                 try {
-                    googleService.uploadAndOCR(file);
+                    if (googleService.checkBadImg == true){
+                        IOService.copyFiles(file);
+                    }
+                    else {
+                            badFileImg.add(file);
+                    }
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -180,8 +190,16 @@ public class IDPEngineController {
 
                 });
             }
+            for (File file : badFileImg){
+                try {
+                    IOService.ImgToPDF(file);
+                    IOService.copyFiles(file);
+                    googleService.uploadAndOCR(IOService.badImgToPDF);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
 
-            // 모든 파일이 처리된 후 최종 50%로 고정
             Platform.runLater(() -> {
                 progressBar.setProgress(1);
                 errorLabel.setText("Files Copy and Upload success");
@@ -200,6 +218,110 @@ public class IDPEngineController {
         btn1files.setText("files in source folder : " +IOService.allFilesInSourceFolder.size()); // 파일 개수를 UI에 표시
 
     }
+
+//    public void onButton1Click() throws IOException {
+//        // 현재 Stage 가져오기
+//        Stage stage = (Stage) btn1.getScene().getWindow();
+//
+//        // 버튼을 누르면 프로그램 최소화
+//        stage.setIconified(true);
+//
+//        btn1.setDisable(true);
+//        IOService IOService = new IOService();
+//        GoogleService googleService = new GoogleService();
+//
+//        if (inputImageFolderPath.getText().isEmpty()) {
+//            log.info("Source folder path(default): {}", configLoader.imageFolderPath);
+//            inputImageFolderPath.setText(configLoader.imageFolderPath);
+//        } else {
+//            configLoader.imageFolderPath = inputImageFolderPath.getText();
+//            log.info("Source folder path(input): {}", configLoader.imageFolderPath);
+//        }
+//
+//        if (inputResultFolderPath.getText().isEmpty()) {
+//            log.info("Result folder path(default): {}", configLoader.resultFilePath);
+//        } else {
+//            configLoader.resultFilePath = inputResultFolderPath.getText();
+//            log.info("Result folder path(input): {}", configLoader.resultFilePath);
+//        }
+//
+//        configLoader.saveConfig(); // 변경된 경로를 XML 파일에 저장
+//
+//        documentService.configLoader = configLoader;
+//        IOService.configLoader = configLoader;
+//        googleService.configLoader = configLoader;
+//
+//        File resultFolder = new File(configLoader.resultFilePath);
+//        if (!resultFolder.exists()) {
+//            boolean created = resultFolder.mkdirs(); // 여러 폴더도 생성 가능
+//            if (created) {
+//                log.info("Folder created: {}", resultFilePath);
+//            } else {
+//                log.info("Result folder exists: {}", resultFilePath);
+//            }
+//        }
+//
+//        imageAndPdfFiles = IOService.getFilteredFiles();
+//        int totalFiles = imageAndPdfFiles.length;
+//
+//        // 파일 하나 처리될 때마다 progress 비율 계산
+//        double progressStep = 1.0 / totalFiles; // 전체 진행의 100%
+//        AtomicReference<Double> currentProgress = new AtomicReference<>(0.0); // AtomicReference 사용
+//
+//        // 백그라운드에서 작업을 수행
+//        Thread taskThread = new Thread(() -> {
+//            int a = 1;
+//            for (File file : imageAndPdfFiles) {
+//                log.info("{} Start processing files: {}", a, file.getName());
+//                try {
+//                    googleService.uploadAndOCR(file);
+//                } catch (IOException e) {
+//                    throw new RuntimeException(e);
+//                }
+//                try {
+//                    if (googleService.checkBadImg == true){
+//                        IOService.copyFiles(file);
+//                    }
+//                    else {
+//                        log.info("Processing bad image: {}", file.getName());
+//                        IOService.ImgToPDF(file);
+//                        IOService.copyFiles(file);
+//                        googleService.uploadAndOCR(IOService.badImgToPDF);
+//                    }
+//                } catch (IOException e) {
+//                    throw new RuntimeException(e);
+//                }
+//                a++;
+//
+//                // UI 업데이트는 JavaFX Application Thread에서 실행
+//                double updatedProgress = currentProgress.get() + progressStep;
+//                currentProgress.set(updatedProgress); // AtomicReference 업데이트
+//
+//                Platform.runLater(() -> {
+//                    progressBar.setProgress(updatedProgress);
+//                    errorLabel.setText("Processing file: " + file.getName());
+//
+//                });
+//            }
+//
+//            Platform.runLater(() -> {
+//                progressBar.setProgress(1);
+//                errorLabel.setText("Files Copy and Upload success");
+//
+//                log.info("Number of image file copies: {}", imageAndPdfFiles.length);
+//                btn1.setDisable(false);
+//
+//                // 작업이 완료되면 프로그램을 다시 최대화
+//                stage.setIconified(false);
+//            });
+//        });
+//
+//        // 백그라운드 스레드 시작
+//        taskThread.setDaemon(true);
+//        taskThread.start();
+//        btn1files.setText("files in source folder : " +IOService.allFilesInSourceFolder.size()); // 파일 개수를 UI에 표시
+//
+//    }
     public double c;
 
     public void onButton2Click(ActionEvent event) throws Exception {
@@ -234,9 +356,6 @@ public class IDPEngineController {
                 errorLabel.setText("all success");
                 throw new RuntimeException(e);
             }
-//        documentService.jsonData = JsonService.getJsonDictionary(JsonService.aesDecode(jsonToByte));
-//        documentService.setController(this);  // controller 설정
-            //documentService.jsonData = JsonService.getJsonDictionary(JsonService.aesDecode(jsonToByte));
             try {
                 documentService.jsonData = JsonService.getJsonDictionary2(JsonService.aesDecode(jsonToByte));
             } catch (Exception e) {
@@ -263,53 +382,8 @@ public class IDPEngineController {
         // 백그라운드 스레드 시작
         taskThread.setDaemon(true);
         taskThread.start();
-//        btn1files.setText("filse in source folder : " +IOService.allFilesInSourceFolder.size()); // 파일 개수를 UI에 표시
-        //ExcelService.dataWriteExcel(documentService.jsonData);
-    }
 
-//        JsonService.processMarking(folderPath, jsonFolderPath);
-//public void onButton2Click(ActionEvent event) throws Exception {
-//    byte[] jsonToByte = Files.readAllBytes(Paths.get(configLoader.jsonFilePath));
-//    documentService.jsonData = JsonService.getJsonDictionary(JsonService.aesDecode(jsonToByte));
-//
-//    // 진행률 바 초기화
-//    progressBar.setProgress(0);
-//    errorLabel.setText("Starting document classification...");
-//    log.info("dd");
-//
-//    // 백그라운드 스레드에서 작업 실행
-//    Thread thread = new Thread(() -> {
-//        log.info("11");
-//            try {
-//                documentService.createFinalResultFile();
-//                    public void updateProgress(final double progress, final String message) {
-//                        Platform.runLater(new Runnable() {
-//                            @Override
-//                            public void run() {
-//                                progressBar.setProgress(progress);
-//                                errorLabel.setText(message);
-//                            }
-//                        });
-//                    }
-//                Platform.runLater(new Runnable() {
-//                    @Override
-//                    public void run() {
-//                        progressBar.setProgress(1);
-//                        errorLabel.setText("Document classification completed");
-//                    }
-//                });
-//            } catch (final Exception e) {
-//                Platform.runLater(new Runnable() {
-//                    @Override
-//                    public void run() {
-//                        errorLabel.setText("Error: " + e.getMessage());
-//                    }
-//                });
-//            }
-//    });
-//    thread.setDaemon(true);
-//    thread.start();
-//}
+    }
 
     public void processing() {
         configLoader.resultFilePath = inputResultFolderPath.getText();
@@ -341,38 +415,6 @@ public class IDPEngineController {
         // 전달 받은 폴더 경로의 json 파일 필터링
         documentService.jsonFiles = excelService.getFilteredJsonFiles();
         documentService.createFinalResultFile();
-//        imgService.processMarking(documentService.matchjsonWord, configLoader.resultFilePath,);
     }
 
-//    public void getDataset() {
-//        Thread taskThread = new Thread(() -> {
-//            byte[] jsonToByte = null;
-//            try {
-//                jsonToByte = Files.readAllBytes(Paths.get(configLoader.jsonFilePath));
-//            } catch (IOException e) {
-//                throw new RuntimeException(e);
-//            }
-//            try {
-//                documentService.jsonData = JsonService.getJsonDictionary2(JsonService.aesDecode(jsonToByte));
-//            } catch (Exception e) {
-//                throw new RuntimeException(e);
-//            }
-//            //errorLabel.setText("all success");
-//            //btn2files.setText("json files in result folder : "+documentService.jsonFiles.length);
-////            // 모든 파일이 처리된 후 최종 50%로 고정
-////            Platform.runLater(() -> {
-////                btn2.setDisable(false);
-////
-////            });
-//        });
-//
-//        // 백그라운드 스레드 시작
-//        taskThread.setDaemon(true);
-//        taskThread.start();
-//
-//        excelService.configLoader = configLoader;
-//        documentService.configLoader = configLoader;
-//
-//        documentService.dataWriteExcel();
-//    }
 }

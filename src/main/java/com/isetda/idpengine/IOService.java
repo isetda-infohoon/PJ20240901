@@ -5,6 +5,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.apache.pdfbox.rendering.ImageType;
 import org.apache.pdfbox.rendering.PDFRenderer;
 
@@ -21,8 +24,10 @@ import java.util.List;
 
 public class IOService {
     private static final Logger log = LogManager.getLogger(IOService.class);
-    public ConfigLoader configLoader;
+    public static ConfigLoader configLoader;
     public List<File> allFilesInSourceFolder;
+    //추가 11/07
+    public File badImgToPDF;
 
     public File[] getFilteredFiles() {
         log.info("Start filtering files {}", configLoader.imageFolderPath);
@@ -48,14 +53,6 @@ public class IOService {
 
         // 리스트를 배열로 변환하여 반환
         return filteredFiles.toArray(new File[0]);
-    }
-
-
-
-    private boolean isFileTypeAllowed(File file) {
-        String name = file.getName().toLowerCase();
-        return name.endsWith(".jpg") || name.endsWith(".jpeg") ||
-                name.endsWith(".png") || name.endsWith(".pdf");
     }
 
     private void findFilesRecursively(File folder, List<File> allFiles, List<File> filteredFiles) {
@@ -94,33 +91,6 @@ public class IOService {
             log.error("Error getting file list from folder: {}", folder.getAbsolutePath());
         }
     }
-
-
-    // PDF에서 이미지를 추출하는 메서드 (수정됨: 추출된 이미지를 반환)
-//    private List<File> extractImagesFromPDF(String pdfPath) throws IOException {
-//        List<File> extractedImages = new ArrayList<>();
-//
-//        try (PDDocument document = PDDocument.load(new File(pdfPath))) {
-//            PDFRenderer pdfRenderer = new PDFRenderer(document);
-//            int totalPages = document.getNumberOfPages(); // 전체 페이지 수
-//
-//            for (int page = 0; page < document.getNumberOfPages(); ++page) {
-//                BufferedImage bim = pdfRenderer.renderImageWithDPI(page, 600, ImageType.RGB);
-//                String fileName = pdfPath.replace(".pdf", "") + "-page" + page + ".jpg";
-//                File imageFile = new File(configLoader.resultFilePath, new File(fileName).getName());
-//                ImageIO.write(bim, "jpg", imageFile);
-//                extractedImages.add(imageFile);
-//
-//                log.info("Image extracted from PDF (page {}): {}", page + 1, imageFile.getAbsolutePath()); // 페이지 번호는 1부터 시작하도록 로그 출력
-//            }
-//            log.info("A total of {} images were extracted from PDF file: {}", totalPages, pdfPath); // 총 추출된 이미지 수 로그 출력
-//        } catch (IOException e) {
-//            log.error("Error extracting image from PDF file: {}", pdfPath, e);
-//            throw e;
-//        }
-//
-//        return extractedImages; // 추출된 이미지를 반환
-//    }
 
     private List<File> extractImagesFromPDF(String pdfPath) throws IOException {
         List<File> extractedImages = new ArrayList<>();
@@ -207,10 +177,10 @@ public class IOService {
             Path destinationPath = Paths.get(configLoader.resultFilePath, file.getName());
 
             // "PDF-"가 파일 이름에 포함된 경우 복사하지 않음
-            if (file.getName().contains("-page")) {
-                log.info("Do not copy images extracted from PDFs: {}", file.getName());
-                return;
-            }
+//            if (file.getName().contains("-page")) {
+//                log.info("Do not copy images extracted from PDFs: {}", file.getName());
+//                return;
+//            }
 
             // 동일한 이름의 파일이 이미 존재하는지 확인
             if (Files.exists(destinationPath)) {
@@ -227,6 +197,56 @@ public class IOService {
                 log.error("Error copying: Name: {} -> Storage path: {}, Error: {}", fileName, destinationPath, e.getMessage(), e);
                 throw e; // 오류 발생 시 던지기
             }
-
     }
+    //새로 추가 이미지를 pdf로 저장
+//    public void ImgToPDF(File imageFile) throws IOException {
+//            if (imageFile.getName().toLowerCase().matches(".*\\.(jpg|jpeg|png)$")) {
+//                try (PDDocument doc = new PDDocument()) {
+//                    PDPage page = new PDPage();
+//                    doc.addPage(page);
+//                    PDImageXObject img = PDImageXObject.createFromFile(imageFile.getAbsolutePath(), doc);
+//
+//                    try (PDPageContentStream cs = new PDPageContentStream(doc, page)) {
+//                        cs.drawImage(img, 0, 0, page.getMediaBox().getWidth(), page.getMediaBox().getHeight());
+//                    }
+//                    String outputFileName = imageFile.getName().replaceAll("(?i)\\.(jpg|jpeg|png)$", ".pdf");
+//                    String outputPath = configLoader.resultFilePath + File.separator + outputFileName;
+//                    // 이미지 파일 이름으로 PDF 저장
+//                    doc.save(outputPath);
+//                    badImgToPDF = extractImagesFromPDF(outputPath).getFirst();
+//                    log.info("확인11:{}",badImgToPDF);
+//                    System.out.println("Converted: " + imageFile.getName());
+//                } catch (IOException e) {
+//                    System.err.println("Error converting " + imageFile.getName());
+//                }
+//            } else {
+//                System.out.println(imageFile.getName() + " is not a valid image file.");
+//            }
+//    }
+    public void ImgToPDF(File imageFile) throws IOException {
+        if (imageFile.getName().toLowerCase().matches(".*\\.(jpg|jpeg|png)$")) {
+            try (PDDocument doc = new PDDocument()) {
+                BufferedImage bufferedImage = ImageIO.read(imageFile);
+                PDPage page = new PDPage(new PDRectangle(bufferedImage.getWidth(), bufferedImage.getHeight()));
+                doc.addPage(page);
+                PDImageXObject img = PDImageXObject.createFromFile(imageFile.getAbsolutePath(), doc);
+
+                try (PDPageContentStream cs = new PDPageContentStream(doc, page)) {
+                    cs.drawImage(img, 0, 0, bufferedImage.getWidth(), bufferedImage.getHeight());
+                }
+
+                String outputFileName = imageFile.getName().replaceAll("(?i)\\.(jpg|jpeg|png)$", ".pdf");
+                String outputPath = configLoader.resultFilePath + File.separator + outputFileName;
+                doc.save(outputPath);
+
+                badImgToPDF = extractImagesFromPDF(outputPath).getFirst();
+                log.info("Converted : {}",imageFile.getName());
+            } catch (IOException e) {
+                log.info("Error converting: {}",imageFile.getName());
+            }
+        } else {
+            log.info("{} is not a valid image file.",imageFile.getName());
+        }
+    }
+
 }
