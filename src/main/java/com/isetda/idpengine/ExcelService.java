@@ -505,12 +505,12 @@ public class ExcelService {
                             if (matcher.matches()) {
                                 String pdfBaseName = matcher.group(1); // -page?를 제외한 이름
                                 //구버전
-                                File[] pdfFiles = folder.listFiles((dir, name) -> name.startsWith(pdfBaseName) && (name.toLowerCase().matches(".(pdf|jpg|png|jpeg)$")));;
+                                File[] pdfFiles = folder.listFiles((dir, name) -> name.startsWith(pdfBaseName) && (name.toLowerCase().matches(".*\\.(pdf)$")));;
                                 if (pdfFiles != null) {
                                     for (File pdfFile : pdfFiles) {
                                         Path targetPath = targetDir.resolve(pdfFile.getName());
                                         try {
-                                            Files.move(pdfFile.toPath(), targetPath);
+                                            Files.copy(pdfFile.toPath(), targetPath);
                                             log.info("Moved PDF file : '{}' to '{}'", pdfFile.getName(), targetPath);
                                         } catch (IOException e) {
                                             log.info("'{}' PDF file move failed : {}", pdfFile.getName(), e);
