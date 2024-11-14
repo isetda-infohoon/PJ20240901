@@ -68,7 +68,7 @@ public class JsonService {
     }
 
     //정렬 로직[10/16] 구 버전 CD 3에 적용
-    public static List<Map<String, Object>> sortAnnotations(List<Map<String, Object>> items) {
+    public static List<Map<String, Object>> sortAnnotations3(List<Map<String, Object>> items) {
         // Step 1: Sort by minY
         items.sort(Comparator.comparingInt(a -> (Integer) a.getOrDefault("minY", Integer.MAX_VALUE)));
 
@@ -106,6 +106,79 @@ public class JsonService {
                 .flatMap(List::stream)
                 .collect(Collectors.toList());
     }
+
+    public static List<Map<String, Object>> sortAnnotations(List<Map<String, Object>> items) {
+        System.out.println("원본 데이터:");
+        printItems(items);
+
+        // Step 1: Sort by minY
+        items.sort(Comparator.comparingInt(a -> (Integer) a.getOrDefault("minY", Integer.MAX_VALUE)));
+        System.out.println("\nStep 1 - minY 기준 정렬 후:");
+        printItems(items);
+
+        // Step 2: Group items with similar minY values
+        List<List<Map<String, Object>>> groups = new ArrayList<>();
+        List<Map<String, Object>> currentGroup = new ArrayList<>();
+        currentGroup.add(items.get(0));
+
+        for (int i = 1; i < items.size(); i++) {
+            Map<String, Object> current = items.get(i);
+            Map<String, Object> previous = items.get(i - 1);
+
+            int currentMinY = (Integer) current.getOrDefault("minY", Integer.MAX_VALUE);
+            int previousMinY = (Integer) previous.getOrDefault("minY", Integer.MAX_VALUE);
+
+            if (Math.abs(currentMinY - previousMinY) <= 10) {
+                currentGroup.add(current);
+            } else {
+                groups.add(new ArrayList<>(currentGroup));
+                currentGroup.clear();
+                currentGroup.add(current);
+            }
+        }
+        if (!currentGroup.isEmpty()) {
+            groups.add(currentGroup);
+        }
+
+        System.out.println("\nStep 2 - minY 값이 비슷한 항목들의 그룹:");
+        for (int i = 0; i < groups.size(); i++) {
+            System.out.println("Group " + (i + 1) + ":");
+            printItems(groups.get(i));
+        }
+
+        // Step 3: Sort each group by minX
+        for (List<Map<String, Object>> group : groups) {
+            group.sort(Comparator.comparingInt(a -> (Integer) a.getOrDefault("minX", Integer.MAX_VALUE)));
+        }
+
+        System.out.println("\nStep 3 - 각 그룹 내 minX 기준 정렬 후:");
+        for (int i = 0; i < groups.size(); i++) {
+            System.out.println("Group " + (i + 1) + ":");
+            printItems(groups.get(i));
+        }
+
+        // Step 4: Flatten the groups back into a single list
+        List<Map<String, Object>> result = groups.stream()
+                .flatMap(List::stream)
+                .collect(Collectors.toList());
+
+        System.out.println("\nStep 4 - 최종 정렬 결과:");
+        printItems(result);
+        jsonCollection3 = result;
+        return result;
+    }
+
+    // 항목들을 보기 좋게 출력하는 헬퍼 메소드
+    public static void printItems(List<Map<String, Object>> items) {
+        for (Map<String, Object> item : items) {
+            System.out.printf("minY: %d, minX: %d, text: %s%n",
+                    item.getOrDefault("minY", Integer.MAX_VALUE),
+                    item.getOrDefault("minX", Integer.MAX_VALUE),
+                    item.getOrDefault("text", item.get("description")));
+        }
+    }
+
+
 
     public static List<Map<String, Object>> sortAnnotations4(List<Map<String, Object>> items, double eps, int minPts) {
         // Step 1: Convert each item to a DoublePoint for DBSCAN
