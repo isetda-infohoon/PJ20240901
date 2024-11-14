@@ -1971,9 +1971,9 @@ public class DocumentService {
         String finalCountry = "미분류";
         String finalLanguage = "미분류";
 
-        String defaultCountry = "미분류";
-        String defaultLanguage = "미분류";
-        String defaultTemplate = "미분류";
+        String defaultCountry = "";
+        String defaultLanguage = "";
+        String defaultTemplate = "";
 
         for (Map.Entry<String, List<Map<String, Object>>> countryEntry : jsonData.entrySet()) {
             String countryName = countryEntry.getKey();
@@ -2076,10 +2076,12 @@ public class DocumentService {
         for (Map<String, Object> res : groupedResult) {
             log.info("Grouped Result - Country: {}, Template Name: {}, Language: {}, WD: {}, WT: {}, KR: {}, Count: {}",
                     res.get("Country"), res.get("Template Name"), res.get("Language"), res.get("WD"), res.get("WT"), res.get("KR"), res.get("Count"));
-//            System.out.println("Grouped Result - Country: " + res.get("Country") + ", Template Name: " + res.get("Template Name") + ", " +
-//                            "Language: " + res.get("Language") + ", WD: " + res.get("WD") + ", WT: " + res.get("WT") + ", KR: " + res.get("KR") + ", PL: " + res.get("PL") + ", Count: " + res.get("Count"));
-        }
 
+//            if (0 < ((Number) res.get("PL")).intValue()) {
+//                System.out.println("Grouped Result - Country: " + res.get("Country") + ", Template Name: " + res.get("Template Name") + ", " +
+//                        "Language: " + res.get("Language") + ", WD: " + res.get("WD") + ", WT: " + res.get("WT") + ", KR: " + res.get("KR") + ", PL: " + res.get("PL") + ", Count: " + res.get("Count"));
+//            }
+        }
         //excelService.dataWriteExcel3(groupedResult, datasetSavePath);
 
         // 카운트가 가장 높은 그룹 찾기
@@ -2115,137 +2117,87 @@ public class DocumentService {
             log.info("No max element found - Classified as unclassified : {}", e);
         }
 
-//        // 필터링된 결과에서 count가 1 이상이고 pl이 1인 항목을 찾음
-//        List<Map<String, Object>> pl1Items = groupedResult.stream()
-//                .filter(res -> ((Number) res.get("Count")).longValue() >= 1 && ((Number) res.get("PL")).intValue() == 1)
-//                .collect(Collectors.toList());
-//
-//        // 필터링된 결과에서 count가 1 이상이고 pl이 2인 항목을 찾음
-//        List<Map<String, Object>> pl2Items = groupedResult.stream()
-//                .filter(res -> ((Number) res.get("Count")).longValue() >= 1 && ((Number) res.get("PL")).intValue() == 2)
-//                .collect(Collectors.toList());
-//
-//        // 두 조건을 모두 만족하는 그룹을 찾음
-//        Map<String, Object> matchedItem = pl1Items.stream()
-//                .filter(pl1Item -> pl2Items.stream().anyMatch(pl2Item ->
-//                        pl1Item.get("Country").equals(pl2Item.get("Country"))
-//                                && pl1Item.get("Template Name").equals(pl2Item.get("Template Name"))
-//                                && pl1Item.get("Language").equals(pl2Item.get("Language"))
-//                ))
-//                .findFirst()
-//                .orElse(null);
+        log.info("default classify Country : " + defaultCountry + ", default classify Template : " + defaultTemplate + ",default classify Language : " + defaultLanguage);
 
-        // 필터링된 결과를 저장할 리스트
-        List<Map<String, Object>> matchedItems = new ArrayList<>();
-        Set<String> uniqueItems = new HashSet<>();
+        // COUNT가 1 이상인 항목 필터링 및 PL이 0 이상, plValue 이하
+        List<Map<String, Object>> filteredGroupedResult = groupedResult.stream()
+                .filter(r -> ((Number) r.get("Count")).intValue() >= 1 && ((Number) r.get("PL")).intValue() > 0 && ((Number) r.get("PL")).intValue() <= configLoader.plValue)
+                .collect(Collectors.toList());
 
-        // configLoader.plValue로 전달받은 숫자만큼 반복
-        for (int plValue = 1; plValue <= configLoader.plValue; plValue++) {
-            // 필터링된 결과에서 count가 1 이상이고 pl이 plValue인 항목을 찾음
-            int finalPlValue = plValue;
-            List<Map<String, Object>> plItems = groupedResult.stream()
-                    .filter(res -> ((Number) res.get("Count")).longValue() >= 1 && ((Number) res.get("PL")).intValue() == finalPlValue)
+        // PL을 오름차순으로 정렬
+        Map<String, List<Map<String, Object>>> groupedByCountryTemplateLanguage = filteredGroupedResult.stream()
+                .collect(Collectors.groupingBy(r -> r.get("Country") + "|" + r.get("Template Name") + "|" + String.join(",", (List<String>) r.get("Language"))));
+
+        List<Map<String, Object>> sortedResult = new ArrayList<>();
+        groupedByCountryTemplateLanguage.forEach((key, group) -> {
+            group.sort(Comparator.comparingInt(r -> ((Number) r.get("PL")).intValue()));
+            sortedResult.addAll(group);
+        });
+
+        // 결과 출력
+        filteredGroupedResult.forEach(item -> log.info("PL Sorted item: " + item));
+
+        // 연속되는 PL 값 확인 및 가장 높은 PL 값을 가진 그룹 찾기
+        String highestPLGroupKey = null;
+        int highestPLValue = 0;
+        List<String> highestPLGroupKeys = new ArrayList<>();
+
+        for (Map.Entry<String, List<Map<String, Object>>> entry : groupedByCountryTemplateLanguage.entrySet()) {
+            List<Map<String, Object>> group = entry.getValue();
+            List<Integer> plValues = group.stream()
+                    .map(r -> (int) r.get("PL"))
+                    .sorted()
                     .collect(Collectors.toList());
 
-            // plValue인 항목이 없을 경우, plValue 이하의 수 중 가장 큰 수를 찾음
-            if (plItems.isEmpty()) {
-                for (int i = plValue - 1; i >= 1; i--) {
-                    int finalI = i;
-                    plItems = groupedResult.stream()
-                            .filter(res -> ((Number) res.get("Count")).longValue() >= 1 && ((Number) res.get("PL")).intValue() == finalI)
-                            .collect(Collectors.toList());
-                    if (!plItems.isEmpty()) {
+            boolean isContinuous = true;
+            if (plValues.isEmpty() || plValues.get(0) != 1) {
+                isContinuous = false;
+            } else {
+                for (int i = 0; i < plValues.size() - 1; i++) {
+                    if (plValues.get(i) + 1 != plValues.get(i + 1)) {
+                        isContinuous = false;
                         break;
                     }
                 }
             }
 
-            // 필터링된 항목들을 matchedItems에 추가
-            for (Map<String, Object> item : plItems) {
-                String uniqueKey = item.get("Country") + "|" + item.get("Template Name") + "|" + item.get("Language");
-                if (!uniqueItems.contains(uniqueKey)) {
-                    uniqueItems.add(uniqueKey);
-                    matchedItems.add(item);
-                } else {
-                    // 중복된 항목이 발견되면 "미분류"로 설정
-                    item.put("Country", "미분류");
-                    item.put("Template Name", "미분류");
-                    item.put("Language", List.of("미분류"));
-                    matchedItems.add(item);
+            if (isContinuous) {
+                int maxPL = plValues.get(plValues.size() - 1);
+                if (maxPL > highestPLValue) {
+                    highestPLValue = maxPL;
+                    highestPLGroupKeys.clear();
+                    highestPLGroupKeys.add(entry.getKey());
+                } else if (maxPL == highestPLValue) {
+                    highestPLGroupKeys.add(entry.getKey());
                 }
             }
         }
 
-        // 연속된 PL 값을 포함하는 그룹을 찾음
-        Map<String, Object> finalMatchedItem = null;
-        int maxContinuousPL = 0;
-        List<Map<String, Object>> potentialMatches = new ArrayList<>();
+        // 가장 높은 PL 값을 가진 그룹의 Country, Template Name, Language 정보 저장
+        if (highestPLGroupKeys.size() == 1) {
+            String[] parts = highestPLGroupKeys.get(0).split("\\|");
+            finalCountry = parts[0];
+            finalTemplate = parts[1];
+            finalLanguage = String.join(",", parts[2]);
 
-        for (Map<String, Object> item : matchedItems) {
-            String country = (String) item.get("Country");
-            String templateName = (String) item.get("Template Name");
-            List<String> language = (List<String>) item.get("Language");
-
-            int continuousPL = 0;
-            for (int i = 1; i <= configLoader.plValue; i++) {
-                int finalI = i;
-                boolean containsPL = matchedItems.stream().anyMatch(matchedItem ->
-                        matchedItem.get("Country").equals(country)
-                                && matchedItem.get("Template Name").equals(templateName)
-                                && matchedItem.get("Language").equals(language)
-                                && ((Number) matchedItem.get("PL")).intValue() == finalI
-                );
-                if (containsPL) {
-                    continuousPL = i;
-                } else {
-                    break;
-                }
-            }
-
-            if (continuousPL > maxContinuousPL) {
-                maxContinuousPL = continuousPL;
-                potentialMatches.clear();
-                potentialMatches.add(item);
-            } else if (continuousPL == maxContinuousPL) {
-                potentialMatches.add(item);
-            }
-        }
-
-        // 조건을 만족하는 결과가 여러 개일 경우 "미분류"로 설정
-        if (potentialMatches.size() > 1) {
-            finalMatchedItem = new HashMap<>();
-            finalMatchedItem.put("Country", "미분류");
-            finalMatchedItem.put("Template Name", "미분류");
-            finalMatchedItem.put("Language", List.of("미분류"));
-        } else if (!potentialMatches.isEmpty()) {
-            finalMatchedItem = potentialMatches.get(0);
-            log.info("PL comparison results are the same");
-        }
-
-        // 최종적으로 조건을 만족하는 항목을 찾음
-        if (finalMatchedItem == null) {
-            finalMatchedItem = matchedItems.stream()
-                    .filter(item -> matchedItems.stream().anyMatch(matchedItem ->
-                            matchedItem.get("Country").equals(item.get("Country"))
-                                    && matchedItem.get("Template Name").equals(item.get("Template Name"))
-                                    && matchedItem.get("Language").equals(item.get("Language"))
-                    ))
-                    .findFirst()
-                    .orElse(null);
-        }
-
-        // PL에 해당하는 값이 없을 경우, 기존 코드로 진행한 결과값을 저장
-        if (finalMatchedItem == null || "미분류".equals(finalMatchedItem.get("Country"))) {
+            log.info("PL Match found: Country({}), Template=({}), Language({})", finalCountry, finalTemplate, finalLanguage);
+        } else if (highestPLGroupKeys.size() > 1) {
             finalCountry = defaultCountry;
             finalTemplate = defaultTemplate;
             finalLanguage = defaultLanguage;
+
+            log.info("Highest PL Group (Multiple groups found):");
         } else {
-            finalCountry = (String) finalMatchedItem.get("Country");
-            finalTemplate = (String) finalMatchedItem.get("Template Name");
-            finalLanguage = String.join(",", (List<String>) finalMatchedItem.get("Language"));
-            //System.out.println("Match found: Country=" + finalCountry + ", Template=" + finalTemplate + ", Language=" + finalLanguage);
-            log.info("PL Match found: Country({}), Template=({}), Language({})", finalCountry, finalTemplate, finalLanguage);
+            finalCountry = defaultCountry;
+            finalTemplate = defaultTemplate;
+            finalLanguage = defaultLanguage;
+
+            log.info("No continuous PL group found.");
         }
+
+//        System.out.println("  Country: " + finalCountry);
+//        System.out.println("  Template Name: " + finalTemplate);
+//        System.out.println("  Languages: " + finalLanguage);
 
         if (finalTemplate.equals("미분류")) {
             matchjsonWord = new ArrayList<>();
@@ -2357,116 +2309,82 @@ public class DocumentService {
             log.info("No max element found - Classified as unclassified : {}", e);
         }
 
-        // 필터링된 결과를 저장할 리스트
-        List<Map<String, Object>> matchedItems = new ArrayList<>();
-        Set<String> uniqueItems = new HashSet<>();
+        log.info("default classify Country : " + defaultCountry + ", default classify Template : " + defaultTemplate + ",default classify Language : " + defaultLanguage);
 
-        // configLoader.plValue로 전달받은 숫자만큼 반복
-        for (int plValue = 1; plValue <= configLoader.plValue; plValue++) {
-            // 필터링된 결과에서 count가 1 이상이고 pl이 plValue인 항목을 찾음
-            int finalPlValue = plValue;
-            List<Map<String, Object>> plItems = groupedResult.stream()
-                    .filter(res -> ((Number) res.get("Count")).longValue() >= 1 && ((Number) res.get("PL")).intValue() == finalPlValue)
+        // COUNT가 1 이상인 항목 필터링 및 PL이 0 이상, plValue 이하
+        List<Map<String, Object>> filteredGroupedResult = groupedResult.stream()
+                .filter(r -> ((Number) r.get("Count")).intValue() >= 1 && ((Number) r.get("PL")).intValue() > 0 && ((Number) r.get("PL")).intValue() <= configLoader.plValue)
+                .collect(Collectors.toList());
+
+        // PL을 오름차순으로 정렬
+        Map<String, List<Map<String, Object>>> groupedByCountryTemplateLanguage = filteredGroupedResult.stream()
+                .collect(Collectors.groupingBy(r -> r.get("Country") + "|" + r.get("Template Name") + "|" + String.join(",", (List<String>) r.get("Language"))));
+
+        List<Map<String, Object>> sortedResult = new ArrayList<>();
+        groupedByCountryTemplateLanguage.forEach((key, group) -> {
+            group.sort(Comparator.comparingInt(r -> ((Number) r.get("PL")).intValue()));
+            sortedResult.addAll(group);
+        });
+
+        // 결과 출력
+        filteredGroupedResult.forEach(item -> log.info("PL Sorted item: " + item));
+
+        // 연속되는 PL 값 확인 및 가장 높은 PL 값을 가진 그룹 찾기
+        String highestPLGroupKey = null;
+        int highestPLValue = 0;
+        List<String> highestPLGroupKeys = new ArrayList<>();
+
+        for (Map.Entry<String, List<Map<String, Object>>> entry : groupedByCountryTemplateLanguage.entrySet()) {
+            List<Map<String, Object>> group = entry.getValue();
+            List<Integer> plValues = group.stream()
+                    .map(r -> (int) r.get("PL"))
+                    .sorted()
                     .collect(Collectors.toList());
 
-            // plValue인 항목이 없을 경우, plValue 이하의 수 중 가장 큰 수를 찾음
-            if (plItems.isEmpty()) {
-                for (int i = plValue - 1; i >= 1; i--) {
-                    int finalI = i;
-                    plItems = groupedResult.stream()
-                            .filter(res -> ((Number) res.get("Count")).longValue() >= 1 && ((Number) res.get("PL")).intValue() == finalI)
-                            .collect(Collectors.toList());
-                    if (!plItems.isEmpty()) {
+            boolean isContinuous = true;
+            if (plValues.isEmpty() || plValues.get(0) != 1) {
+                isContinuous = false;
+            } else {
+                for (int i = 0; i < plValues.size() - 1; i++) {
+                    if (plValues.get(i) + 1 != plValues.get(i + 1)) {
+                        isContinuous = false;
                         break;
                     }
                 }
             }
 
-            // 필터링된 항목들을 matchedItems에 추가
-            for (Map<String, Object> item : plItems) {
-                String uniqueKey = item.get("Country") + "|" + item.get("Template Name") + "|" + item.get("Language");
-                if (!uniqueItems.contains(uniqueKey)) {
-                    uniqueItems.add(uniqueKey);
-                    matchedItems.add(item);
-                } else {
-                    // 중복된 항목이 발견되면 "미분류"로 설정
-                    item.put("Country", "미분류");
-                    item.put("Template Name", "미분류");
-                    item.put("Language", List.of("미분류"));
-                    matchedItems.add(item);
+            if (isContinuous) {
+                int maxPL = plValues.get(plValues.size() - 1);
+                if (maxPL > highestPLValue) {
+                    highestPLValue = maxPL;
+                    highestPLGroupKeys.clear();
+                    highestPLGroupKeys.add(entry.getKey());
+                } else if (maxPL == highestPLValue) {
+                    highestPLGroupKeys.add(entry.getKey());
                 }
             }
         }
 
-        // 연속된 PL 값을 포함하는 그룹을 찾음
-        Map<String, Object> finalMatchedItem = null;
-        int maxContinuousPL = 0;
-        List<Map<String, Object>> potentialMatches = new ArrayList<>();
+        // 가장 높은 PL 값을 가진 그룹의 Country, Template Name, Language 정보 저장
+        if (highestPLGroupKeys.size() == 1) {
+            String[] parts = highestPLGroupKeys.get(0).split("\\|");
+            finalCountry = parts[0];
+            finalTemplate = parts[1];
+            finalLanguage = String.join(",", parts[2]);
 
-        for (Map<String, Object> item : matchedItems) {
-            String country = (String) item.get("Country");
-            String templateName = (String) item.get("Template Name");
-            List<String> language = (List<String>) item.get("Language");
-
-            int continuousPL = 0;
-            for (int i = 1; i <= configLoader.plValue; i++) {
-                int finalI = i;
-                boolean containsPL = matchedItems.stream().anyMatch(matchedItem ->
-                        matchedItem.get("Country").equals(country)
-                                && matchedItem.get("Template Name").equals(templateName)
-                                && matchedItem.get("Language").equals(language)
-                                && ((Number) matchedItem.get("PL")).intValue() == finalI
-                );
-                if (containsPL) {
-                    continuousPL = i;
-                } else {
-                    break;
-                }
-            }
-
-            if (continuousPL > maxContinuousPL) {
-                maxContinuousPL = continuousPL;
-                potentialMatches.clear();
-                potentialMatches.add(item);
-            } else if (continuousPL == maxContinuousPL) {
-                potentialMatches.add(item);
-            }
-        }
-
-        // 조건을 만족하는 결과가 여러 개일 경우 "미분류"로 설정
-        if (potentialMatches.size() > 1) {
-            finalMatchedItem = new HashMap<>();
-            finalMatchedItem.put("Country", "미분류");
-            finalMatchedItem.put("Template Name", "미분류");
-            finalMatchedItem.put("Language", List.of("미분류"));
-        } else if (!potentialMatches.isEmpty()) {
-            finalMatchedItem = potentialMatches.get(0);
-            log.info("PL comparison results are the same");
-        }
-
-        // 최종적으로 조건을 만족하는 항목을 찾음
-        if (finalMatchedItem == null) {
-            finalMatchedItem = matchedItems.stream()
-                    .filter(item -> matchedItems.stream().anyMatch(matchedItem ->
-                            matchedItem.get("Country").equals(item.get("Country"))
-                                    && matchedItem.get("Template Name").equals(item.get("Template Name"))
-                                    && matchedItem.get("Language").equals(item.get("Language"))
-                    ))
-                    .findFirst()
-                    .orElse(null);
-        }
-
-        // PL에 해당하는 값이 없을 경우, 기존 코드로 진행한 결과값을 저장
-        if (finalMatchedItem == null || "미분류".equals(finalMatchedItem.get("Country"))) {
+            log.info("PL Match found: Country({}), Template=({}), Language({})", finalCountry, finalTemplate, finalLanguage);
+        } else if (highestPLGroupKeys.size() > 1) {
             finalCountry = defaultCountry;
             finalTemplate = defaultTemplate;
             finalLanguage = defaultLanguage;
+
+            log.info("Highest PL Group (Multiple groups found):");
         } else {
-            finalCountry = (String) finalMatchedItem.get("Country");
-            finalTemplate = (String) finalMatchedItem.get("Template Name");
-            finalLanguage = String.join(",", (List<String>) finalMatchedItem.get("Language"));
-            //System.out.println("Match found: Country=" + finalCountry + ", Template=" + finalTemplate + ", Language=" + finalLanguage);
-            log.info("PL Match found: Country({}), Template=({}), Language({})", finalCountry, finalTemplate, finalLanguage);
+            finalCountry = defaultCountry;
+            finalTemplate = defaultTemplate;
+            finalLanguage = defaultLanguage;
+
+            log.info("No continuous PL group found.");
         }
 
         Map<String, List<Map<String, Object>>> formMatchedWords = new HashMap<>();
