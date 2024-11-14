@@ -148,7 +148,7 @@ public class DocumentService {
 //                    );
 //                    jsonService.jsonCollection = sortedCollection;
                     JsonService.sortAnnotations(jsonService.jsonCollection);
-                    JsonService.findMatchingWords(jsonService.jsonCollection);
+                    JsonService.findMatchingWords(JsonService.jsonCollection3);
                     classifyDocuments_C3(jsonData, JsonService.jsonCollection2);
                     postProcessing("C3");
                 }
