@@ -29,6 +29,7 @@ public class DocumentService {
     public String fileName;
     public List<String> documentType = new ArrayList<>();
     String saveFilePath;
+    String textSaveFilePath;
     String datasetSavePath;
 
     Map<String, Map<String, String>> resultByVersion = new HashMap<>();
@@ -72,6 +73,7 @@ public class DocumentService {
 
             fileName = curFile.getName().substring(0, curFile.getName().lastIndexOf("."));
             saveFilePath = configLoader.resultFilePath + "\\" + fileName + ".xlsx";
+            textSaveFilePath = configLoader.resultFilePath + "\\" + fileName + ".txt";
             datasetSavePath = configLoader.resultFilePath + "\\" + fileName + "filtered_result2.xlsx";
 
             imgFileName = fileName.replace("_result","");
@@ -245,7 +247,13 @@ public class DocumentService {
         log.info("matchjsonWord : {}",matchjsonWord);
 
         try {
-            excelService.createExcel2(resultList, filteredResult, fileName, saveFilePath, a);
+            if (configLoader.writeExcelResults) {
+                excelService.createExcel2(resultList, filteredResult, fileName, saveFilePath, a);
+            }
+
+            if (configLoader.writeTextResults) {
+                excelService.createText(resultList, filteredResult, fileName, textSaveFilePath, a);
+            }
         } catch (IOException e) {
             log.error("엑셀 파일 생성 실패: {}", e.getStackTrace()[0]);
         }
@@ -2077,6 +2085,9 @@ public class DocumentService {
             log.info("Grouped Result - Country: {}, Template Name: {}, Language: {}, WD: {}, WT: {}, KR: {}, Count: {}",
                     res.get("Country"), res.get("Template Name"), res.get("Language"), res.get("WD"), res.get("WT"), res.get("KR"), res.get("Count"));
 
+            System.out.println("Grouped Result - Country: " + res.get("Country") + ", Template Name: " + res.get("Template Name") + ", " +
+                    "Language: " + res.get("Language") + ", WD: " + res.get("WD") + ", WT: " + res.get("WT") + ", KR: " + res.get("KR") + ", PL: " + res.get("PL") + ", Count: " + res.get("Count"));
+
 //            if (0 < ((Number) res.get("PL")).intValue()) {
 //                System.out.println("Grouped Result - Country: " + res.get("Country") + ", Template Name: " + res.get("Template Name") + ", " +
 //                        "Language: " + res.get("Language") + ", WD: " + res.get("WD") + ", WT: " + res.get("WT") + ", KR: " + res.get("KR") + ", PL: " + res.get("PL") + ", Count: " + res.get("Count"));
@@ -2104,6 +2115,7 @@ public class DocumentService {
                         .orElseThrow(() -> new NoSuchElementException("No max element found"));
 
                 log.info("Filtering And Grouping Result Max Entry: Key{}, Count{}", maxEntry.getKey(), maxEntry.getValue());
+                System.out.println("Filtering And Grouping Result Max Entry: Key : " + maxEntry.getKey() + ", Count : " + maxEntry.getValue());
 
                 String[] resultKeys = maxEntry.getKey().split("\\|");
                 defaultCountry = resultKeys[0];
