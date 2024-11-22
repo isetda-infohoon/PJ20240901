@@ -327,6 +327,7 @@ public class ExcelService {
             String wd = (String) result.get("WD");
             Double wt = (Double) result.get("WT");
             int count = (int) result.get("Count");
+            int pl = result.containsKey("PL") ? (int) result.get("PL") : 0;
 
             // count가 1 이상인 항목만 저장
             if (count >= 1) {
@@ -335,7 +336,7 @@ public class ExcelService {
                 // 해당 키가 없다면 초기화하고, WD와 Count 값을 추가
                 templateEntries.putIfAbsent(key, new StringBuilder(templateName).append("(").append(country).append(" - ").append(String.join(",", languages)).append(") 일치 단어 리스트 ("));
                 StringBuilder sb = templateEntries.get(key);
-                sb.append(wd).append("[").append(wt).append("]").append("(").append(count).append("), ");
+                sb.append(wd).append("[").append(wt).append("]").append("[").append(pl).append("]").append("(").append(count).append("), ");
 
                 // 양식 별 일치 단어 개수 카운트
                 keyCountMap.putIfAbsent(key, new HashMap<>());
@@ -470,6 +471,7 @@ public class ExcelService {
             String wd = (String) result.get("WD");
             Double wt = (Double) result.get("WT");
             int count = (int) result.get("Count");
+            int pl = result.containsKey("PL") ? (int) result.get("PL") : 0;
 
             // count가 1 이상인 항목만 저장
             if (count >= 1) {
@@ -478,7 +480,7 @@ public class ExcelService {
                 // 해당 키가 없다면 초기화하고, WD와 Count 값을 추가
                 templateEntries.putIfAbsent(key, new StringBuilder(templateName).append("(").append(country).append(" - ").append(String.join(",", languages)).append(") 일치 단어 리스트 ("));
                 StringBuilder sb = templateEntries.get(key);
-                sb.append(wd).append("[").append(wt).append("]").append("(").append(count).append("), ");
+                sb.append(wd).append("[").append(wt).append("]").append("[").append(pl).append("]").append("(").append(count).append("), ");
 
                 // 양식 별 일치 단어 개수 카운트
                 keyCountMap.putIfAbsent(key, new HashMap<>());
@@ -507,29 +509,32 @@ public class ExcelService {
                     }
                     writer.write("\n");
 
-                    List<Map.Entry<String, StringBuilder>> entryList = new ArrayList<>(templateEntries.entrySet());
+                    if (configLoader.writeDetailResult) {
+                        List<Map.Entry<String, StringBuilder>> entryList = new ArrayList<>(templateEntries.entrySet());
 
-                    for (int j = 0; j < entryList.size(); j++) {
-                        Map.Entry<String, StringBuilder> entry = entryList.get(j);
-                        String keyName = entry.getKey();
-                        StringBuilder wdEntries = entry.getValue();
+                        for (int j = 0; j < entryList.size(); j++) {
+                            Map.Entry<String, StringBuilder> entry = entryList.get(j);
+                            String keyName = entry.getKey();
+                            StringBuilder wdEntries = entry.getValue();
 
-                        // 마지막 쉼표와 공백을 제거하고 닫는 괄호 추가
-                        if (wdEntries.length() > 0) {
-                            wdEntries.setLength(wdEntries.length() - 2); // 마지막 쉼표와 공백 제거
-                            wdEntries.append(")");
+                            // 마지막 쉼표와 공백을 제거하고 닫는 괄호 추가
+                            if (wdEntries.length() > 0) {
+                                wdEntries.setLength(wdEntries.length() - 2); // 마지막 쉼표와 공백 제거
+                                wdEntries.append(")");
+                            }
+
+                            writer.write(wdEntries + "\n");
+                            Map<String, Object> keyInfo = keyCountMap.get(keyName);
+                            writer.write(keyInfo.get("TemplateName") + "(" + keyInfo.get("Country") + " - " + String.join(",", (List<String>) keyInfo.get("Languages")) + ")" + " 일치 단어 전체 개수 (" + keyInfo.get("Count") + ")" + "\n");
+                            writer.write("\n");
                         }
-
-                        writer.write(wdEntries + "\n");
-                        Map<String, Object> keyInfo = keyCountMap.get(keyName);
-                        writer.write(keyInfo.get("TemplateName") + "(" + keyInfo.get("Country") + " - " + String.join(",", (List<String>) keyInfo.get("Languages")) + ")" + " 일치 단어 전체 개수 (" + keyInfo.get("Count") + ")" + "\n");
-                        writer.write("\n");
                     }
                 } else {
                     // 첫 번째 행에 파일 이름 삽입
                     writer.write("파일이름: " + fileName.replace("_result", "") + "\n");
                     writer.write("\n");
-
+                    writer.write("-----------------------------------------------------\n");
+                    writer.write("\n");
                     writer.write("[cd " + a + "]\n");
 
                     //
@@ -538,23 +543,25 @@ public class ExcelService {
                     }
                     writer.write("\n");
 
-                    List<Map.Entry<String, StringBuilder>> entryList = new ArrayList<>(templateEntries.entrySet());
+                    if (configLoader.writeDetailResult) {
+                        List<Map.Entry<String, StringBuilder>> entryList = new ArrayList<>(templateEntries.entrySet());
 
-                    for (int j = 0; j < entryList.size(); j++) {
-                        Map.Entry<String, StringBuilder> entry = entryList.get(j);
-                        String keyName = entry.getKey();
-                        StringBuilder wdEntries = entry.getValue();
+                        for (int j = 0; j < entryList.size(); j++) {
+                            Map.Entry<String, StringBuilder> entry = entryList.get(j);
+                            String keyName = entry.getKey();
+                            StringBuilder wdEntries = entry.getValue();
 
-                        // 마지막 쉼표와 공백을 제거하고 닫는 괄호 추가
-                        if (wdEntries.length() > 0) {
-                            wdEntries.setLength(wdEntries.length() - 2); // 마지막 쉼표와 공백 제거
-                            wdEntries.append(")");
+                            // 마지막 쉼표와 공백을 제거하고 닫는 괄호 추가
+                            if (wdEntries.length() > 0) {
+                                wdEntries.setLength(wdEntries.length() - 2); // 마지막 쉼표와 공백 제거
+                                wdEntries.append(")");
+                            }
+
+                            writer.write(wdEntries + "\n");
+                            Map<String, Object> keyInfo = keyCountMap.get(keyName);
+                            writer.write(keyInfo.get("TemplateName") + "(" + keyInfo.get("Country") + " - " + String.join(",", (List<String>) keyInfo.get("Languages")) + ")" + " 일치 단어 전체 개수 (" + keyInfo.get("Count") + ")" + "\n");
+                            writer.write("\n");
                         }
-
-                        writer.write(wdEntries + "\n");
-                        Map<String, Object> keyInfo = keyCountMap.get(keyName);
-                        writer.write(keyInfo.get("TemplateName") + "(" + keyInfo.get("Country") + " - " + String.join(",", (List<String>) keyInfo.get("Languages")) + ")" + " 일치 단어 전체 개수 (" + keyInfo.get("Count") + ")" + "\n");
-                        writer.write("\n");
                     }
                 }
                 writer.write("-----------------------------------------------------\n");
@@ -567,7 +574,98 @@ public class ExcelService {
         }
     }
 
-    public static void moveFiles(String resultFilePath, Map<String, Map<String, String>> resultByVersion, String version) {
+    public void textFinalResult(String textSaveFilePath, String fileName, Map<String, Map<String, String>> finalResultByVersion, String version, String subVersion) {
+        String baseName = fileName.replace("_result", "");
+
+        if (finalResultByVersion != null) {
+            Map<String, String> valueList = finalResultByVersion.get(baseName);
+
+            if (valueList != null) {
+                String value = valueList.get(version); // 버전 별 결과 양식
+
+                if (value != null) {
+                    if (value.contains("미분류")) {
+                        value = valueList.get(subVersion);
+                    }
+
+                    String[] values = value.split(",");
+
+                    try (BufferedWriter writer = new BufferedWriter(new FileWriter(textSaveFilePath, true))) {
+                        writer.write("[결과]\n");
+                        writer.write("국가: " + values[0] + "\n");
+                        writer.write("언어: " + values[1] + "\n");
+                        writer.write("문서 양식: " + values[2] + "\n");
+
+                        log.info("Excel final results completed.");
+                    } catch (IOException e) {
+                        log.info("Excel final results failed. {}", e.getMessage());
+                    }
+                }
+            }
+        }
+    }
+
+    public void excelFinalResult(String saveFilePath, Map<String, Map<String, String>> finalResultByVersion, String version) {
+        String baseName = fileName.replace("_result.xlsx", "");
+
+        try (FileInputStream fis = new FileInputStream(saveFilePath);
+             Workbook workbook = new XSSFWorkbook(fis)) {
+
+            Sheet sheet = workbook.getSheetAt(0); // 첫 번째 시트를 가져옵니다
+            int lastColumnIndex = getLastColumnIndex(sheet);
+            System.out.println("마지막 열의 인덱스: " + lastColumnIndex);
+
+            if (finalResultByVersion != null) {
+                Map<String, String> valueList = finalResultByVersion.get(baseName);
+
+                if (valueList != null) {
+                    String value = valueList.get(version); // 버전 별 결과 양식
+                    if (value != null) {
+                        String[] values = value.split(","); // 쉼표로 구분
+
+                        // 데이터를 추가할 행 번호
+                        int rowNum = sheet.getLastRowNum() + 1;
+
+                        // 각 행에 데이터를 추가하는 함수 호출
+                        addRow(sheet, rowNum++, "최종 결과", null);
+                        addRow(sheet, rowNum++, "국가", values.length > 0 ? values[0] : "");
+                        addRow(sheet, rowNum++, "언어", values.length > 1 ? values[1] : "");
+                        addRow(sheet, rowNum++, "양식", values.length > 2 ? values[2] : "");
+                    }
+                }
+            }
+
+            // 파일 저장
+            try (FileOutputStream fos = new FileOutputStream(saveFilePath)) {
+                workbook.write(fos);
+                log.info("Excel final results completed.");
+            }
+
+        } catch (IOException e) {
+            log.info("Excel final results failed. {}", e.getMessage());
+        }
+    }
+
+    private static int getLastColumnIndex(Sheet sheet) {
+        int lastColumnIndex = -1;
+        for (Row row : sheet) {
+            if (row.getLastCellNum() > lastColumnIndex) {
+                lastColumnIndex = row.getLastCellNum();
+            }
+        }
+        return lastColumnIndex - 1; // 인덱스는 0부터 시작하므로 1을 뺍니다
+    }
+    private static void addRow(Sheet sheet, int rowNum, String firstCellValue, String secondCellValue) {
+        Row row = sheet.createRow(rowNum);
+        Cell cell1 = row.createCell(0);
+        cell1.setCellValue(firstCellValue);
+        if (secondCellValue != null) {
+            Cell cell2 = row.createCell(1);
+            cell2.setCellValue(secondCellValue);
+        }
+    }
+
+    public static void moveFiles(String resultFilePath, Map<String, Map<String, String>> resultByVersion, String version, String subVersion) {
         File folder = new File(resultFilePath);
         File[] listOfFiles = folder.listFiles((dir, name) -> name.endsWith(".dat"));
 
@@ -577,13 +675,16 @@ public class ExcelService {
                 String baseName = fileName.replace("_result.dat", ""); // 파일 이름에서 확장자 제거
                 System.out.println("base name : " + baseName);
 
-
                 if (resultByVersion != null) {
                     Map<String, String> valueList = resultByVersion.get(baseName);
 
                     if (valueList != null) {
                         String value = valueList.get(version); // 버전 별 결과 양식
                         if (value != null) {
+                            if (value.contains("미분류")) {
+                                value = valueList.get(subVersion);
+                            }
+
                             Path targetDir = Paths.get(resultFilePath, value);
                             if (!Files.exists(targetDir)) {
                                 try {

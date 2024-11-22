@@ -55,7 +55,8 @@ public class ConfigLoader {
     public double cdAllowableWeight;
     public boolean checkCase;
     public boolean createFolders;
-    public String foldersCriteria;
+    public String classificationCriteria;
+    public String subClassificationCriteria;
 
     public int plValue;
 
@@ -282,11 +283,18 @@ public class ConfigLoader {
                 throw new RuntimeException("Missing required configuration: createFolders");
             }
 
-            if (root.getElementsByTagName("foldersCriteria").getLength() > 0) {
-                foldersCriteria = root.getElementsByTagName("foldersCriteria").item(0).getTextContent().trim();
+            if (root.getElementsByTagName("classificationCriteria").getLength() > 0) {
+                classificationCriteria = root.getElementsByTagName("classificationCriteria").item(0).getTextContent().trim();
             } else {
-                log.error("The foldersCriteria tag does not exist in Config.xml. Application will terminate.");
-                throw new RuntimeException("Missing required configuration: foldersCriteria");
+                log.error("The classificationCriteria tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: classificationCriteria");
+            }
+
+            if (root.getElementsByTagName("subClassificationCriteria").getLength() > 0) {
+                subClassificationCriteria = root.getElementsByTagName("subClassificationCriteria").item(0).getTextContent().trim();
+            } else {
+                log.error("The subClassificationCriteria tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: subClassificationCriteria");
             }
 
             if (root.getElementsByTagName("plValue").getLength() > 0) {

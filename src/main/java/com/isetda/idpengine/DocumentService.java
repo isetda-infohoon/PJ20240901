@@ -33,7 +33,7 @@ public class DocumentService {
     String datasetSavePath;
 
     Map<String, Map<String, String>> resultByVersion = new HashMap<>();
-    Map<String, Map<String, String>> resultByVersionLan = new HashMap<>();
+    Map<String, Map<String, String>> finalResultByVersion = new HashMap<>();
     //정다현 추가
      public String imgFileName;
 
@@ -90,6 +90,7 @@ public class DocumentService {
 //            }
 
             resultByVersion.put(fileName.replace("_result", ""), new HashMap<>());
+            finalResultByVersion.put(fileName.replace("_result", ""), new HashMap<>());
 
             if (configLoader.cdAUsageFlag) {
                 if (configLoader.cd1UsageFlag) {
@@ -154,6 +155,10 @@ public class DocumentService {
                     classifyDocuments_C3(jsonData, JsonService.jsonCollection2);
                     postProcessing("C3");
                 }
+
+                if (configLoader.writeTextResults) {
+                    excelService.textFinalResult(textSaveFilePath, fileName, finalResultByVersion, configLoader.classificationCriteria, configLoader.subClassificationCriteria);
+                }
             }
 
 
@@ -182,7 +187,7 @@ public class DocumentService {
         }
 
         if (configLoader.createFolders) {
-            excelService.moveFiles(configLoader.resultFilePath, resultByVersion, configLoader.foldersCriteria);
+            excelService.moveFiles(configLoader.resultFilePath, resultByVersion, configLoader.classificationCriteria, configLoader.subClassificationCriteria);
         }
     }
 
@@ -255,11 +260,11 @@ public class DocumentService {
                 excelService.createText(resultList, filteredResult, fileName, textSaveFilePath, a);
             }
         } catch (IOException e) {
-            log.error("엑셀 파일 생성 실패: {}", e.getStackTrace()[0]);
+            log.error("결과 파일 생성 실패: {}", e.getStackTrace()[0]);
         }
         matchjsonWord = new ArrayList<>();
         resultByVersion.get(baseFileName).put(a, resultList.get(2).get(1)+"("+resultList.get(0).get(1)+")");
-
+        finalResultByVersion.get(baseFileName).put(a, resultList.get(0).get(1) + "," + resultList.get(1).get(1) + "," + resultList.get(2).get(1));
     }
 
     // 합쳐진 추출 단어(description)로 일치 단어 비교
