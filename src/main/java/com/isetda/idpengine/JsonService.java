@@ -47,14 +47,13 @@ public class JsonService {
             }
             log.info("JSON data loading successful");
             getWordPosition();
-
-//            cd3();
         } catch (IOException e) {
             log.error("Error reading json file", e);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
+
 
     private Map<String, Object> createEmptyData() {
         // 빈 데이터를 생성하여 반환하는 메서드
