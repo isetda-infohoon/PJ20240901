@@ -168,7 +168,7 @@ public class ExcelService {
                     // Writing resultWord
                     int colNum = 2; // 3열부터 시작 (C열에 해당)
 
-                    if (configLoader.writeExcelDetails) {
+                    if (configLoader.writeDetailResult) {
                         for (int j = 0; j < resultWord.size(); j++) {
                             List<String> rowData = resultWord.get(j);
                             Cell cell = row.createCell(colNum); // 2열에 해당
@@ -247,7 +247,7 @@ public class ExcelService {
                     // Writing resultWord
                     int colNum = 2; // 3열부터 시작 (C열에 해당)
 
-                    if (configLoader.writeExcelDetails) {
+                    if (configLoader.writeDetailResult) {
                         for (int j = 0; j < resultWord.size(); j++) {
                             List<String> rowData = resultWord.get(j);
                             Cell cell = row.createCell(colNum); // 2열에 해당
@@ -350,7 +350,7 @@ public class ExcelService {
         // 이미 생성된 파일이 있는지 확인
         if (file.exists()) {
             // 생성된 파일이 있는 경우 기존 파일에 이어서 결과 작성
-            log.info("{} File exists. Continuing from the existing file.", fileName);
+            log.info("{} Excel File exists. Continuing from the existing file.", fileName);
 
             try (FileInputStream fileIn = new FileInputStream(file)) {
                 workbook = new XSSFWorkbook(fileIn);
@@ -371,7 +371,7 @@ public class ExcelService {
                     // Writing resultWord
                     int colNum = 2; // 3열부터 시작 (C열에 해당)
 
-                    if (configLoader.writeExcelDetails) {
+                    if (configLoader.writeDetailResult) {
                         for (Map.Entry<String, StringBuilder> entry : templateEntries.entrySet()) {
                             String keyName = entry.getKey();
                             StringBuilder wdEntries = entry.getValue();
@@ -423,7 +423,7 @@ public class ExcelService {
                     // Writing resultWord
                     int colNum = 2; // 3열부터 시작 (C열에 해당)
 
-                    if (configLoader.writeExcelDetails) {
+                    if (configLoader.writeDetailResult) {
                         for (Map.Entry<String, StringBuilder> entry : templateEntries.entrySet()) {
                             String keyName = entry.getKey();
                             StringBuilder wdEntries = entry.getValue();
@@ -459,14 +459,122 @@ public class ExcelService {
         workbook.close();
     }
 
+    public void createText(List<List<String>> resultList, List<Map<String, Object>> filteredResult, String fileName, String saveFilePath, String a) throws IOException {
+        Map<String, StringBuilder> templateEntries = new HashMap<>();
+        Map<String, Map<String, Object>> keyCountMap = new HashMap<>();
+
+        for (Map<String, Object> result : filteredResult) {
+            String country = (String) result.get("Country");
+            List<String> languages = (List<String>) result.get("Language");
+            String templateName = (String) result.get("Template Name");
+            String wd = (String) result.get("WD");
+            Double wt = (Double) result.get("WT");
+            int count = (int) result.get("Count");
+
+            // count가 1 이상인 항목만 저장
+            if (count >= 1) {
+                String key = country + "(" + String.join(",", languages) + ")" + templateName;
+
+                // 해당 키가 없다면 초기화하고, WD와 Count 값을 추가
+                templateEntries.putIfAbsent(key, new StringBuilder(templateName).append("(").append(country).append(" - ").append(String.join(",", languages)).append(") 일치 단어 리스트 ("));
+                StringBuilder sb = templateEntries.get(key);
+                sb.append(wd).append("[").append(wt).append("]").append("(").append(count).append("), ");
+
+                // 양식 별 일치 단어 개수 카운트
+                keyCountMap.putIfAbsent(key, new HashMap<>());
+                Map<String, Object> keyInfo = keyCountMap.get(key);
+                keyInfo.put("Count", (int) keyInfo.getOrDefault("Count", 0) + 1);
+                keyInfo.put("Country", country);
+                keyInfo.put("Languages", languages);
+                keyInfo.put("TemplateName", templateName);
+            }
+        }
+
+        try {
+            // 파일이 존재하는지 확인
+            boolean fileExists = Files.exists(Paths.get(saveFilePath));
+
+            // FileWriter의 두 번째 인자로 true를 전달하여 파일에 이어서 쓰기 모드로 설정
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(saveFilePath, true))) {
+                if (fileExists) {
+                    log.info("{} Text File exists. Continuing from the existing file.", fileName);
+
+                    writer.write("[cd " + a + "]\n");
+
+                    //
+                    for (int i = 0; i < resultList.size(); i++) {
+                        writer.write(resultList.get(i).get(0) + ": " + resultList.get(i).get(1) + "\n");
+                    }
+                    writer.write("\n");
+
+                    List<Map.Entry<String, StringBuilder>> entryList = new ArrayList<>(templateEntries.entrySet());
+
+                    for (int j = 0; j < entryList.size(); j++) {
+                        Map.Entry<String, StringBuilder> entry = entryList.get(j);
+                        String keyName = entry.getKey();
+                        StringBuilder wdEntries = entry.getValue();
+
+                        // 마지막 쉼표와 공백을 제거하고 닫는 괄호 추가
+                        if (wdEntries.length() > 0) {
+                            wdEntries.setLength(wdEntries.length() - 2); // 마지막 쉼표와 공백 제거
+                            wdEntries.append(")");
+                        }
+
+                        writer.write(wdEntries + "\n");
+                        Map<String, Object> keyInfo = keyCountMap.get(keyName);
+                        writer.write(keyInfo.get("TemplateName") + "(" + keyInfo.get("Country") + " - " + String.join(",", (List<String>) keyInfo.get("Languages")) + ")" + " 일치 단어 전체 개수 (" + keyInfo.get("Count") + ")" + "\n");
+                        writer.write("\n");
+                    }
+                } else {
+                    // 첫 번째 행에 파일 이름 삽입
+                    writer.write("파일이름: " + fileName.replace("_result", "") + "\n");
+                    writer.write("\n");
+
+                    writer.write("[cd " + a + "]\n");
+
+                    //
+                    for (int i = 0; i < resultList.size(); i++) {
+                        writer.write(resultList.get(i).get(0) + ": " + resultList.get(i).get(1) + "\n");
+                    }
+                    writer.write("\n");
+
+                    List<Map.Entry<String, StringBuilder>> entryList = new ArrayList<>(templateEntries.entrySet());
+
+                    for (int j = 0; j < entryList.size(); j++) {
+                        Map.Entry<String, StringBuilder> entry = entryList.get(j);
+                        String keyName = entry.getKey();
+                        StringBuilder wdEntries = entry.getValue();
+
+                        // 마지막 쉼표와 공백을 제거하고 닫는 괄호 추가
+                        if (wdEntries.length() > 0) {
+                            wdEntries.setLength(wdEntries.length() - 2); // 마지막 쉼표와 공백 제거
+                            wdEntries.append(")");
+                        }
+
+                        writer.write(wdEntries + "\n");
+                        Map<String, Object> keyInfo = keyCountMap.get(keyName);
+                        writer.write(keyInfo.get("TemplateName") + "(" + keyInfo.get("Country") + " - " + String.join(",", (List<String>) keyInfo.get("Languages")) + ")" + " 일치 단어 전체 개수 (" + keyInfo.get("Count") + ")" + "\n");
+                        writer.write("\n");
+                    }
+                }
+                writer.write("-----------------------------------------------------\n");
+                writer.write("\n");
+
+                log.info("Text file creation completed: {} ", saveFilePath);
+            }
+        } catch (IOException e) {
+            log.info("Text file creation failed: {} " + e.getMessage());
+        }
+    }
+
     public static void moveFiles(String resultFilePath, Map<String, Map<String, String>> resultByVersion, String version) {
         File folder = new File(resultFilePath);
-        File[] listOfFiles = folder.listFiles((dir, name) -> name.endsWith(".xlsx"));
+        File[] listOfFiles = folder.listFiles((dir, name) -> name.endsWith(".dat"));
 
         if (listOfFiles != null) {
             for (File file : listOfFiles) {
                 String fileName = file.getName();
-                String baseName = fileName.replace("_result.xlsx", ""); // 파일 이름에서 확장자 제거
+                String baseName = fileName.replace("_result.dat", ""); // 파일 이름에서 확장자 제거
                 System.out.println("base name : " + baseName);
 
 

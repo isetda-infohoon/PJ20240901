@@ -35,7 +35,9 @@ public class ConfigLoader {
     private String username;
     private String password;
     private boolean dbDataUsageFlag;
-    public boolean writeExcelDetails;
+    public boolean writeDetailResult;
+    public boolean writeExcelResults;
+    public boolean writeTextResults;
     public boolean encodingCheck;
 
     public boolean weightCountFlag;
@@ -174,11 +176,25 @@ public class ConfigLoader {
                 throw new RuntimeException("Missing required configuration: dbDataUsageFlag");
             }
 
-            if (root.getElementsByTagName("writeExcelDetails").getLength() > 0) {
-                writeExcelDetails = Boolean.parseBoolean(root.getElementsByTagName("writeExcelDetails").item(0).getTextContent().trim());
+            if (root.getElementsByTagName("writeDetailResult").getLength() > 0) {
+                writeDetailResult = Boolean.parseBoolean(root.getElementsByTagName("writeDetailResult").item(0).getTextContent().trim());
             } else {
-                log.error("The writeExcelDetails tag does not exist in Config.xml. Application will terminate.");
-                throw new RuntimeException("Missing required configuration: writeExcelDetails");
+                log.error("The writeDetailResult tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: writeDetailResult");
+            }
+
+            if (root.getElementsByTagName("writeExcelResults").getLength() > 0) {
+                writeExcelResults = Boolean.parseBoolean(root.getElementsByTagName("writeExcelResults").item(0).getTextContent().trim());
+            } else {
+                log.error("The writeExcelResults tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: writeExcelResults");
+            }
+
+            if (root.getElementsByTagName("writeTextResults").getLength() > 0) {
+                writeTextResults = Boolean.parseBoolean(root.getElementsByTagName("writeTextResults").item(0).getTextContent().trim());
+            } else {
+                log.error("The writeTextResults tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: writeTextResults");
             }
 
             if (root.getElementsByTagName("encodingCheck").getLength() > 0) {
