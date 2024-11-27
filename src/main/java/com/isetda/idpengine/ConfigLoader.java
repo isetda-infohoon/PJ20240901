@@ -52,6 +52,7 @@ public class ConfigLoader {
     public boolean cd2UsageFlag;
     public boolean cd3UsageFlag;
 
+    public int wordMinimumCount;
     public double cdAllowableWeight;
     public boolean checkCase;
     public boolean createFolders;
@@ -260,6 +261,13 @@ public class ConfigLoader {
             } else {
                 log.error("The cd3UsageFlag tag does not exist in Config.xml. Application will terminate.");
                 throw new RuntimeException("Missing required configuration: cd3UsageFlag");
+            }
+
+            if (root.getElementsByTagName("wordMinimumCount").getLength() > 0) {
+                wordMinimumCount = Integer.parseInt(root.getElementsByTagName("wordMinimumCount").item(0).getTextContent().trim());
+            } else {
+                log.error("The wordMinimumCount tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: wordMinimumCount");
             }
 
             if (root.getElementsByTagName("cdAllowableWeight").getLength() > 0) {
