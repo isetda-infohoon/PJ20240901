@@ -588,7 +588,7 @@ public class ExcelService {
                         value = valueList.get(subVersion);
                     }
 
-                    String[] values = value.split(",");
+                    String[] values = value.split("/");
 
                     try (BufferedWriter writer = new BufferedWriter(new FileWriter(textSaveFilePath, true))) {
                         writer.write("[결과]\n");
@@ -621,7 +621,7 @@ public class ExcelService {
                 if (valueList != null) {
                     String value = valueList.get(version); // 버전 별 결과 양식
                     if (value != null) {
-                        String[] values = value.split(","); // 쉼표로 구분
+                        String[] values = value.split("/"); // 쉼표로 구분
 
                         // 데이터를 추가할 행 번호
                         int rowNum = sheet.getLastRowNum() + 1;

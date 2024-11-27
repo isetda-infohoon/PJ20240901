@@ -219,8 +219,8 @@ public class DocumentService {
             log.error("결과 파일 생성 실패: {}", e.getStackTrace()[0]);
         }
         matchjsonWord = new ArrayList<>();
-        resultByVersion.get(baseFileName).put(a, resultList.get(2).get(1)+"("+resultList.get(0).get(1)+")");
-        finalResultByVersion.get(baseFileName).put(a, resultList.get(0).get(1) + "," + resultList.get(1).get(1) + "," + resultList.get(2).get(1));
+        resultByVersion.get(baseFileName).put(a, resultList.get(2).get(1)+"("+resultList.get(1).get(1)+")");
+        finalResultByVersion.get(baseFileName).put(a, resultList.get(0).get(1) + "/" + resultList.get(1).get(1) + "/" + resultList.get(2).get(1));
     }
 
     // 합쳐진 추출 단어(description)로 일치 단어 비교
@@ -2061,27 +2061,37 @@ public class DocumentService {
             // 최대 값을 가진 항목을 찾기
             long maxCount = grouped.values().stream().max(Long::compare).orElseThrow(() -> new NoSuchElementException("No max element found"));
 
-            // 최대 값이 여러 개 있는지 확인
-            long maxCountOccurrences = grouped.values().stream().filter(count -> count == maxCount).count();
-
-            if (maxCountOccurrences > 1) {
+            // 최대 값이 설정한 값보다 큰지 확인
+            if (maxCount <= configLoader.wordMinimumCount) {
+                // 최대 값이 설정한 값보다 설정 값 보다 작을 경우 미분류 처리
                 defaultCountry = "미분류";
-                defaultTemplate = "미분류";
                 defaultLanguage = "미분류";
-                log.info("Multiple max elements found - Classified as unclassified");
+                defaultTemplate = "미분류";
+                log.info("Number of matching words is less than the set value - Classified as unclassified");
             } else {
-                Map.Entry<String, Long> maxEntry = grouped.entrySet().stream()
-                        .filter(entry -> entry.getValue() == maxCount)
-                        .findFirst()
-                        .orElseThrow(() -> new NoSuchElementException("No max element found"));
 
-                log.info("Filtering And Grouping Result Max Entry: Key{}, Count{}", maxEntry.getKey(), maxEntry.getValue());
-                System.out.println("Filtering And Grouping Result Max Entry: Key : " + maxEntry.getKey() + ", Count : " + maxEntry.getValue());
+                // 최대 값이 여러 개 있는지 확인
+                long maxCountOccurrences = grouped.values().stream().filter(count -> count == maxCount).count();
 
-                String[] resultKeys = maxEntry.getKey().split("\\|");
-                defaultCountry = resultKeys[0];
-                defaultTemplate = resultKeys[1];
-                defaultLanguage = resultKeys[2];
+                if (maxCountOccurrences > 1) {
+                    defaultCountry = "미분류";
+                    defaultTemplate = "미분류";
+                    defaultLanguage = "미분류";
+                    log.info("Multiple max elements found - Classified as unclassified");
+                } else {
+                    Map.Entry<String, Long> maxEntry = grouped.entrySet().stream()
+                            .filter(entry -> entry.getValue() == maxCount)
+                            .findFirst()
+                            .orElseThrow(() -> new NoSuchElementException("No max element found"));
+
+                    log.info("Filtering And Grouping Result Max Entry: Key{}, Count{}", maxEntry.getKey(), maxEntry.getValue());
+                    System.out.println("Filtering And Grouping Result Max Entry: Key : " + maxEntry.getKey() + ", Count : " + maxEntry.getValue());
+
+                    String[] resultKeys = maxEntry.getKey().split("\\|");
+                    defaultCountry = resultKeys[0];
+                    defaultTemplate = resultKeys[1];
+                    defaultLanguage = resultKeys[2];
+                }
             }
         } catch (NoSuchElementException e) {
             defaultCountry = "미분류";
@@ -2168,9 +2178,9 @@ public class DocumentService {
             log.info("No continuous PL group found.");
         }
 
-//        System.out.println("  Country: " + finalCountry);
-//        System.out.println("  Template Name: " + finalTemplate);
-//        System.out.println("  Languages: " + finalLanguage);
+        System.out.println("  Country: " + finalCountry);
+        System.out.println("  Template Name: " + finalTemplate);
+        System.out.println("  Languages: " + finalLanguage);
 
         if (finalTemplate.equals("미분류")) {
             matchjsonWord = new ArrayList<>();
@@ -2254,26 +2264,36 @@ public class DocumentService {
             // 최대 값을 가진 항목을 찾기
             long maxCount = grouped.values().stream().max(Long::compare).orElseThrow(() -> new NoSuchElementException("No max element found"));
 
-            // 최대 값이 여러 개 있는지 확인
-            long maxCountOccurrences = grouped.values().stream().filter(count -> count == maxCount).count();
-
-            if (maxCountOccurrences > 1) {
+            // 최대 값이 설정한 값보다 큰지 확인
+            if (maxCount <= configLoader.wordMinimumCount) {
+                // 최대 값이 설정한 값보다 설정 값 보다 작을 경우 미분류 처리
                 defaultCountry = "미분류";
-                defaultTemplate = "미분류";
                 defaultLanguage = "미분류";
-                log.info("Multiple max elements found - Classified as unclassified");
+                defaultTemplate = "미분류";
+                log.info("Number of matching words is less than the set value - Classified as unclassified");
             } else {
-                Map.Entry<String, Long> maxEntry = grouped.entrySet().stream()
-                        .filter(entry -> entry.getValue() == maxCount)
-                        .findFirst()
-                        .orElseThrow(() -> new NoSuchElementException("No max element found"));
 
-                log.info("Filtering And Grouping Result Max Entry: Key{}, Count{}", maxEntry.getKey(), maxEntry.getValue());
+                // 최대 값이 여러 개 있는지 확인
+                long maxCountOccurrences = grouped.values().stream().filter(count -> count == maxCount).count();
 
-                String[] resultKeys = maxEntry.getKey().split("\\|");
-                defaultCountry = resultKeys[0];
-                defaultTemplate = resultKeys[1];
-                defaultLanguage = resultKeys[2];
+                if (maxCountOccurrences > 1) {
+                    defaultCountry = "미분류";
+                    defaultTemplate = "미분류";
+                    defaultLanguage = "미분류";
+                    log.info("Multiple max elements found - Classified as unclassified");
+                } else {
+                    Map.Entry<String, Long> maxEntry = grouped.entrySet().stream()
+                            .filter(entry -> entry.getValue() == maxCount)
+                            .findFirst()
+                            .orElseThrow(() -> new NoSuchElementException("No max element found"));
+
+                    log.info("Filtering And Grouping Result Max Entry: Key{}, Count{}", maxEntry.getKey(), maxEntry.getValue());
+
+                    String[] resultKeys = maxEntry.getKey().split("\\|");
+                    defaultCountry = resultKeys[0];
+                    defaultTemplate = resultKeys[1];
+                    defaultLanguage = resultKeys[2];
+                }
             }
         } catch (NoSuchElementException e) {
             defaultCountry = "미분류";
