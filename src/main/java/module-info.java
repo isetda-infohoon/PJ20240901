@@ -28,6 +28,7 @@ module com.isetda.idpengine {
     requires org.apache.commons.codec;
     requires com.google.api.client;
     requires commons.math3;
+    requires org.apache.pdfbox.jbig2;
 
     opens com.isetda.idpengine to javafx.fxml;
     exports com.isetda.idpengine;

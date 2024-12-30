@@ -1,8 +1,8 @@
 package com.isetda.idpengine;
 
-import javafx.scene.control.ProgressBar;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.pdfbox.jbig2.JBIG2ImageReaderSpi;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
@@ -11,14 +11,16 @@ import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.apache.pdfbox.rendering.ImageType;
 import org.apache.pdfbox.rendering.PDFRenderer;
 
+import org.apache.pdfbox.Loader;
+
 import javax.imageio.ImageIO;
+import javax.imageio.spi.IIORegistry;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.attribute.DosFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,6 +30,16 @@ public class IOService {
     public List<File> allFilesInSourceFolder;
     //추가 11/07
     public File badImgToPDF;
+
+    // JBIG2 이미지 처리를 위한 초기화
+    static {
+        try {
+            IIORegistry registry = IIORegistry.getDefaultInstance();
+            registry.registerServiceProvider(new JBIG2ImageReaderSpi());
+        } catch (Exception e) {
+            LogManager.getLogger(IOService.class).error("Error registering JBIG2 image reader", e);
+        }
+    }
 
     public File[] getFilteredFiles() {
         log.info("Start filtering files {}", configLoader.imageFolderPath);
@@ -94,10 +106,11 @@ public class IOService {
 
     private List<File> extractImagesFromPDF(String pdfPath) throws IOException {
         List<File> extractedImages = new ArrayList<>();
-        final int MAX_WIDTH = 2000; // 최대 너비 설정
-        final int MAX_HEIGHT = 2000; // 최대 높이 설정
+        final int MAX_WIDTH = 2000;
+        final int MAX_HEIGHT = 2000;
 
-        try (PDDocument document = PDDocument.load(new File(pdfPath))) {
+        // PDDocument.load() 대신 Loader 클래스 사용
+        try (PDDocument document = Loader.loadPDF(new File(pdfPath))) {
             PDFRenderer pdfRenderer = new PDFRenderer(document);
             int totalPages = document.getNumberOfPages();
 
@@ -110,6 +123,7 @@ public class IOService {
                 int dpi = (int) Math.min(MAX_WIDTH / (widthPt / 72), MAX_HEIGHT / (heightPt / 72));
 
                 BufferedImage bim = pdfRenderer.renderImageWithDPI(page, dpi, ImageType.RGB);
+
 
                 // 이미지가 여전히 너무 크다면 스케일링
                 if (bim.getWidth() > MAX_WIDTH || bim.getHeight() > MAX_HEIGHT) {

@@ -14,10 +14,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class IDPEngineController {
@@ -109,6 +106,10 @@ public class IDPEngineController {
         // 현재 Stage 가져오기
         Stage stage = (Stage) btn1.getScene().getWindow();
 
+        String countryName = countryCode.getText();
+
+        Set<String> allowedCountries = Set.of("FR", "US", "IT", "VN", "JP", "CN");
+
         // 버튼을 누르면 프로그램 최소화
         stage.setIconified(true);
 
@@ -164,7 +165,11 @@ public class IDPEngineController {
                         IOService.copyFiles(file);
                         continue;
                     }
-                    googleService.uploadAndOCR(file);
+                    if(!allowedCountries.contains(countryName)){
+                        googleService.FullTextOCR(file);
+                    }else {
+                        googleService.uploadAndOCR(file);
+                    }
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }

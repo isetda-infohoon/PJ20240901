@@ -100,6 +100,7 @@ public class GoogleService {
                     .post(body)
                     .build();
 
+
             try (Response response = client.newCall(request).execute()) {
                 if (!response.isSuccessful()) {
                     log.error("OCR fail: {}", response.message());
@@ -129,6 +130,125 @@ public class GoogleService {
                         log.info("JSON file download successful");
                     } catch (Exception e) {
                         log.error("Error saving OCR response", e);
+                    }
+
+                    log.info("OCR request successful");
+                    deleteFileInBucket(storage, blobId);
+                    checkBadImg = true;
+                }
+            }
+        } catch (IOException e) {
+            log.error("Network error during OCR request", e);
+        }
+    }
+
+    public void FullTextOCR(File file) throws IOException {
+        log.info("Start Upload and OCR");
+        Storage storage = getStorageService();
+        File localDir = new File(configLoader.resultFilePath);
+
+        if (!localDir.exists()) {
+            localDir.mkdirs();
+            log.info("Create a resulting directory: {}", configLoader.resultFilePath);
+        }
+
+        // PDF 파일 제외
+        if (file.getName().toLowerCase().endsWith(".pdf")) {
+            log.info("Skipping PDF file: {}", file.getName());
+            return;
+        }
+
+        String accessToken;
+        try {
+            accessToken = getAccessToken();
+        } catch (IOException e) {
+            log.error("Error obtaining access token", e);
+            return;
+        }
+
+        OkHttpClient client = new OkHttpClient();
+
+        String objectName = file.getName();
+        BlobId blobId = BlobId.of(configLoader.bucketNames.get(0), objectName);
+
+        // 버킷에 해당 파일이 있는지 확인
+        if (storage.get(blobId) != null) {
+            log.warn("Image file already exists in bucket: {}", objectName);
+            deleteFileInBucket(storage, blobId);
+        }
+        BlobInfo blobInfo = BlobInfo.newBuilder(blobId).build();
+
+        // 버킷 업로드
+        try {
+            storage.create(blobInfo, Files.readAllBytes(file.toPath()));
+            log.info("{} File upload successful", file.getName());
+        } catch (IOException e) {
+            log.error("Error uploading file: {}", file.getName(), e);
+            return;
+        }
+
+        // OCR 수행
+        try {
+            byte[] imgBytes = storage.readAllBytes(blobId);
+            String imgBase64 = Base64.getEncoder().encodeToString(imgBytes);
+
+            String jsonRequest = new JSONObject()
+                    .put("requests", new JSONArray()
+                            .put(new JSONObject()
+                                    .put("image", new JSONObject().put("content", imgBase64))
+                                    .put("features", new JSONArray().put(new JSONObject().put("type", "TEXT_DETECTION")))
+                            )).toString();
+
+            RequestBody body = RequestBody.create(jsonRequest, MediaType.parse("application/json; charset=utf-8"));
+            Request request = new Request.Builder()
+                    .url(configLoader.ocrUrl)
+                    .addHeader("Authorization", "Bearer " + accessToken)
+                    .post(body)
+                    .build();
+
+            try (Response response = client.newCall(request).execute()) {
+                if (!response.isSuccessful()) {
+                    log.error("OCR fail: {}", response.message());
+                    return;
+                }
+
+                String responseBody = response.body().string();
+                if (responseBody.contains("Bad image data")){
+                    checkBadImg = false;
+                    deleteFileInBucket(storage, blobId);
+                }else {
+                    JSONObject jsonResponse = new JSONObject(responseBody);
+                    String extractedText = new String();
+
+                    JSONArray responses = jsonResponse.getJSONArray("responses");
+                    for (int i = 0; i < responses.length(); i++) {
+                        JSONObject responseObj = responses.getJSONObject(i);
+                        if (responseObj.has("textAnnotations")) {
+                            JSONArray textAnnotations = responseObj.getJSONArray("textAnnotations");
+                            if (textAnnotations.length() > 0) {
+                                // textAnnotations의 첫 번째 항목이 전체 텍스트를 포함
+                                String description = textAnnotations.getJSONObject(0).getString("description").replaceAll("\\n", " ");
+                                extractedText= description;
+                                log.info("OCR text extraction successful");
+                            }
+                        }else {
+                            log.warn("OCR error");
+                        }
+                    }
+
+                    if (!extractedText.isEmpty()) {
+                        String outputFileName = file.getName().substring(0, file.getName().lastIndexOf("."));
+                        String outputPath = configLoader.resultFilePath + "\\" + outputFileName + "_result.dat";
+
+                        try (FileWriter writer = new FileWriter(outputPath)) {
+                            writer.write(extractedText);
+                            jsonFilePaths.add(outputPath);
+                            log.info("OCR result file saved successfully: {}", outputPath);
+                        } catch (Exception e) {
+                            log.error("Error saving OCR response", e);
+                        }
+                    } else {
+                        log.warn("Skipping file save due to no extracted text for: {}", file.getName());
                     }
 
                     log.info("OCR request successful");
