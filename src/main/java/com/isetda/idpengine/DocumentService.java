@@ -34,6 +34,10 @@ public class DocumentService {
 
     Map<String, Map<String, String>> resultByVersion = new HashMap<>();
     Map<String, Map<String, String>> finalResultByVersion = new HashMap<>();
+    Map<String, List<String>> finalCertificateResult = new HashMap<>();
+
+    List<String> certificateType = new ArrayList<>();
+
     //정다현 추가
      public String imgFileName;
 
@@ -92,6 +96,10 @@ public class DocumentService {
 
             resultByVersion.put(fileName.replace("_result", ""), new HashMap<>());
             finalResultByVersion.put(fileName.replace("_result", ""), new HashMap<>());
+
+            // 인증서 유형
+            certificateType = getCertificateType(allWords);
+            finalCertificateResult.put(fileName.replace("_result", ""), certificateType);
 
             if (configLoader.cdAUsageFlag) {
                 if (configLoader.cd1UsageFlag) {
@@ -156,12 +164,11 @@ public class DocumentService {
                     classifyDocuments_C3(jsonData, JsonService.jsonCollection2);
                     postProcessing("C3");
                 }
-
-                if (configLoader.writeTextResults) {
-                    excelService.textFinalResult(textSaveFilePath, fileName, finalResultByVersion, configLoader.classificationCriteria, configLoader.subClassificationCriteria);
-                }
             }
 
+            if (configLoader.writeTextResults) {
+                excelService.textFinalResult(textSaveFilePath, fileName, finalResultByVersion, configLoader.classificationCriteria, configLoader.subClassificationCriteria, finalCertificateResult);
+            }
 
             // dataset 엑셀 작성
 //            datasetSorting(jsonData, allWords);
@@ -175,6 +182,11 @@ public class DocumentService {
         }
 
         System.out.println();
+
+//        for (Map.Entry<String, List<String>> entry : finalCertificateResult.entrySet()) {
+//            System.out.println("파일명: " + entry.getKey());
+//            System.out.println("인증서 유형: " + entry.getValue());
+//        }
 
         for (Map.Entry<String, Map<String, String>> entry : resultByVersion.entrySet()) {
             String filename = entry.getKey();
@@ -2402,4 +2414,22 @@ public class DocumentService {
         return resultList;
     }
 
+    public List<String> getCertificateType(String jsonDescription) {
+        List<String> results = new ArrayList<>();
+
+        if (jsonDescription.contains("ISO")) {
+            results.add("ISO 22000");
+        }
+        if (jsonDescription.contains("HACCP")) {
+            results.add("HACCP");
+        }
+        if (jsonDescription.contains("GMP")) {
+            results.add("GMP");
+        }
+        if (jsonDescription.contains("FSSC 22000") || jsonDescription.contains("BRC") || jsonDescription.contains("SQF")) {
+            results.add("GFSI 규격");
+        }
+
+        return results;
+    }
 }

@@ -574,7 +574,7 @@ public class ExcelService {
         }
     }
 
-    public void textFinalResult(String textSaveFilePath, String fileName, Map<String, Map<String, String>> finalResultByVersion, String version, String subVersion) {
+    public void textFinalResult(String textSaveFilePath, String fileName, Map<String, Map<String, String>> finalResultByVersion, String version, String subVersion, Map<String, List<String>> finalCertificateResult) {
         String baseName = fileName.replace("_result", "");
 
         if (finalResultByVersion != null) {
@@ -595,6 +595,12 @@ public class ExcelService {
                         writer.write("국가: " + values[0] + "\n");
                         writer.write("언어: " + values[1] + "\n");
                         writer.write("문서 양식: " + values[2] + "\n");
+
+                        if (values[2].contains("인증서")) {
+                            List<String> certificateTypeList = finalCertificateResult.get(baseName);
+                            String certificateType = certificateTypeList.isEmpty() ? "없음" : String.join(", ", certificateTypeList);
+                            writer.write("인증서 유형: " + certificateType);
+                        }
 
                         log.info("Excel final results completed.");
                     } catch (IOException e) {
