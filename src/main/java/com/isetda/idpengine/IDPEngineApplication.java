@@ -6,6 +6,8 @@ import javafx.scene.Scene;
 import javafx.stage.Stage;
 
 import java.io.IOException;
+import java.net.DatagramSocket;
+import java.net.SocketException;
 
 public class IDPEngineApplication extends Application {
     @Override
@@ -19,6 +21,17 @@ public class IDPEngineApplication extends Application {
     }
 
     public static void main(String[] args) {
+        boolean canRun = true; // 로직 수행 가능여부 설정
+
+        try{
+            DatagramSocket ds = new DatagramSocket(4444); // 포트점유
+        } catch (SocketException e) {
+            System.out.println("동일한 프로그램이 동작중입니다. 포트 : " + 4444);
+            e.printStackTrace();
+            canRun = false;
+        }
+        if(canRun){
         launch();
+        }
     }
 }

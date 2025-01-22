@@ -212,31 +212,7 @@ public class IOService {
                 throw e; // 오류 발생 시 던지기
             }
     }
-    //새로 추가 이미지를 pdf로 저장
-//    public void ImgToPDF(File imageFile) throws IOException {
-//            if (imageFile.getName().toLowerCase().matches(".*\\.(jpg|jpeg|png)$")) {
-//                try (PDDocument doc = new PDDocument()) {
-//                    PDPage page = new PDPage();
-//                    doc.addPage(page);
-//                    PDImageXObject img = PDImageXObject.createFromFile(imageFile.getAbsolutePath(), doc);
-//
-//                    try (PDPageContentStream cs = new PDPageContentStream(doc, page)) {
-//                        cs.drawImage(img, 0, 0, page.getMediaBox().getWidth(), page.getMediaBox().getHeight());
-//                    }
-//                    String outputFileName = imageFile.getName().replaceAll("(?i)\\.(jpg|jpeg|png)$", ".pdf");
-//                    String outputPath = configLoader.resultFilePath + File.separator + outputFileName;
-//                    // 이미지 파일 이름으로 PDF 저장
-//                    doc.save(outputPath);
-//                    badImgToPDF = extractImagesFromPDF(outputPath).getFirst();
-//                    log.info("확인11:{}",badImgToPDF);
-//                    System.out.println("Converted: " + imageFile.getName());
-//                } catch (IOException e) {
-//                    System.err.println("Error converting " + imageFile.getName());
-//                }
-//            } else {
-//                System.out.println(imageFile.getName() + " is not a valid image file.");
-//            }
-//    }
+
     public void ImgToPDF(File imageFile) throws IOException {
         if (imageFile.getName().toLowerCase().matches(".*\\.(jpg|jpeg|png)$")) {
             try (PDDocument doc = new PDDocument()) {

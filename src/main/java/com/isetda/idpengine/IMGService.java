@@ -13,7 +13,6 @@ import java.util.List;
 
 public class IMGService {
     private static final Logger log = LogManager.getLogger(IMGService.class);
-    public ConfigLoader configLoader;
 
     public void drawMarking(File imageFile, List<Map<String, Object>> jsonCollection ,String a,String docType) throws IOException {
         log.info("Adding marking to image: {}", imageFile.getAbsolutePath());

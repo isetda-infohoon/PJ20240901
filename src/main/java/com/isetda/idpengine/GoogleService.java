@@ -1,11 +1,10 @@
 package com.isetda.idpengine;
 
+//import com.google.api.client.googleapis.json.GoogleJsonResponseException;
+import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
-import com.google.cloud.storage.BlobId;
-import com.google.cloud.storage.BlobInfo;
-import com.google.cloud.storage.Storage;
-import com.google.cloud.storage.StorageOptions;
+import com.google.cloud.storage.*;
 import okhttp3.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -22,6 +21,8 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 
+
+
 public class GoogleService {
     public boolean encode = false;
     // 로그
@@ -34,9 +35,12 @@ public class GoogleService {
 
     public boolean checkBadImg;
 
+    public boolean EnablingGoogle = true;
+
 
     //구글 버킷에 이미지 올리기 및 ocr 진행
     public void uploadAndOCR(File file) throws IOException {
+        EnablingGoogle = true;
         log.info("Start Upload and OCR");
         Storage storage = getStorageService();
         File localDir = new File(configLoader.resultFilePath);
@@ -66,12 +70,30 @@ public class GoogleService {
         BlobId blobId = BlobId.of(configLoader.bucketNames.get(0), objectName);
 
         // 버킷에 해당 파일이 있는지 확인
-        if (storage.get(blobId) != null) {
-            log.warn("Image file already exists in bucket: {}", objectName);
-            deleteFileInBucket(storage, blobId);
-        }
-        BlobInfo blobInfo = BlobInfo.newBuilder(blobId).build();
+//        if (storage.get(blobId) != null) {
+//            log.warn("Image file already exists in bucket: {}", objectName);
+//            deleteFileInBucket(storage, blobId);
+//        }
 
+        try {
+            if (storage.get(blobId) != null) {
+                log.warn("Image file already exists in bucket: {}", objectName);
+                deleteFileInBucket(storage, blobId);
+            }
+        } catch (StorageException e) {
+            // 403 Forbidden 오류가 발생하면 결제 계정이 비활성화된 것임
+            if (e.getCause() instanceof GoogleJsonResponseException) {
+        GoogleJsonResponseException googleJsonException = (GoogleJsonResponseException) e.getCause();
+        String errorMessage = googleJsonException.getMessage();
+        log.error("Google error message: {}", errorMessage);
+        EnablingGoogle = false;  // 이후 작업을 중단하거나 비활성화 설정
+        checkBadImg = true;
+        return;  // 이후 처리 중단
+    }
+    log.error("Error checking if file exists in bucket: {}", e.getMessage());
+    return;
+}
+        BlobInfo blobInfo = BlobInfo.newBuilder(blobId).build();
         // 버킷 업로드
         try {
             storage.create(blobInfo, Files.readAllBytes(file.toPath()));
@@ -100,7 +122,6 @@ public class GoogleService {
                     .post(body)
                     .build();
 
-
             try (Response response = client.newCall(request).execute()) {
                 if (!response.isSuccessful()) {
                     log.error("OCR fail: {}", response.message());
@@ -108,10 +129,10 @@ public class GoogleService {
                 }
 
                 String responseBody = response.body().string();
-                if (responseBody.contains("Bad image data")){
+                if (responseBody.contains("Bad image data")) {
                     checkBadImg = false;
                     deleteFileInBucket(storage, blobId);
-                }else {
+                } else {
                     String outputFileName = file.getName().substring(0, file.getName().lastIndexOf("."));
                     String outputPath = configLoader.resultFilePath + "\\" + outputFileName + "_result.dat";
 
@@ -131,21 +152,22 @@ public class GoogleService {
                     } catch (Exception e) {
                         log.error("Error saving OCR response", e);
                     }
-
-                    log.info("OCR request successful");
-                    deleteFileInBucket(storage, blobId);
-                    checkBadImg = true;
                 }
+                log.info("OCR request successful");
+                deleteFileInBucket(storage, blobId);
+                checkBadImg = true;
             }
         } catch (IOException e) {
             log.error("Network error during OCR request", e);
         }
     }
-
+//학습 제외 국가용 ocr 업로드 메서드
     public void FullTextOCR(File file) throws IOException {
         log.info("Start Upload and OCR");
         Storage storage = getStorageService();
         File localDir = new File(configLoader.resultFilePath);
+        EnablingGoogle = true;
+
 
         if (!localDir.exists()) {
             localDir.mkdirs();
@@ -159,6 +181,7 @@ public class GoogleService {
         }
 
         String accessToken;
+
         try {
             accessToken = getAccessToken();
         } catch (IOException e) {
@@ -171,10 +194,23 @@ public class GoogleService {
         String objectName = file.getName();
         BlobId blobId = BlobId.of(configLoader.bucketNames.get(0), objectName);
 
-        // 버킷에 해당 파일이 있는지 확인
-        if (storage.get(blobId) != null) {
-            log.warn("Image file already exists in bucket: {}", objectName);
-            deleteFileInBucket(storage, blobId);
+        try {
+            if (storage.get(blobId) != null) {
+                log.warn("Image file already exists in bucket: {}", objectName);
+                deleteFileInBucket(storage, blobId);
+            }
+        } catch (StorageException e) {
+            // 403 Forbidden 오류가 발생하면 결제 계정이 비활성화된 것임
+            if (e.getCause() instanceof GoogleJsonResponseException) {
+                GoogleJsonResponseException googleJsonException = (GoogleJsonResponseException) e.getCause();
+                String errorMessage = googleJsonException.getMessage();
+                log.error("Google error message: {}", errorMessage);
+                EnablingGoogle = false;  // 이후 작업을 중단하거나 비활성화 설정
+                checkBadImg = true;
+                return;  // 이후 처리 중단
+            }
+            log.error("Error checking if file exists in bucket: {}", e.getMessage());
+            return;
         }
         BlobInfo blobInfo = BlobInfo.newBuilder(blobId).build();
 
@@ -227,7 +263,7 @@ public class GoogleService {
                             JSONArray textAnnotations = responseObj.getJSONArray("textAnnotations");
                             if (textAnnotations.length() > 0) {
                                 // textAnnotations의 첫 번째 항목이 전체 텍스트를 포함
-                                String description = textAnnotations.getJSONObject(0).getString("description").replaceAll("\\n", " ");
+                                String description = textAnnotations.getJSONObject(0).getString("description").replaceAll("\\n", "++++");
                                 extractedText= description;
                                 log.info("OCR text extraction successful");
                             }
@@ -260,108 +296,6 @@ public class GoogleService {
             log.error("Network error during OCR request", e);
         }
     }
-
-    //구글 버킷에 이미지 올리기 및 ocr 진행   수정 전 구 버전 11/07
-//    public void uploadAndOCR2(File file) throws IOException {
-//        log.info("Start Upload and OCR");
-//        Storage storage = getStorageService();
-//        File localDir = new File(configLoader.resultFilePath);
-//
-//        if (!localDir.exists()) {
-//            localDir.mkdirs();
-//            log.info("Create a resulting directory: {}", configLoader.resultFilePath);
-//        }
-//
-//        // PDF 파일 제외
-//        if (file.getName().toLowerCase().endsWith(".pdf")) {
-//            log.info("Skipping PDF file: {}", file.getName());
-//            return;
-//        }
-//
-//        String accessToken;
-//        try {
-//            accessToken = getAccessToken();
-//        } catch (IOException e) {
-//            log.error("Error obtaining access token", e);
-//            return;
-//        }
-//
-//        OkHttpClient client = new OkHttpClient();
-//
-//        String objectName = file.getName();
-//        BlobId blobId = BlobId.of(configLoader.bucketNames.get(0), objectName);
-//
-//        // 버킷에 해당 파일이 있는지 확인
-//        if (storage.get(blobId) != null) {
-//            log.warn("Image file already exists in bucket: {}", objectName);
-//            deleteFileInBucket(storage, blobId);
-//        }
-//        BlobInfo blobInfo = BlobInfo.newBuilder(blobId).build();
-//
-//        // 버킷 업로드
-//        try {
-//            storage.create(blobInfo, Files.readAllBytes(file.toPath()));
-//            log.info("{} File upload successful", file.getName());
-//        } catch (IOException e) {
-//            log.error("Error uploading file: {}", file.getName(), e);
-//            return;
-//        }
-//
-//        // OCR 수행
-//        try {
-//            byte[] imgBytes = storage.readAllBytes(blobId);
-//            String imgBase64 = Base64.getEncoder().encodeToString(imgBytes);
-//
-//            String jsonRequest = new JSONObject()
-//                    .put("requests", new JSONArray()
-//                            .put(new JSONObject()
-//                                    .put("image", new JSONObject().put("content", imgBase64))
-//                                    .put("features", new JSONArray().put(new JSONObject().put("type", "TEXT_DETECTION")))
-//                            )).toString();
-//
-//            RequestBody body = RequestBody.create(jsonRequest, MediaType.parse("application/json; charset=utf-8"));
-//            Request request = new Request.Builder()
-//                    .url(configLoader.ocrUrl)
-//                    .addHeader("Authorization", "Bearer " + accessToken)
-//                    .post(body)
-//                    .build();
-//
-//            try (Response response = client.newCall(request).execute()) {
-//                if (!response.isSuccessful()) {
-//                    log.error("OCR fail: {}", response.message());
-//                    return;
-//                }
-//
-//                String responseBody = response.body().string();
-//
-//                    String outputFileName = file.getName().substring(0, file.getName().lastIndexOf("."));
-//                    String outputPath = configLoader.resultFilePath + "\\" + outputFileName + "_result.dat";
-//
-//                    try (FileWriter writer = new FileWriter(outputPath)) {
-//                        if (configLoader.encodingCheck) {
-//                            byte[] encData = JsonService.aesEncode(responseBody);
-//                            Files.write(Paths.get(outputPath), encData);
-//
-//                            byte[] fileContent = Files.readAllBytes(Paths.get(outputPath));
-//                            String decodedText = JsonService.aesDecode(fileContent);
-//                            log.debug("Decoding text: {}", decodedText);
-//                        } else {
-//                            writer.write(responseBody);
-//                        }
-//                        jsonFilePaths.add(outputPath); // JSON 파일 경로 리스트에 추가
-//                        log.info("JSON file download successful");
-//                    } catch (Exception e) {
-//                        log.error("Error saving OCR response", e);
-//                    }
-//
-//                    log.info("OCR request successful");
-//                    deleteFileInBucket(storage, blobId);
-//                    checkBadImg = true;
-//            }
-//        } catch (IOException e) {
-//            log.error("Network error during OCR request", e);
-//        }
-//    }
 
     //구글 인증 토근 설정
     public String getAccessToken() throws IOException {

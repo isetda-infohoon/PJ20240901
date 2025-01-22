@@ -598,7 +598,7 @@ public class ExcelService {
 
                         if (values[2].contains("인증서")) {
                             List<String> certificateTypeList = finalCertificateResult.get(baseName);
-                            String certificateType = certificateTypeList.isEmpty() ? "없음" : String.join(", ", certificateTypeList);
+                            String certificateType = certificateTypeList.isEmpty() ? "-" : String.join(", ", certificateTypeList);
                             writer.write("인증서 유형: " + certificateType);
                         }
 
