@@ -1,5 +1,6 @@
 package com.isetda.idpengine;
 
+import com.mashape.unirest.http.exceptions.UnirestException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.pdfbox.jbig2.JBIG2ImageReaderSpi;
@@ -21,15 +22,23 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
+import java.nio.file.StandardCopyOption;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class IOService {
     private static final Logger log = LogManager.getLogger(IOService.class);
-    public static ConfigLoader configLoader;
+    public static ConfigLoader configLoader = ConfigLoader.getInstance();
     public List<File> allFilesInSourceFolder;
     //추가 11/07
     public File badImgToPDF;
+    public String imagePath;
+    public String fullResultPath;
+    public String subPath;
 
     // JBIG2 이미지 처리를 위한 초기화
     static {
@@ -50,7 +59,7 @@ public class IOService {
         if (folder.exists() && folder.isDirectory()) {
             allFilesInSourceFolder = new ArrayList<>();
             findFilesRecursively(folder, allFilesInSourceFolder, filteredFiles);
-            log.info("A total of {} files found in {} (including subdirectories)", allFilesInSourceFolder.size(), configLoader.imageFolderPath);
+            log.debug("A total of {} files found in {} (including subdirectories)", allFilesInSourceFolder.size(), configLoader.imageFolderPath);
         } else {
             allFilesInSourceFolder = new ArrayList<>();
             log.error("Source folder does not exist or is not a directory: {}", configLoader.imageFolderPath);
@@ -58,7 +67,7 @@ public class IOService {
         }
 
         if (filteredFiles.isEmpty()) {
-            log.info("No filtered files found in {}", configLoader.imageFolderPath);
+            log.debug("No filtered files found in {}", configLoader.imageFolderPath);
         } else {
             log.info("Total filtered files: {}", filteredFiles.size());
         }
@@ -72,7 +81,7 @@ public class IOService {
         if (filesAndDirs != null) {
             for (File file : filesAndDirs) {
                 if (file.isDirectory()) {
-                    log.info("Browse folders inside folders: {}", file.getAbsolutePath());
+                    log.debug("Browse folders inside folders: {}", file.getAbsolutePath());
                     // 서브 폴더를 재귀적으로 탐색
                     findFilesRecursively(file, allFiles, filteredFiles);
                 } else {
@@ -87,7 +96,7 @@ public class IOService {
                     if (lowercaseName.endsWith(".jpg") || lowercaseName.endsWith(".png") || lowercaseName.endsWith(".jpeg")) {
                         filteredFiles.add(file); // 이미지 파일을 filteredFiles에 추가
                     } else if (lowercaseName.endsWith(".pdf")) {
-                        log.info("PDF file found: {}", file.getAbsolutePath());
+                        log.debug("PDF file found: {}", file.getAbsolutePath());
                         filteredFiles.add(file); // PDF 원본 파일을 filteredFiles에 추가
                         try {
                             // PDF에서 추출된 이미지를 filteredFiles에 추가
@@ -104,10 +113,12 @@ public class IOService {
         }
     }
 
-    private List<File> extractImagesFromPDF(String pdfPath) throws IOException {
+    public List<File> extractImagesFromPDF(String pdfPath) throws IOException {
         List<File> extractedImages = new ArrayList<>();
         final int MAX_WIDTH = 2000;
         final int MAX_HEIGHT = 2000;
+
+        File pdfFile = Paths.get(pdfPath).toFile();
 
         // PDDocument.load() 대신 Loader 클래스 사용
         try (PDDocument document = Loader.loadPDF(new File(pdfPath))) {
@@ -140,15 +151,56 @@ public class IOService {
                 ImageIO.write(bim, "jpg", imageFile);
                 extractedImages.add(imageFile);
 
-                log.info("Image extracted from PDF (page {}): {}", page + 1, imageFile.getAbsolutePath());
+                log.debug("Image extracted from PDF (page {}): {}", page + 1, imageFile.getAbsolutePath());
             }
             log.info("A total of {} images were extracted from PDF file: {}", totalPages, pdfPath);
         } catch (IOException e) {
+            // PDF 파일 오류 시
             log.error("Error extracting image from PDF file: {}", pdfPath, e);
+
+            moveFileToErrorDirectory(pdfFile, subPath);
+
+            APICaller apiCaller = new APICaller();
+            String apiFileName = Paths.get(subPath, pdfFile.getName()).toString();
+            try {
+                FileInfo fileInfo = apiCaller.getFileByName(configLoader.apiUserId, apiFileName);
+                String message = "File Error";
+                apiCaller.callDeleteApi(configLoader.apiUserId, fileInfo.getFilename(), fileInfo.getOcrServiceType());
+                if (fileInfo.getUrlData() != null) {
+                    apiCaller.callbackApi(fileInfo, subPath, message);
+                } else {
+                    log.info("URL DATA IS NULL");
+                }
+            } catch (UnirestException ex) {
+                log.info("DELETE API/CALLBACK API 호출 실패: {}", ex);
+            }
+
             throw e;
         }
 
         return extractedImages;
+    }
+
+    // 파일 "오류" 폴더로 이동
+    public static void moveFileToErrorDirectory(File file, String subPath) {
+        String path = Paths.get(configLoader.resultFilePath, "오류", subPath).toString();
+        File errorDir = new File(path);
+
+        if (!errorDir.exists()) {
+            boolean created = errorDir.mkdirs();
+            if (!created) {
+                log.error("Failed to create error directory: {}", errorDir.getPath());
+                return;
+            }
+        }
+
+        File destFile = Paths.get(errorDir.getPath(), file.getName()).toFile();
+        try {
+            Files.move(file.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            log.info("Moved problematic PDF to: {}", destFile.getPath());
+        } catch (IOException moveEx) {
+            log.error("Failed to move PDF to error directory: {}", destFile.getPath(), moveEx);
+        }
     }
 
     // 파일 삭제 메서드
@@ -171,7 +223,7 @@ public class IOService {
                     if (deleted) {
                         // 파일 이름과 확장자만 로그에 출력
                         String fileName = file.getName();
-                        log.info("파일 삭제 성공: 이름: {}", fileName);
+                        log.trace("파일 삭제 성공: 이름: {}", fileName);
                     } else {
                         String fileName = file.getName();
                         log.warn("파일 삭제 실패: 이름: {}", fileName);
@@ -202,10 +254,10 @@ public class IOService {
                 return;
             }
             try {
-                Files.copy(sourcePath, destinationPath);
+                Files.copy(sourcePath, destinationPath, StandardCopyOption.REPLACE_EXISTING);
                 // 파일 이름과 확장자만 로그에 출력
                 String fileName = file.getName();
-                log.info("Copy successful: Name:{}->Storage path:{}", fileName, destinationPath);
+                log.debug("Copy successful: Name:{}->Storage path:{}", fileName, destinationPath);
             } catch (IOException e) {
                 String fileName = file.getName();
                 log.error("Error copying: Name: {} -> Storage path: {}, Error: {}", fileName, destinationPath, e.getMessage(), e);
@@ -230,12 +282,273 @@ public class IOService {
                 doc.save(outputPath);
 
                 badImgToPDF = extractImagesFromPDF(outputPath).getFirst();
-                log.info("Converted : {}",imageFile.getName());
+                log.debug("Converted : {}",imageFile.getName());
             } catch (IOException e) {
-                log.info("Error converting: {}",imageFile.getName());
+                log.warn("Error converting: {}",imageFile.getName());
             }
         } else {
-            log.info("{} is not a valid image file.",imageFile.getName());
+            log.error("{} is not a valid image file.",imageFile.getName());
+        }
+    }
+
+    // 처리 단위가 api 리스트 전체일 때
+    public List<File> getFilesWithAPIAndExtractedImages() {
+        APICaller apiCaller = new APICaller();
+        List<File> resultFiles = new ArrayList<>();
+
+        //File folder = new File(configLoader.imageFolderPath);
+
+        LocalDate today = LocalDate.now();
+        String formattedDate = today.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+
+        try {
+            // 처리 단위가 api 리스트 전체일 때
+            List<FileInfo> fileInfos = apiCaller.getAllFilesWithCase(configLoader.apiUserId, configLoader.ocrServiceType, "", 0, formattedDate);
+            // 시간순 정렬
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS");
+            fileInfos.sort(
+                    Comparator.comparing(file -> {
+                        try {
+                            return LocalDateTime.parse(file.getCreateDateTime(), formatter);
+                        } catch (Exception e) {
+                            return LocalDateTime.MIN; // 오류 시 가장 오래된 값으로 처리
+                        }
+                    })
+            );
+
+            for (FileInfo fileInfo : fileInfos) {
+                if (fileInfo.getJobType() == null || !fileInfo.getJobType().contains("IDP")) {
+                    continue;
+                }
+
+                String fileName = fileInfo.getFilename();
+                File file = new File(configLoader.imageFolderPath, fileName);
+
+                if (!file.exists()) {
+                    log.debug("file not exist: {}", file.getAbsolutePath());
+                    continue;
+                }
+
+                String lowerName = fileName.toLowerCase();
+
+                if (lowerName.endsWith(".pdf")) {
+                    List<File> extractedImages = extractImagesFromPDF(file.getAbsolutePath());
+                    resultFiles.addAll(extractedImages);
+
+                    copyFiles(file);
+                    int maxPage = getPdfPageCount(file.getAbsolutePath());
+                    apiCaller.callDivisionApi(configLoader.apiUserId, maxPage, fileName, fileInfo.getOcrServiceType());
+
+                    log.trace("PDF에서 추출된 이미지 {}개 추가됨: {}", extractedImages.size(), fileName);
+                } else if (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg") || lowerName.endsWith(".png")) {
+                    resultFiles.add(file);
+                } else {
+                    log.warn("지원하지 않는 파일 형식: {}", fileName);
+                }
+            }
+        } catch (Exception e) {
+            log.error("API 조회 실패");
+        }
+
+//        if (allFiles != null) {
+//            for (File file : allFiles) {
+//                if (file.isFile()) {
+//                    try {
+//                        FileInfo fileInfo = apiCaller.getFileWithStatus2(configLoader.apiUserId, file.getName());
+//
+//                        if (fileInfo != null && fileInfo.getFilename() != null) {
+//                            String lowerName = file.getName().toLowerCase();
+//
+//                            if (lowerName.endsWith(".pdf")) {
+//                                // PDF에서 이미지 추출
+//                                List<File> extractedImages = extractImagesFromPDF(file.getAbsolutePath());
+//                                resultFiles.addAll(extractedImages);
+//
+//                                // PDF 처리
+//                                copyFiles(file);
+//                                int maxPage = idpEngineController.getPdfPageCount(configLoader.imageFolderPath + File.separator + fileInfo.getFilename());
+//                                apiCaller.callDivisionApi(configLoader.apiUserId, maxPage, fileInfo.getFilename(), fileInfo.getOcrServiceType());
+//
+//                                log.info("PDF에서 추출된 이미지 {}개 추가됨: {}", extractedImages.size(), file.getName());
+//                            } else if (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg") || lowerName.endsWith(".png")) {
+//                                resultFiles.add(file); // 이미지 파일은 그대로 추가
+//                            } else {
+//                                log.warn("지원하지 않는 파일 형식: {}", file.getName());
+//                            }
+//                        }
+//                    } catch (Exception e) {
+//                        log.error("API 조회 실패: {}", file.getName(), e);
+//                    }
+//                }
+//            }
+//        } else {
+//            log.error("폴더를 읽을 수 없습니다: {}", configLoader.imageFolderPath);
+//        }
+
+        resultFiles.sort((f1, f2) -> {
+            int pageNum1 = extractPageNumber(f1.getName());
+            int pageNum2 = extractPageNumber(f2.getName());
+            return Integer.compare(pageNum1, pageNum2);
+        });
+
+        return resultFiles;
+    }
+
+    // 처리 단위가 1개 파일일 때
+    public List<File> getFileWithAPIAndExtractedImages(FileInfo unitFileInfo) {
+        APICaller apiCaller = new APICaller();
+        IOService ioService = new IOService();
+        List<File> resultFiles = new ArrayList<>();
+
+        //File folder = new File(configLoader.imageFolderPath);
+
+        LocalDate today = LocalDate.now();
+        String formattedDate = today.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+
+        try {
+            String fileName = unitFileInfo.getFilename();
+            String normalizedFileName = fileName.replace("/", File.separator).replace("\\", File.separator);
+            File file = null;
+
+            for (FolderMapping mapping : configLoader.folderMappings) {
+                //File targetFile = new File(mapping.getImageFolderPath(), fileName);
+                File targetFile = Paths.get(mapping.getImageFolderPath(), normalizedFileName).toFile();
+                log.trace("파일 탐색 시도 경로: {}", targetFile.getAbsolutePath());
+
+                if (targetFile.exists()) {
+                    file = targetFile;
+
+                    // 세부 경로 추출
+                    String subDirPath = "";
+                    int lastSeparatorIndex = normalizedFileName.lastIndexOf(File.separator);
+                    if (lastSeparatorIndex != -1) {
+                        String rawSubPath = fileName.substring(0, lastSeparatorIndex);
+                        subDirPath = Paths.get(rawSubPath).toString() + File.separator;
+                    }
+//                    int lastSeparatorIndex = normalizedFileName.lastIndexOf(File.separator);
+//                    String subDirPath = (lastSeparatorIndex != -1) ? fileName.substring(0, lastSeparatorIndex) + File.separator : "";
+
+                    configLoader.imageFolderPath = mapping.getImageFolderPath() + File.separator + subDirPath;
+                    configLoader.resultFilePath = mapping.getResultFilePath();
+                    subPath = subDirPath;
+                    fullResultPath = mapping.getResultFilePath();
+                    log.debug("결과 저장 경로 (String): {}", fullResultPath);
+                    log.debug("Sub Path: {}", subPath);
+
+                    File resultDir = Paths.get(fullResultPath).toFile();
+                    if (!resultDir.exists()) {
+                        resultDir.mkdirs();
+                    }
+
+                    log.debug("원본 파일명: {}, 정규화 파일명: {}", fileName, normalizedFileName);
+                    log.debug("탐색 대상 매핑 경로: {}", mapping.getImageFolderPath());
+
+
+                    break;
+                }
+            }
+            //File file = new File(configLoader.imageFolderPath, fileName);
+
+            if (!file.exists()) {
+                //log.info("file not exist: {}", file.getAbsolutePath());
+                return Collections.emptyList();
+            }
+
+            String lowerName = fileName.toLowerCase();
+
+            if (lowerName.endsWith(".pdf")) {
+                List<File> extractedImages = extractImagesFromPDF(file.getAbsolutePath());
+                resultFiles.addAll(extractedImages);
+
+                copyFiles(file);
+                int maxPage = getPdfPageCount(file.getAbsolutePath());
+                apiCaller.callDivisionApi(configLoader.apiUserId, maxPage, fileName, unitFileInfo.getOcrServiceType());
+
+                log.debug("PDF에서 추출된 이미지 {}개 추가됨: {}", extractedImages.size(), fileName);
+            } else if (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg") || lowerName.endsWith(".png")) {
+                resultFiles.add(file);
+                ioService.copyFiles(file);
+            } else {
+                log.warn("지원하지 않는 파일 형식: {}", fileName);
+            }
+        } catch (Exception e) {
+            log.warn("API 조회 실패: {}", e.getMessage(), e);
+
+        }
+
+
+//        if (allFiles != null) {
+//            for (File file : allFiles) {
+//                if (file.isFile()) {
+//                    try {
+//                        FileInfo fileInfo = apiCaller.getFileWithStatus2(configLoader.apiUserId, file.getName());
+//
+//                        if (fileInfo != null && fileInfo.getFilename() != null) {
+//                            String lowerName = file.getName().toLowerCase();
+//
+//                            if (lowerName.endsWith(".pdf")) {
+//                                // PDF에서 이미지 추출
+//                                List<File> extractedImages = extractImagesFromPDF(file.getAbsolutePath());
+//                                resultFiles.addAll(extractedImages);
+//
+//                                // PDF 처리
+//                                copyFiles(file);
+//                                int maxPage = idpEngineController.getPdfPageCount(configLoader.imageFolderPath + File.separator + fileInfo.getFilename());
+//                                apiCaller.callDivisionApi(configLoader.apiUserId, maxPage, fileInfo.getFilename(), fileInfo.getOcrServiceType());
+//
+//                                log.info("PDF에서 추출된 이미지 {}개 추가됨: {}", extractedImages.size(), file.getName());
+//                            } else if (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg") || lowerName.endsWith(".png")) {
+//                                resultFiles.add(file); // 이미지 파일은 그대로 추가
+//                            } else {
+//                                log.warn("지원하지 않는 파일 형식: {}", file.getName());
+//                            }
+//                        }
+//                    } catch (Exception e) {
+//                        log.error("API 조회 실패: {}", file.getName(), e);
+//                    }
+//                }
+//            }
+//        } else {
+//            log.error("폴더를 읽을 수 없습니다: {}", configLoader.imageFolderPath);
+//        }
+
+        resultFiles.sort((f1, f2) -> {
+            int pageNum1 = extractPageNumber(f1.getName());
+            int pageNum2 = extractPageNumber(f2.getName());
+            return Integer.compare(pageNum1, pageNum2);
+        });
+
+        // 정렬 결과 로그 출력
+//        log.trace("FileList 시간순 정렬 확인");
+//        for (File file : resultFiles) {
+//            log.trace("Filename: {}, StartDateTime: {}",
+//                    file.getName());
+//        }
+
+        return resultFiles;
+    }
+
+    // 페이지 번호 추출 함수 (정렬)
+    private int extractPageNumber(String fileName) {
+        try {
+            Pattern pattern = Pattern.compile("-page(\\d+)");
+            Matcher matcher = pattern.matcher(fileName);
+            if (matcher.find()) {
+                return Integer.parseInt(matcher.group(1));
+            }
+        } catch (Exception e) {
+            // 예외 발생 시 가장 작은 값으로 처리
+        }
+        return Integer.MIN_VALUE;
+    }
+
+    // PDF 페이지 수 계산
+    public int getPdfPageCount(String pdfFilePath) {
+        try (PDDocument document = Loader.loadPDF(new File(pdfFilePath))) {
+            return document.getNumberOfPages();
+        } catch (IOException e) {
+            log.error("PDF 페이지 수 계산 중 오류 발생: {}", pdfFilePath, e);
+            return 0;
         }
     }
 

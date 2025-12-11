@@ -46,7 +46,7 @@ public class JsonService {
                 this.jsonObject = new JSONObject(FileUtils.readFileToString(new File(jsonFilePath), "UTF-8"));
             }
             log.info("JSON data loading successful");
-            getWordPosition();
+            getWordPosition2();
         } catch (IOException e) {
             log.error("Error reading json file", e);
         } catch (Exception e) {
@@ -68,13 +68,13 @@ public class JsonService {
 
 
     public static List<Map<String, Object>> sortAnnotations(List<Map<String, Object>> items) {
-        System.out.println("원본 데이터:");
-        printItems(items);
+        //System.out.println("원본 데이터:");
+        //printItems(items);
 
         // Step 1: Sort by minY
         items.sort(Comparator.comparingInt(a -> (Integer) a.getOrDefault("minY", Integer.MAX_VALUE)));
-        System.out.println("\nStep 1 - minY 기준 정렬 후:");
-        printItems(items);
+        //System.out.println("\nStep 1 - minY 기준 정렬 후:");
+        //printItems(items);
 
         // Step 2: Group items with similar minY values
         List<List<Map<String, Object>>> groups = new ArrayList<>();
@@ -100,30 +100,30 @@ public class JsonService {
             groups.add(currentGroup);
         }
 
-        System.out.println("\nStep 2 - minY 값이 비슷한 항목들의 그룹:");
-        for (int i = 0; i < groups.size(); i++) {
-            System.out.println("Group " + (i + 1) + ":");
-            printItems(groups.get(i));
-        }
+        //System.out.println("\nStep 2 - minY 값이 비슷한 항목들의 그룹:");
+//        for (int i = 0; i < groups.size(); i++) {
+//            System.out.println("Group " + (i + 1) + ":");
+//            printItems(groups.get(i));
+//        }
 
         // Step 3: Sort each group by minX
         for (List<Map<String, Object>> group : groups) {
             group.sort(Comparator.comparingInt(a -> (Integer) a.getOrDefault("minX", Integer.MAX_VALUE)));
         }
 
-        System.out.println("\nStep 3 - 각 그룹 내 minX 기준 정렬 후:");
-        for (int i = 0; i < groups.size(); i++) {
-            System.out.println("Group " + (i + 1) + ":");
-            printItems(groups.get(i));
-        }
+        //System.out.println("\nStep 3 - 각 그룹 내 minX 기준 정렬 후:");
+//        for (int i = 0; i < groups.size(); i++) {
+//            System.out.println("Group " + (i + 1) + ":");
+//            printItems(groups.get(i));
+//        }
 
         // Step 4: Flatten the groups back into a single list
         List<Map<String, Object>> result = groups.stream()
                 .flatMap(List::stream)
                 .collect(Collectors.toList());
 
-        System.out.println("\nStep 4 - 최종 정렬 결과:");
-        printItems(result);
+        //System.out.println("\nStep 4 - 최종 정렬 결과:");
+        //printItems(result);
         jsonCollection3 = result;
         return result;
     }
@@ -160,9 +160,9 @@ public class JsonService {
             }
 
             jsonLocal = textAnnotationsArray.getJSONObject(0).getString("locale");
-            log.info("language code: {}", jsonLocal);
+            log.info("Language Code: {}", jsonLocal);
 
-            log.info("Start word position extraction");
+            log.debug("Start word position extraction");
 
             // 첫 번째 description(전체 텍스트)을 별도로 처리
             JSONObject firstAnnotation = textAnnotationsArray.getJSONObject(0);
@@ -179,10 +179,167 @@ public class JsonService {
                 }
             }
 
-            log.info("Word position extraction and sorting completed");
+            log.debug("Word position extraction and sorting completed");
 
         } catch (JSONException e) {
             log.error("Error processing JSON: ", e);
+            jsonCollection.add(createEmptyData());
+        } catch (Exception e) {
+            log.error("Error extracting word location: {}", e.getMessage(), e);
+            jsonCollection.add(createEmptyData());
+        }
+    }
+
+    // Synap OCR JSON(.dat) 가공
+    public void getWordPosition2() {
+        jsonCollection = new ArrayList<>();
+
+        try {
+            // .dat(JSON)이 Google OCR 결과인 경우
+            if (jsonObject.has("responses")) {
+                JSONObject responsesObject = jsonObject.getJSONArray("responses").getJSONObject(0);
+
+                if (responsesObject == null) {
+                    log.warn("No valid responsesObject found, skipping extraction.");
+                    jsonCollection.add(createEmptyData());
+                    return;
+                }
+
+                JSONArray textAnnotationArray = responsesObject.getJSONArray("textAnnotations");
+
+                if (textAnnotationArray == null || textAnnotationArray.length() == 0) {
+                    log.warn("No valid textAnnotationsArray found, skipping extraction.");
+                    jsonCollection.add(createEmptyData());
+                    return;
+                }
+
+                jsonLocal = textAnnotationArray.getJSONObject(0).getString("locale");
+                log.info("Language Code: {}", jsonLocal);
+
+                log.debug("Start word position extraction");
+
+                JSONObject firstAnnotation = textAnnotationArray.getJSONObject(0);
+                Map<String, Object> firstData = processAnnotation(firstAnnotation);
+                jsonCollection.add(firstData);
+
+                for (int i = 1; i < textAnnotationArray.length(); i++) {
+                    JSONObject textAnnotation = textAnnotationArray.getJSONObject(i);
+                    if (textAnnotation != null) {
+                        Map<String, Object> data = processAnnotation(textAnnotation);
+                        logItemInfo(data);
+                        jsonCollection.add(data);
+                    }
+                }
+                // .dat(JSON)이 Synap OCR 결과인 경우
+            } else if (jsonObject.has("result")) {
+                JSONObject result = jsonObject.getJSONObject("result");
+
+                if (result == null) {
+                    log.warn("No valid result object found, skipping extraction.");
+                    jsonCollection.add(createEmptyData());
+                    return;
+                }
+
+                jsonLocal = "";
+
+                Map<String, Object> fullTextData = new LinkedHashMap<>();
+                fullTextData.put("midY", 0);
+                fullTextData.put("minY", 0);
+
+                JSONArray vertice = new JSONArray();
+                vertice.put(new JSONObject().put("x", 0).put("y", 0));
+                vertice.put(new JSONObject().put("x", 0).put("y", 0));
+                vertice.put(new JSONObject().put("x", 0).put("y", 0));
+                vertice.put(new JSONObject().put("x", 0).put("y", 0));
+                fullTextData.put("vertices", vertice);
+
+                fullTextData.put("minX", 0);
+                fullTextData.put("maxY", 0);
+                fullTextData.put("maxX", 0);
+
+                String fullText = result.getString("full_text");
+                fullTextData.put("description", fullText);
+                jsonCollection.add(fullTextData);
+
+                JSONArray boxes = result.getJSONArray("boxes");
+
+                if (boxes == null || boxes.length() == 0) {
+                    log.warn("No valid boxes found, skipping extraction.");
+                    return;
+                }
+
+                for (int i = 0; i < boxes.length(); i++) {
+                    JSONArray box = boxes.getJSONArray(i);
+                    if (box == null) {
+                        log.warn("Invalid box format at index {}, skipping.", i);
+                        continue;
+                    }
+                    String description = box.getString(5);
+                    JSONArray vertices = new JSONArray();
+
+                    for (int j = 0; j < 4; j++) {
+                        JSONArray point = box.getJSONArray(j);
+                        if (point == null) {
+                            log.warn("Invalid point format in box {}, skipping vertex {}", i, j);
+                            continue;
+                        }
+                        JSONObject vertex = new JSONObject();
+                        vertex.put("x", point.getInt(0));
+                        vertex.put("y", point.getInt(1));
+                        vertices.put(vertex);
+                    }
+
+                    JSONObject tempAnnotation = new JSONObject();
+                    tempAnnotation.put("description", description);
+                    JSONObject boundingPoly = new JSONObject();
+                    boundingPoly.put("vertices", vertices);
+                    tempAnnotation.put("boundingPoly", boundingPoly);
+
+                    Map<String, Object> data = processAnnotation(tempAnnotation);
+                    logItemInfo(data);
+                    jsonCollection.add(data);
+                }
+
+                //JSONArray tableList = result.optJSONArray("table_list");
+//                if (tableList != null) {
+//                    for (int i = 0; i < tableList.length(); i++) {
+//                        JSONObject table = tableList.getJSONObject(i);
+//                        JSONArray cells = table.getJSONArray("cells");
+//
+//                        for (int x = 0; x < cells.length(); x++) {
+//                            JSONArray row = cells.getJSONArray(x);
+//
+//                            for (int y = 0; y < row.length(); y++) {
+//                                JSONArray cell = row.getJSONArray(y);
+//                                String description = cell.getString(5);
+//                                JSONArray vertices = new JSONArray();
+//
+//                                for (int j = 0; j < 4; j++) {
+//                                    JSONArray point = cell.getJSONArray(j);
+//                                    JSONObject vertex = new JSONObject();
+//                                    vertex.put("x", point.getInt(0));
+//                                    vertex.put("y", point.getInt(1));
+//                                    vertices.put(vertex);
+//                                }
+//
+//                                JSONObject tempAnnotation = new JSONObject();
+//                                tempAnnotation.put("description", description);
+//                                JSONObject boundingPoly = new JSONObject();
+//                                boundingPoly.put("vertices", vertices);
+//                                tempAnnotation.put("boundingPoly", boundingPoly);
+//
+//                                Map<String, Object> data = processAnnotation(tempAnnotation);
+//                                logItemInfo(data);
+//                                jsonCollection.add(data);
+//                            }
+//                        }
+//                    }
+//                }
+            }
+
+            log.debug("Word position extraction and sorting completed");
+        } catch (JSONException e) {
+            log.error("Error processing JSON: {}", e);
             jsonCollection.add(createEmptyData());
         } catch (Exception e) {
             log.error("Error extracting word location: {}", e.getMessage(), e);
@@ -229,7 +386,7 @@ public class JsonService {
                 .map(v -> String.format("(%d, %d)", v.optInt("x", 0), v.optInt("y", 0)))
                 .collect(Collectors.joining(", "));
 
-        log.debug(String.format("L:%-45s|MinX:%5d|MinY:%5d|MaxX:%5d|MaxY:%5d|MidY:%5d|W:%-20s",
+        log.trace(String.format("L:%-45s|MinX:%5d|MinY:%5d|MaxX:%5d|MaxY:%5d|MidY:%5d|W:%-20s",
                 verticesString, minX, minY, maxX, maxY, midY, description));
     }
 
@@ -266,7 +423,7 @@ public class JsonService {
             Map<String, Object> singleWord = words.get(i);
             checkText.add(singleWord);
             currentText.append(singleWord.get("description"));
-            log.debug("The first word: {}", currentText);
+            log.trace("The first word: {}", currentText);
 
             // 단일 단어 자체를 결과에 추가
             addToCollection2(checkText, currentText.toString(), startX, startY, startMaxX, startMaxY);
@@ -279,7 +436,7 @@ public class JsonService {
 
                 if (isOnSameLineByMidY2(checkText.get(checkText.size() - 1), nextWord)) {
                     currentText.append(nextWord.get("description"));
-                    log.debug("Group words:  {}", currentText); //여기 띄우기
+                    log.trace("Group words:  {}", currentText); //여기 띄우기
                     a++;
                     checkText.add(nextWord);
                     maxX = Math.max(maxX, (int) nextWord.getOrDefault("maxX", 0));
@@ -289,12 +446,12 @@ public class JsonService {
                     addToCollection2(checkText, currentText.toString(), startX, startY, maxX, maxY);
 
                 } else {
-                    log.debug("Connected words: {}", a);
+                    log.trace("Connected words: {}", a);
                     break; // 동일한 라인이 아니면 중단
                 }
             }
         }
-        log.debug("Total connected words: {}", a);
+        log.trace("Total connected words: {}", a);
 
         return results;
     }
@@ -331,13 +488,13 @@ public class JsonService {
         try {
             JSONObject jsonObject = new JSONObject(decodeText);
             String version = jsonObject.optString("_Version", "Unknown");
-            log.info("Json Dictionary Version : {}", version);
+            log.debug("Json Dictionary Version : {}", version);
 
             JSONArray countryList = jsonObject.getJSONArray("Country List");
             for (int i = 0; i < countryList.length(); i++) {
                 JSONObject country = countryList.getJSONObject(i);
                 String countryName = country.getString("Country");
-                log.info("Country: {}", countryName);
+                log.trace("Country: {}", countryName);
                 JSONArray forms = country.getJSONArray("Template");
                 List<Map<String, Object>> formList = new ArrayList<>();
                 for (int j = 0; j < forms.length(); j++) {
@@ -349,7 +506,7 @@ public class JsonService {
                         languages.add(languageArray.getString(l));
                     }
                     String disable = form.optString("Disable", "false");
-                    log.info("Template: {}, Languages: {}, Disable: {}", formName, languages, disable);
+                    //log.info("Template: {}, Languages: {}, Disable: {}", formName, languages, disable);
 
                     boolean disableValue = Boolean.parseBoolean(disable);
 
@@ -373,7 +530,7 @@ public class JsonService {
                         ruleMap.put("PL", pl);
                         ruleMap.put("KR", kr);
                         hRuleList.add(ruleMap);
-                        log.debug("WD: {}, WT: {}, PL: {}, KR: {}", word, weight, pl, kr);
+                        log.trace("WD: {}, WT: {}, PL: {}, KR: {}", word, weight, pl, kr);
                     }
                     formMap.put("H-RULE", hRuleList);
 
@@ -396,42 +553,9 @@ public class JsonService {
                 }
                 jsonDictionary.put(countryName, formList);
             }
-            log.info("JSON Word list extraction completed");
+            log.trace("JSON Word list extraction completed");
         } catch (Exception e) {
             log.error("JSON Word list extraction failed: {}", e.getStackTrace());
-        }
-
-        for (Map.Entry<String, List<Map<String, Object>>> countryEntry : jsonDictionary.entrySet()) {
-            String countryName = countryEntry.getKey();
-            System.out.println("Country: " + countryName);
-
-            List<Map<String, Object>> formList = countryEntry.getValue();
-            for (Map<String, Object> formMap : formList) {
-                String formName = (String) formMap.get("Template Name");
-                List<String> languages = (List<String>) formMap.get("Language");
-                Boolean disable = (boolean) formMap.get("Disable");
-                System.out.println("  Template Name: " + formName);
-                System.out.println("  Languages: " + languages);
-                System.out.println("  Disable: " + disable);
-
-                List<Map<String, Object>> hRules = (List<Map<String, Object>>) formMap.get("H-RULE");
-                System.out.println("    H-RULE:");
-                for (Map<String, Object> hRule : hRules) {
-                    String word = (String) hRule.get("WD");
-                    double weight = (double) hRule.get("WT");
-                    int pl = (int) hRule.get("PL");
-                    String kr = (String) hRule.get("KR");
-                    System.out.println("      WD: " + word + ", WT: " + weight + ", PL: " + pl + ", KR: " + kr);
-                }
-
-//                List<Map<String, Object>> aiRules = (List<Map<String, Object>>) formMap.get("AI-RULE");
-//                System.out.println("    AI-RULE:");
-//                for (Map<String, Object> aiRule : aiRules) {
-//                    String word = (String) aiRule.get("WD");
-//                    double weight = (double) aiRule.get("WT");
-//                    System.out.println("      WD: " + word + ", WT: " + weight);
-//                }
-            }
         }
         return jsonDictionary;
     }

@@ -13,6 +13,7 @@ public class DocumentService {
     private static final Logger log = LogManager.getLogger(DocumentService.class);
     public ConfigLoader configLoader;
 
+    public ProcessingState sharedState;
     public ExcelService excelService = new ExcelService();
     public IMGService imgService = new IMGService();
 
@@ -31,6 +32,9 @@ public class DocumentService {
     String saveFilePath;
     String textSaveFilePath;
     String datasetSavePath;
+    String subPath = "";
+
+    String classificationStartDateTime;
 
     Map<String, Map<String, String>> resultByVersion = new HashMap<>();
     Map<String, Map<String, String>> finalResultByVersion = new HashMap<>();
@@ -66,12 +70,14 @@ public class DocumentService {
     // 폴더의 모든 파일(json)을 반복 (JSON Object로 저장 및 split, classifyDocuments 메소드로 분류 진행) (iterateFiles)
     public void createFinalResultFile() throws Exception {
         //excelData = getExcelData();
-        new IDPEngineController().jsonfiles = jsonFiles.length;
+        new IDPEngineController(sharedState).jsonfiles = jsonFiles.length;
 
-        log.info("jsonfiles idp :{}",new IDPEngineController().jsonfiles);
+        //log.info("jsonfiles idp :{}",new IDPEngineController(sharedState).jsonfiles);
         int cnt = 1;
         for (File curFile : jsonFiles) {
-            log.info("{}번째 JSON 파일 작업 시작 : {}", cnt , curFile.getName());
+            log.debug("{}번째 JSON 파일 작업 시작 : {}", cnt , curFile.getName());
+            // 각 파일 마다 분류 시작 시간 저장
+            excelService.classificationStartDateTime = excelService.getCurrentTime();
             // 각 파일 JSON Object로 저장
             String jsonFilePath = curFile.getPath();
 
@@ -161,19 +167,72 @@ public class DocumentService {
 //                    jsonService.jsonCollection = sortedCollection;
                     JsonService.sortAnnotations(jsonService.jsonCollection);
                     JsonService.findMatchingWords(JsonService.jsonCollection3);
+
+
+//                    log.info("📘 연속된 단어 조합 결과 (jsonCollection2):");
+//                    for (int i = 0; i < JsonService.jsonCollection2.size(); i++) {
+//                        Map<String, Object> item = JsonService.jsonCollection2.get(i);
+//                        String description = (String) item.getOrDefault("description", "");
+//                        int minX = (int) item.getOrDefault("minX", 0);
+//                        int minY = (int) item.getOrDefault("minY", 0);
+//                        int maxX = (int) item.getOrDefault("maxX", 0);
+//                        int maxY = (int) item.getOrDefault("maxY", 0);
+//
+//                        log.info("{} \"{}\" 위치: [{}, {}] ~ [{}, {}]", i + 1, description, minX, minY, maxX, maxY);
+//                    }
+
                     classifyDocuments_C3(jsonData, JsonService.jsonCollection2);
                     postProcessing("C3");
                 }
             }
 
+            Thread.sleep(200);
+
+            if (configLoader.classifyByFirstPage) {
+                resultProcessing(resultByVersion);
+                resultProcessing(finalResultByVersion);
+
+//                // 출력
+//                System.out.println("------- resultTest");
+//                for (Map.Entry<String, Map<String, String>> entry : resultByVersion.entrySet()) {
+//                    String fileName = entry.getKey();
+//                    Map<String, String> resultMap = entry.getValue();
+//
+//                    System.out.println("파일명: " + fileName);
+//                    for (Map.Entry<String, String> resultEntry : resultMap.entrySet()) {
+//                        String key = resultEntry.getKey();
+//                        String value = resultEntry.getValue();
+//                        System.out.println("  " + key + " : " + value);
+//                    }
+//                    System.out.println(); // 줄바꿈
+//                }
+//
+//                System.out.println("------- FinalResultTest");
+//                for (Map.Entry<String, Map<String, String>> entry : finalResultByVersion.entrySet()) {
+//                    String fileName = entry.getKey();
+//                    Map<String, String> resultMap = entry.getValue();
+//
+//                    System.out.println("파일명: " + fileName);
+//                    for (Map.Entry<String, String> resultEntry : resultMap.entrySet()) {
+//                        String key = resultEntry.getKey();
+//                        String value = resultEntry.getValue();
+//                        System.out.println("  " + key + " : " + value);
+//                    }
+//                    System.out.println(); // 줄바꿈
+//                }
+            }
+
             if (configLoader.writeTextResults) {
                 excelService.textFinalResult(textSaveFilePath, fileName, finalResultByVersion, configLoader.classificationCriteria, configLoader.subClassificationCriteria, finalCertificateResult);
+
+                if (fileName.contains("-page")) { // '파일명-page?_result'
+                    excelService.appendPageResultToMaster(fileName);
+                }
             }
 
             // dataset 엑셀 작성
 //            datasetSorting(jsonData, allWords);
 //            excelService.dataWriteExcel2(filteredResult);
-
 
 //            classifyDocuments4(jsonData,jsonService.jsonLocal,JsonService.jsonCollection2);
 //            postProcessing(4);
@@ -188,19 +247,65 @@ public class DocumentService {
 //            System.out.println("인증서 유형: " + entry.getValue());
 //        }
 
-        for (Map.Entry<String, Map<String, String>> entry : resultByVersion.entrySet()) {
-            String filename = entry.getKey();
-            Map<String, String> versionMap = entry.getValue();
-            System.out.println("Filename: " + filename);
-            for (Map.Entry<String, String> versionEntry : versionMap.entrySet()) {
-                String version = versionEntry.getKey();
-                String value = versionEntry.getValue();
-                System.out.println("  Version: " + version + ", Value: " + value);
-            }
-        }
+        // 출력용
+//        for (Map.Entry<String, Map<String, String>> entry : resultByVersion.entrySet()) {
+//            String filename = entry.getKey();
+//            Map<String, String> versionMap = entry.getValue();
+//            System.out.println("Filename: " + filename);
+//            for (Map.Entry<String, String> versionEntry : versionMap.entrySet()) {
+//                String version = versionEntry.getKey();
+//                String value = versionEntry.getValue();
+//                System.out.println("  Version: " + version + ", Value: " + value);
+//            }
+//        }
 
         if (configLoader.createFolders) {
-            excelService.moveFiles(configLoader.resultFilePath, resultByVersion, configLoader.classificationCriteria, configLoader.subClassificationCriteria);
+            excelService.moveFiles(configLoader.resultFilePath, resultByVersion, configLoader.classificationCriteria, configLoader.subClassificationCriteria, subPath);
+        }
+
+        // api 사용 시 update 진행
+        if (configLoader.apiUsageFlag) {
+            // TODO: finalResultByVersion 반복 코드 확인
+            //log.info("------------ NEW UPDATE");
+//            for (Map.Entry<String, Map<String, String>> entry : finalResultByVersion.entrySet()) {
+//                String baseName = entry.getKey();
+//                log.info("basename: " + baseName);
+//                Map<String, String> valueList = entry.getValue();
+//
+//                if (valueList != null) {
+//                    String value = valueList.get(configLoader.classificationCriteria);
+//                    if (value != null && value.contains("미분류")) {
+//                        value = valueList.get(configLoader.subClassificationCriteria);
+//                    }
+//
+//                    if (value != null) {
+//                        String[] values = value.split("/");
+//                        try {
+//                            excelService.jsonDataUpdateWithUnitFile(baseName + "_result", values); // fileName 복원
+//                            log.info("update done");
+//                        } catch (Exception e) {
+//                            log.info("update api failed. {}", e.getMessage());
+//                        }
+//                    }
+//                }
+//            }
+
+            Map<String, String> valueList = finalResultByVersion.get(fileName.replace("_result", ""));
+            if (valueList != null) {
+                String value = valueList.get(configLoader.classificationCriteria);
+                if (value != null) {
+                    if (value.contains("미분류")) {
+                        value = valueList.get(configLoader.subClassificationCriteria);
+                    }
+                    String[] values = value.split(Pattern.quote(File.separator));
+                    try {
+                        excelService.jsonDataUpdateWithUnitFile(subPath + fileName, values);
+                        log.info("Update completed");
+                    } catch (Exception e) {
+                        log.warn("Update api failed. {}", e.getMessage());
+                    }
+                }
+            }
         }
     }
 
@@ -217,7 +322,7 @@ public class DocumentService {
         if(configLoader.markingCheck){
             imgService.processMarking(matchjsonWord, configLoader.resultFilePath, imgFileName, a, docType);
         }
-        log.info("matchjsonWord : {}",matchjsonWord);
+        log.trace("matchjsonWord : {}",matchjsonWord);
 
         try {
             if (configLoader.writeExcelResults) {
@@ -231,8 +336,41 @@ public class DocumentService {
             log.error("결과 파일 생성 실패: {}", e.getStackTrace()[0]);
         }
         matchjsonWord = new ArrayList<>();
-        resultByVersion.get(baseFileName).put(a, resultList.get(2).get(1)+"("+resultList.get(1).get(1)+")");
-        finalResultByVersion.get(baseFileName).put(a, resultList.get(0).get(1) + "/" + resultList.get(1).get(1) + "/" + resultList.get(2).get(1));
+
+        // api 사용 안할 시 (식품안전정보원 사용) - '양식명(언어코드)'로 결과 추가 (폴더 생성 시 사용)
+        if (!configLoader.apiUsageFlag) {
+            resultByVersion.get(baseFileName).put(a, resultList.get(2).get(1)+"("+resultList.get(1).get(1)+")");
+        } else { // api 사용 시 (중앙노동위원회 사용) - '양식명'으로 결과 추가 (폴더 생성 시 사용)
+            resultByVersion.get(baseFileName).put(a, resultList.get(2).get(1));
+        }
+        finalResultByVersion.get(baseFileName).put(a, resultList.get(0).get(1) + File.separator + resultList.get(1).get(1) + File.separator + resultList.get(2).get(1));
+    }
+
+    public void resultProcessing(Map<String, Map<String, String>> result) {
+        for (String baseFileName : result.keySet()) {
+            // "page1"이 아닌 경우는 건너뜀
+            if (!baseFileName.endsWith("-page1")) continue;
+
+            Map<String, String> baseMap = result.get(baseFileName);
+            if (baseMap == null) continue;
+
+            // prefix 추출: "doc123-page1" → "doc123"
+            String prefix = baseFileName.replaceAll("-page\\d+$", "");
+
+            for (String otherFileName : result.keySet()) {
+                // 같은 prefix를 가지면서 "page1"은 제외
+                if (otherFileName.startsWith(prefix) && !otherFileName.equals(baseFileName)) {
+                    Map<String, String> otherMap = result.get(otherFileName);
+                    if (otherMap == null) continue;
+
+                    for (String key : baseMap.keySet()) {
+                        if (otherMap.containsKey(key)) {
+                            otherMap.put(key, baseMap.get(key)); // 덮어쓰기
+                        }
+                    }
+                }
+            }
+        }
     }
 
     // 합쳐진 추출 단어(description)로 일치 단어 비교
@@ -297,7 +435,7 @@ public class DocumentService {
 
         // 결과 출력
         for (Map<String, Object> res : filteredResult) {
-            log.info("Sort Result : Country({}), Language Code({}), Template Name({}), Word({}), Weight({}), KR({}), Count({})",
+            log.trace("Sort Result : Country({}), Language Code({}), Template Name({}), Word({}), Weight({}), KR({}), Count({})",
                     res.get("Country"), res.get("Language"), res.get("Template Name"), res.get("WD"), res.get("WT"), res.get("KR"), res.get("Count"));
         }
 
@@ -377,14 +515,14 @@ public class DocumentService {
             }
         }
 
-        log.info("Calculate the Count sum of the highest WT");
+        log.debug("Calculate the Count sum of the highest WT");
         for (Map.Entry<String, Integer> entry : templateCountSum.entrySet()) {
-            log.info("Key: {}, Count Sum: {}", entry.getKey(), entry.getValue());
+            log.trace("Key: {}, Count Sum: {}", entry.getKey(), entry.getValue());
         }
 
-        log.info("Calculate the Count sum of the non-max WT");
+        log.debug("Calculate the Count sum of the non-max WT");
         for (Map.Entry<String, Integer> entry : nonMaxWtCountSum.entrySet()) {
-            log.info("Non-Max WT Key: {}, Count Sum: {}", entry.getKey(), entry.getValue());
+            log.trace("Non-Max WT Key: {}, Count Sum: {}", entry.getKey(), entry.getValue());
         }
 
         if (!templateCountSum.isEmpty()) {
@@ -408,7 +546,7 @@ public class DocumentService {
                 }
             }
 
-            log.info("Max Key: {}, Max Value: {}", maxKey, maxValue);
+            log.trace("Max Key: {}, Max Value: {}", maxKey, maxValue);
 
             // 최종적으로 합계가 가장 높은 Template 찾기
             if (maxKey == null || maxKey.isEmpty()) {
@@ -416,7 +554,7 @@ public class DocumentService {
                 finalCountry = "미분류";
                 finalLanguage = "미분류";
                 finalMaxTotalCount = 0;
-                log.info("No valid template found. Setting default value.");
+                log.debug("No valid template found. Setting default value.");
             } else {
                 String[] parts = maxKey.split("\\|");
                 finalCountry = parts[0];
@@ -429,7 +567,7 @@ public class DocumentService {
             finalTopTemplate = "미분류";
             finalCountry = "미분류";
             finalLanguage = "미분류";
-            log.info("templateCountSum is null or empty");
+            log.debug("templateCountSum is null or empty");
         }
 
         // WT 합계가 0.5 이하인 경우 Country 값을 "미분류"로 저장
@@ -534,7 +672,7 @@ public class DocumentService {
 
         // 결과 출력
         for (Map<String, Object> res : filteredResult) {
-            log.info("Sort Result : Country({}), Language Code({}), Template Name({}), Word({}), Weight({}), KR({}), Count({})",
+            log.trace("Sort Result : Country({}), Language Code({}), Template Name({}), Word({}), Weight({}), KR({}), Count({})",
                     res.get("Country"), res.get("Language"), res.get("Template Name"), res.get("WD"), res.get("WT"), res.get("KR"), res.get("Count"));
         }
 
@@ -560,7 +698,7 @@ public class DocumentService {
                 globalMaxWt = weight;
             }
         }
-        log.info("max weight: {}", globalMaxWt);
+        log.trace("max weight: {}", globalMaxWt);
 
         // 최대 WT에 대해서 조합별로 count를 계산
         for (Map<String, Object> res : filteredResult) {
@@ -582,14 +720,14 @@ public class DocumentService {
             }
         }
 
-        log.info("Calculate the Count sum of the highest WT");
+        log.debug("Calculate the Count sum of the highest WT");
         for (Map.Entry<String, Integer> entry : templateCountSum.entrySet()) {
-            log.info("Key: {}, Count Sum: {}", entry.getKey(), entry.getValue());
+            log.trace("Key: {}, Count Sum: {}", entry.getKey(), entry.getValue());
         }
 
-        log.info("Calculate the Count sum of the non-max WT");
+        log.debug("Calculate the Count sum of the non-max WT");
         for (Map.Entry<String, Integer> entry : nonMaxWtCountSum.entrySet()) {
-            log.info("Non-Max WT Key: {}, Count Sum: {}", entry.getKey(), entry.getValue());
+            log.trace("Non-Max WT Key: {}, Count Sum: {}", entry.getKey(), entry.getValue());
         }
 
         if (!templateCountSum.isEmpty()) {
@@ -613,7 +751,7 @@ public class DocumentService {
                 }
             }
 
-            log.info("Max Key: {}, Max Value: {}", maxKey, maxValue);
+            log.trace("Max Key: {}, Max Value: {}", maxKey, maxValue);
 
             // 최종적으로 합계가 가장 높은 Template 찾기
             if (maxKey == null || maxKey.isEmpty()) {
@@ -621,7 +759,7 @@ public class DocumentService {
                 finalCountry = "미분류";
                 finalLanguage = "미분류";
                 finalMaxTotalCount = 0;
-                log.info("No valid template found. Setting default value.");
+                log.debug("No valid template found. Setting default value.");
             } else {
                 String[] parts = maxKey.split("\\|");
                 finalCountry = parts[0];
@@ -634,7 +772,7 @@ public class DocumentService {
             finalTopTemplate = "미분류";
             finalCountry = "미분류";
             finalLanguage = "미분류";
-            log.info("templateCountSum is null or empty");
+            log.debug("templateCountSum is null or empty");
         }
 
         // WT 합계가 0.5 이하인 경우 Country 값을 "미분류"로 저장
@@ -754,7 +892,7 @@ public class DocumentService {
 
         // 결과 출력
         for (Map<String, Object> res : filteredResult) {
-            log.info("Sort Result : Country({}), Language Code({}), Template Name({}), Word({}), Weight({}), KR({}), Count({})",
+            log.trace("Sort Result : Country({}), Language Code({}), Template Name({}), Word({}), Weight({}), KR({}), Count({})",
                     res.get("Country"), res.get("Language"), res.get("Template Name"), res.get("WD"), res.get("WT"), res.get("KR"), res.get("Count"));
         }
 
@@ -799,14 +937,14 @@ public class DocumentService {
             }
         }
 
-        log.info("Calculate the Count sum of the highest WT");
+        log.debug("Calculate the Count sum of the highest WT");
         for (Map.Entry<String, Integer> entry : templateCountSum.entrySet()) {
-            log.info("Key: {}, Count Sum: {}", entry.getKey(), entry.getValue());
+            log.trace("Key: {}, Count Sum: {}", entry.getKey(), entry.getValue());
         }
 
-        log.info("Calculate the Count sum of the non-max WT");
+        log.debug("Calculate the Count sum of the non-max WT");
         for (Map.Entry<String, Integer> entry : nonMaxWtCountSum.entrySet()) {
-            log.info("Non-Max WT Key: {}, Count Sum: {}", entry.getKey(), entry.getValue());
+            log.trace("Non-Max WT Key: {}, Count Sum: {}", entry.getKey(), entry.getValue());
         }
 
         if (!templateCountSum.isEmpty()) {
@@ -830,7 +968,7 @@ public class DocumentService {
                 }
             }
 
-            log.info("Max Key: {}, Max Value: {}", maxKey, maxValue);
+            log.trace("Max Key: {}, Max Value: {}", maxKey, maxValue);
 
             // 최종적으로 합계가 가장 높은 Template 찾기
             if (maxKey == null || maxKey.isEmpty()) {
@@ -838,7 +976,7 @@ public class DocumentService {
                 finalCountry = "미분류";
                 finalLanguage = "미분류";
                 finalMaxTotalCount = 0;
-                log.info("No valid template found. Setting default value.");
+                log.debug("No valid template found. Setting default value.");
             } else {
                 String[] parts = maxKey.split("\\|");
                 finalCountry = parts[0];
@@ -851,7 +989,7 @@ public class DocumentService {
             finalTopTemplate = "미분류";
             finalCountry = "미분류";
             finalLanguage = "미분류";
-            log.info("templateCountSum is null or empty");
+            log.debug("templateCountSum is null or empty");
         }
 
         // WT 합계가 0.5 이하인 경우 Country 값을 "미분류"로 저장
@@ -1415,7 +1553,7 @@ public class DocumentService {
 
         // 결과 출력
         for (Map<String, Object> res : filteredResult) {
-            log.info("Sort Result : Country({}), Language Code({}), Template Name({}), Word({}), Weight({}), KR({}), Count({})",
+            log.trace("Sort Result : Country({}), Language Code({}), Template Name({}), Word({}), Weight({}), KR({}), Count({})",
                     res.get("Country"), res.get("Language"), res.get("Template Name"), res.get("WD"), res.get("WT"), res.get("KR"), res.get("Count"));
         }
 
@@ -1547,7 +1685,7 @@ public class DocumentService {
 
         // 결과 출력
 //        for (Map<String, Object> res : filteredResult) {
-//            log.info("Sort Result : Country({}), Language Code({}), Template Name({}), Word({}), Weight({}), KR({}), Count({})",
+//            log.trace("Sort Result : Country({}), Language Code({}), Template Name({}), Word({}), Weight({}), KR({}), Count({})",
 //                    res.get("Country"), res.get("Language"), res.get("Template Name"), res.get("WD"), res.get("WT"), res.get("KR"), res.get("Count"));
 //        }
 
@@ -1680,7 +1818,7 @@ public class DocumentService {
 
         // 결과 출력
 //        for (Map<String, Object> res : filteredResult) {
-//            log.info("Sort Result : Country({}), Language Code({}), Template Name({}), Word({}), Weight({}), KR({}), Count({})",
+//            log.trace("Sort Result : Country({}), Language Code({}), Template Name({}), Word({}), Weight({}), KR({}), Count({})",
 //                    res.get("Country"), res.get("Language"), res.get("Template Name"), res.get("WD"), res.get("WT"), res.get("KR"), res.get("Count"));
 //        }
 
@@ -1868,7 +2006,7 @@ public class DocumentService {
             }
         }
 
-        filterAndGroupResults();
+        filterAndGroupResults(1);
     }
 
     public void classifyDocuments_C2(Map<String, List<Map<String, Object>>> jsonData, List<Map<String, Object>> items) {
@@ -1938,7 +2076,7 @@ public class DocumentService {
             }
         }
 
-        filterAndGroupResults();
+        filterAndGroupResults(2);
     }
 
     public void classifyDocuments_C3(Map<String, List<Map<String, Object>>> jsonData, List<Map<String, Object>> items) {
@@ -1987,6 +2125,9 @@ public class DocumentService {
                                 }
                             } else { // 대소문자 구별하지 않음
                                 if (description != null && description.equalsIgnoreCase(word)) {
+                                    count++;
+                                    formMatchedWords.computeIfAbsent(formName, k -> new ArrayList<>()).add(item);
+                                } else if (description != null && description.contains(word)) {
                                     count++;
                                     formMatchedWords.computeIfAbsent(formName, k -> new ArrayList<>()).add(item);
                                 }
@@ -2055,11 +2196,8 @@ public class DocumentService {
 
         // 그룹핑 결과를 로그로 출력
         for (Map<String, Object> res : groupedResult) {
-            log.info("Grouped Result - Country: {}, Template Name: {}, Language: {}, WD: {}, WT: {}, KR: {}, Count: {}",
+            log.trace("Grouped Result - Country: {}, Template Name: {}, Language: {}, WD: {}, WT: {}, KR: {}, Count: {}",
                     res.get("Country"), res.get("Template Name"), res.get("Language"), res.get("WD"), res.get("WT"), res.get("KR"), res.get("Count"));
-
-            System.out.println("Grouped Result - Country: " + res.get("Country") + ", Template Name: " + res.get("Template Name") + ", " +
-                    "Language: " + res.get("Language") + ", WD: " + res.get("WD") + ", WT: " + res.get("WT") + ", KR: " + res.get("KR") + ", PL: " + res.get("PL") + ", Count: " + res.get("Count"));
 
 //            if (0 < ((Number) res.get("PL")).intValue()) {
 //                System.out.println("Grouped Result - Country: " + res.get("Country") + ", Template Name: " + res.get("Template Name") + ", " +
@@ -2079,7 +2217,7 @@ public class DocumentService {
                 defaultCountry = "미분류";
                 defaultLanguage = "미분류";
                 defaultTemplate = "미분류";
-                log.info("Number of matching words is less than the set value - Classified as unclassified");
+                log.debug("Number of matching words is less than the set value - Classified as unclassified");
             } else {
 
                 // 최대 값이 여러 개 있는지 확인
@@ -2089,15 +2227,14 @@ public class DocumentService {
                     defaultCountry = "미분류";
                     defaultTemplate = "미분류";
                     defaultLanguage = "미분류";
-                    log.info("Multiple max elements found - Classified as unclassified");
+                    log.debug("Multiple max elements found - Classified as unclassified");
                 } else {
                     Map.Entry<String, Long> maxEntry = grouped.entrySet().stream()
                             .filter(entry -> entry.getValue() == maxCount)
                             .findFirst()
                             .orElseThrow(() -> new NoSuchElementException("No max element found"));
 
-                    log.info("Filtering And Grouping Result Max Entry: Key{}, Count{}", maxEntry.getKey(), maxEntry.getValue());
-                    System.out.println("Filtering And Grouping Result Max Entry: Key : " + maxEntry.getKey() + ", Count : " + maxEntry.getValue());
+                    log.debug("Filtering And Grouping Result Max Entry: Key{}, Count{}", maxEntry.getKey(), maxEntry.getValue());
 
                     String[] resultKeys = maxEntry.getKey().split("\\|");
                     defaultCountry = resultKeys[0];
@@ -2109,10 +2246,10 @@ public class DocumentService {
             defaultCountry = "미분류";
             defaultLanguage = "미분류";
             defaultTemplate = "미분류";
-            log.info("No max element found - Classified as unclassified : {}", e);
+            log.debug("No max element found - Classified as unclassified : {}", e);
         }
 
-        log.info("default classify Country : " + defaultCountry + ", default classify Template : " + defaultTemplate + ",default classify Language : " + defaultLanguage);
+        log.debug("default classify Country : " + defaultCountry + ", default classify Template : " + defaultTemplate + ",default classify Language : " + defaultLanguage);
 
         // COUNT가 1 이상인 항목 필터링 및 PL이 0 이상, plValue 이하
         List<Map<String, Object>> filteredGroupedResult = groupedResult.stream()
@@ -2175,24 +2312,24 @@ public class DocumentService {
             finalTemplate = parts[1];
             finalLanguage = String.join(",", parts[2]);
 
-            log.info("PL Match found: Country({}), Template=({}), Language({})", finalCountry, finalTemplate, finalLanguage);
+            log.debug("PL Match found: Country({}), Template=({}), Language({})", finalCountry, finalTemplate, finalLanguage);
         } else if (highestPLGroupKeys.size() > 1) {
             finalCountry = defaultCountry;
             finalTemplate = defaultTemplate;
             finalLanguage = defaultLanguage;
 
-            log.info("Highest PL Group (Multiple groups found):");
+            log.debug("Highest PL Group (Multiple groups found):");
         } else {
             finalCountry = defaultCountry;
             finalTemplate = defaultTemplate;
             finalLanguage = defaultLanguage;
 
-            log.info("No continuous PL group found.");
+            log.debug("No continuous PL group found.");
         }
 
-        System.out.println("  Country: " + finalCountry);
-        System.out.println("  Template Name: " + finalTemplate);
-        System.out.println("  Languages: " + finalLanguage);
+        log.trace("  Country: " + finalCountry);
+        log.trace("  Template Name: " + finalTemplate);
+        log.trace("  Languages: " + finalLanguage);
 
         if (finalTemplate.equals("미분류")) {
             matchjsonWord = new ArrayList<>();
@@ -2208,10 +2345,10 @@ public class DocumentService {
         resultList.add(languageCode);
         resultList.add(documentType);
 
-        log.info("Document classification results (C version): Country({}), Language Code({}), Document Type({}), maxTotalWeight({}))", finalCountry, finalLanguage, finalTemplate);
+        log.info("Document classification results (C3 version): Country({}), Language Code({}), Document Type({}), maxTotalWeight({}))", finalCountry, finalLanguage, finalTemplate);
     }
 
-    public List<List<String>> filterAndGroupResults() {
+    public List<List<String>> filterAndGroupResults(int a) {
         List<String> countryType = new ArrayList<>();
         countryType.add("국가");
         List<String> languageCode = new ArrayList<>();
@@ -2263,10 +2400,8 @@ public class DocumentService {
 
         // 그룹핑 결과를 로그로 출력
         for (Map<String, Object> res : groupedResult) {
-            log.info("Grouped Result - Country: {}, Template Name: {}, Language: {}, WD: {}, WT: {}, KR: {}, Count: {}",
+            log.trace("Grouped Result - Country: {}, Template Name: {}, Language: {}, WD: {}, WT: {}, KR: {}, Count: {}",
                     res.get("Country"), res.get("Template Name"), res.get("Language"), res.get("WD"), res.get("WT"), res.get("KR"), res.get("Count"));
-//            System.out.println("Grouped Result - Country: " + res.get("Country") + ", Template Name: " + res.get("Template Name") + ", Language: " + res.get("Language") +
-//                    ", WD: " + res.get("WD") + ", WT: " + res.get("WT") + ", PL: " + res.get("PL") + ", KR: " + res.get("KR") + ", Count: " + res.get("Count"));
         }
 
         //excelService.dataWriteExcel3(groupedResult, datasetSavePath);
@@ -2282,7 +2417,7 @@ public class DocumentService {
                 defaultCountry = "미분류";
                 defaultLanguage = "미분류";
                 defaultTemplate = "미분류";
-                log.info("Number of matching words is less than the set value - Classified as unclassified");
+                log.debug("Number of matching words is less than the set value - Classified as unclassified");
             } else {
 
                 // 최대 값이 여러 개 있는지 확인
@@ -2292,14 +2427,14 @@ public class DocumentService {
                     defaultCountry = "미분류";
                     defaultTemplate = "미분류";
                     defaultLanguage = "미분류";
-                    log.info("Multiple max elements found - Classified as unclassified");
+                    log.debug("Multiple max elements found - Classified as unclassified");
                 } else {
                     Map.Entry<String, Long> maxEntry = grouped.entrySet().stream()
                             .filter(entry -> entry.getValue() == maxCount)
                             .findFirst()
                             .orElseThrow(() -> new NoSuchElementException("No max element found"));
 
-                    log.info("Filtering And Grouping Result Max Entry: Key{}, Count{}", maxEntry.getKey(), maxEntry.getValue());
+                    log.debug("Filtering And Grouping Result Max Entry: Key{}, Count{}", maxEntry.getKey(), maxEntry.getValue());
 
                     String[] resultKeys = maxEntry.getKey().split("\\|");
                     defaultCountry = resultKeys[0];
@@ -2311,10 +2446,10 @@ public class DocumentService {
             defaultCountry = "미분류";
             defaultLanguage = "미분류";
             defaultTemplate = "미분류";
-            log.info("No max element found - Classified as unclassified : {}", e);
+            log.debug("No max element found - Classified as unclassified : {}", e);
         }
 
-        log.info("default classify Country : " + defaultCountry + ", default classify Template : " + defaultTemplate + ",default classify Language : " + defaultLanguage);
+        log.trace("Default classify Country : " + defaultCountry + ", Default classify Template : " + defaultTemplate + ", Default classify Language : " + defaultLanguage);
 
         // COUNT가 1 이상인 항목 필터링 및 PL이 0 이상, plValue 이하
         List<Map<String, Object>> filteredGroupedResult = groupedResult.stream()
@@ -2332,7 +2467,7 @@ public class DocumentService {
         });
 
         // 결과 출력
-        filteredGroupedResult.forEach(item -> log.info("PL Sorted item: " + item));
+        filteredGroupedResult.forEach(item -> log.trace("PL Sorted item: " + item));
 
         // 연속되는 PL 값 확인 및 가장 높은 PL 값을 가진 그룹 찾기
         String highestPLGroupKey = null;
@@ -2377,19 +2512,19 @@ public class DocumentService {
             finalTemplate = parts[1];
             finalLanguage = String.join(",", parts[2]);
 
-            log.info("PL Match found: Country({}), Template=({}), Language({})", finalCountry, finalTemplate, finalLanguage);
+            log.debug("PL Match found: Country({}), Template=({}), Language({})", finalCountry, finalTemplate, finalLanguage);
         } else if (highestPLGroupKeys.size() > 1) {
             finalCountry = defaultCountry;
             finalTemplate = defaultTemplate;
             finalLanguage = defaultLanguage;
 
-            log.info("Highest PL Group (Multiple groups found):");
+            log.debug("Highest PL Group (Multiple groups found):");
         } else {
             finalCountry = defaultCountry;
             finalTemplate = defaultTemplate;
             finalLanguage = defaultLanguage;
 
-            log.info("No continuous PL group found.");
+            log.debug("No continuous PL group found.");
         }
 
         Map<String, List<Map<String, Object>>> formMatchedWords = new HashMap<>();
@@ -2408,7 +2543,7 @@ public class DocumentService {
         resultList.add(languageCode);
         resultList.add(documentType);
 
-        log.info("Document classification results (C version): Country({}), Language Code({}), Document Type({})", finalCountry, finalLanguage, finalTemplate);
+        log.info("Document classification results (C{} version): Country({}), Language Code({}), Document Type({})", a, finalCountry, finalLanguage, finalTemplate);
         //System.out.println("Document classification results (C version): Country(" + finalCountry + "), Language Code(" +  finalLanguage +"), Document Type(" + finalTemplate + "))");
 
         return resultList;

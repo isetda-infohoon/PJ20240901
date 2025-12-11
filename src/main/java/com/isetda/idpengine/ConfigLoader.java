@@ -13,6 +13,10 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -27,14 +31,24 @@ public class ConfigLoader {
     public boolean deletedCheck;
     public String cloudPlatform;
     public String ocrUrl;
+    public String synapApiKey;
+    public String synapOcrUrl;
     public String excelFilePath;
     public String jsonFilePath;
+    List<FolderMapping> folderMappings = new ArrayList<>();
+    public List<String> imageFolderPaths = new ArrayList<>();
     public String imageFolderPath;
     public String resultFilePath;
     private String jdbcUrl;
     private String username;
     private String password;
     private boolean dbDataUsageFlag;
+
+    public String drivePath;
+    public String driveUNCPath;
+    public String driveUsername;
+    public String drivePassword;
+
     public boolean writeDetailResult;
     public boolean writeExcelResults;
     public boolean writeTextResults;
@@ -61,7 +75,22 @@ public class ConfigLoader {
 
     public int plValue;
 
+    public boolean apiUsageFlag;
+    public int apiCycle;
+    public String apiURL;
+    public String apiUserId;
+    public String ocrServiceType;
+    public boolean classifyByFirstPage;
+    public boolean useUnclassifiedAsCS;
+    public boolean createClassifiedFolder;
+    public boolean useUrlEncoding;
+
+    public boolean excelFileDownload;
+    public boolean csvFileDownload;
+    public boolean htmlFileDownload;
+
     private String configFilePath = "Config.xml";
+    private static final String backupFilePath = "Config_backup.xml";
     //jar파일 만들 때 상대경로 config 파일 빼놓기 위한 경로
 
     private ConfigLoader() {
@@ -78,6 +107,12 @@ public class ConfigLoader {
     private void loadConfig() {
         try {
             File configFile = new File(configFilePath);
+            if (!configFile.exists() || configFile.length() == 0) {
+                log.warn("Config.xml is missing or empty. Creating default configuration.");
+                restoreFromBackupOrDefault();
+            } else {
+                Files.copy(configFile.toPath(), new File(backupFilePath).toPath(), StandardCopyOption.REPLACE_EXISTING);
+            }
             DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
             DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
             Document doc = dBuilder.parse(configFile);
@@ -129,6 +164,27 @@ public class ConfigLoader {
                 throw new RuntimeException("Missing required configuration: ocrUrl");
             }
 
+            if (root.getElementsByTagName("apiUsageFlag").getLength() > 0) {
+                apiUsageFlag = Boolean.parseBoolean(root.getElementsByTagName("apiUsageFlag").item(0).getTextContent().trim());
+            } else {
+                log.error("The apiUsageFlag tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: apiUsageFlag");
+            }
+
+            if (root.getElementsByTagName("synapApiKey").getLength() > 0) {
+                synapApiKey = root.getElementsByTagName("synapApiKey").item(0).getTextContent().trim();
+            } else {
+                log.error("The synapApiKey tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: synapApiKey");
+            }
+
+            if (root.getElementsByTagName("synapOcrUrl").getLength() > 0) {
+                synapOcrUrl = root.getElementsByTagName("synapOcrUrl").item(0).getTextContent().trim();
+            } else {
+                log.error("The synapOcrUrl tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: synapOcrUrl");
+            }
+
             if (root.getElementsByTagName("jsonFilePath").getLength() > 0) {
                 jsonFilePath = root.getElementsByTagName("jsonFilePath").item(0).getTextContent().trim();
             } else {
@@ -136,18 +192,30 @@ public class ConfigLoader {
                 throw new RuntimeException("Missing required configuration: jsonFilePath");
             }
 
-            if (root.getElementsByTagName("imageFolderPath").getLength() > 0) {
-                imageFolderPath = root.getElementsByTagName("imageFolderPath").item(0).getTextContent().trim();
-            } else {
-                log.error("The imageFolderPath tag does not exist in Config.xml. Application will terminate.");
-                throw new RuntimeException("Missing required configuration: imageFolderPath");
-            }
+            if (apiUsageFlag) {
+                if (root.getElementsByTagName("path").getLength() > 0) {
+                    for (int i = 0; i < root.getElementsByTagName("path").getLength(); i++) {
+                        Element mappingElement = (Element) root.getElementsByTagName("path").item(i);
 
-            if (root.getElementsByTagName("resultFilePath").getLength() > 0) {
-                resultFilePath = root.getElementsByTagName("resultFilePath").item(0).getTextContent().trim();
+                        String imagePath = mappingElement.getElementsByTagName("imageFolderPath").item(0).getTextContent().trim();
+                        String resultPath = mappingElement.getElementsByTagName("resultFilePath").item(0).getTextContent().trim();
+
+                        folderMappings.add(new FolderMapping(imagePath, resultPath));
+                    }
+                } else {
+                    log.error("The imageFolderPath tag does not exist in Config.xml. Application will terminate.");
+                    throw new RuntimeException("Missing required configuration: imageFolderPath");
+                }
             } else {
-                log.error("The resultFilePath tag does not exist in Config.xml. Application will terminate.");
-                throw new RuntimeException("Missing required configuration: resultFilePath");
+                if (root.getElementsByTagName("path").getLength() > 0) {
+                    Element mappingElement = (Element) root.getElementsByTagName("path").item(0);
+
+                    imageFolderPath = mappingElement.getElementsByTagName("imageFolderPath").item(0).getTextContent().trim();
+                    resultFilePath = mappingElement.getElementsByTagName("resultFilePath").item(0).getTextContent().trim();
+                } else {
+                    log.error("The imageFolderPath tag does not exist in Config.xml. Application will terminate.");
+                    throw new RuntimeException("Missing required configuration: imageFolderPath");
+                }
             }
 
             if (root.getElementsByTagName("jdbcUrl").getLength() > 0) {
@@ -169,6 +237,34 @@ public class ConfigLoader {
             } else {
                 log.error("The password tag does not exist in Config.xml. Application will terminate.");
                 throw new RuntimeException("Missing required configuration: password");
+            }
+
+            if (root.getElementsByTagName("drivePath").getLength() > 0) {
+                drivePath = root.getElementsByTagName("drivePath").item(0).getTextContent().trim();
+            } else {
+                log.error("The drivePath tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: drivePath");
+            }
+
+            if (root.getElementsByTagName("driveUsername").getLength() > 0) {
+                driveUsername = root.getElementsByTagName("driveUsername").item(0).getTextContent().trim();
+            } else {
+                log.error("The driveUsername tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: driveUsername");
+            }
+
+            if (root.getElementsByTagName("driveUNCPath").getLength() > 0) {
+                driveUNCPath = root.getElementsByTagName("driveUNCPath").item(0).getTextContent().trim();
+            } else {
+                log.error("The driveUNCPath tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: driveUNCPath");
+            }
+
+            if (root.getElementsByTagName("drivePassword").getLength() > 0) {
+                drivePassword = root.getElementsByTagName("drivePassword").item(0).getTextContent().trim();
+            } else {
+                log.error("The drivePassword tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: drivePassword");
             }
 
             if (root.getElementsByTagName("dbDataUsageFlag").getLength() > 0) {
@@ -312,9 +408,89 @@ public class ConfigLoader {
                 throw new RuntimeException("Missing required configuration: plValue");
             }
 
+            if (root.getElementsByTagName("apiCycle").getLength() > 0) {
+                apiCycle = Integer.parseInt(root.getElementsByTagName("apiCycle").item(0).getTextContent().trim());
+            } else {
+                log.error("The apiCycle tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: apiCycle");
+            }
+
+            if (root.getElementsByTagName("apiURL").getLength() > 0) {
+                apiURL = root.getElementsByTagName("apiURL").item(0).getTextContent().trim();
+            } else {
+                log.error("The apiURL tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: apiURL");
+            }
+
+            if (root.getElementsByTagName("apiUserId").getLength() > 0) {
+                apiUserId = root.getElementsByTagName("apiUserId").item(0).getTextContent().trim();
+            } else {
+                log.error("The apiUserId tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: apiUserId");
+            }
+
+            if (root.getElementsByTagName("ocrServiceType").getLength() > 0) {
+                ocrServiceType = root.getElementsByTagName("ocrServiceType").item(0).getTextContent().trim();
+            } else {
+                log.error("The ocrServiceType tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: ocrServiceType");
+            }
+
+            if (root.getElementsByTagName("classifyByFirstPage").getLength() > 0) {
+                classifyByFirstPage = Boolean.parseBoolean(root.getElementsByTagName("classifyByFirstPage").item(0).getTextContent().trim());
+            } else {
+                log.error("The classifyByFirstPage tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: classifyByFirstPage");
+            }
+
+            if (root.getElementsByTagName("excelFileDownload").getLength() > 0) {
+                excelFileDownload = Boolean.parseBoolean(root.getElementsByTagName("excelFileDownload").item(0).getTextContent().trim());
+            } else {
+                log.error("The excelFileDownload tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: excelFileDownload");
+            }
+
+            if (root.getElementsByTagName("csvFileDownload").getLength() > 0) {
+                csvFileDownload = Boolean.parseBoolean(root.getElementsByTagName("csvFileDownload").item(0).getTextContent().trim());
+            } else {
+                log.error("The csvFileDownload tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: csvFileDownload");
+            }
+
+            if (root.getElementsByTagName("htmlFileDownload").getLength() > 0) {
+                htmlFileDownload = Boolean.parseBoolean(root.getElementsByTagName("htmlFileDownload").item(0).getTextContent().trim());
+            } else {
+                log.error("The htmlFileDownload tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: htmlFileDownload");
+            }
+
+            if (root.getElementsByTagName("useUnclassifiedAsCS").getLength() > 0) {
+                useUnclassifiedAsCS = Boolean.parseBoolean(root.getElementsByTagName("useUnclassifiedAsCS").item(0).getTextContent().trim());
+            } else {
+                log.error("The useUnclassifiedAsCS tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: useUnclassifiedAsCS");
+            }
+
+            if (root.getElementsByTagName("createClassifiedFolder").getLength() > 0) {
+                createClassifiedFolder = Boolean.parseBoolean(root.getElementsByTagName("createClassifiedFolder").item(0).getTextContent().trim());
+            } else {
+                log.error("The createClassifiedFolder tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: createClassifiedFolder");
+            }
+
+            if (root.getElementsByTagName("useUrlEncoding").getLength() > 0) {
+                useUrlEncoding = Boolean.parseBoolean(root.getElementsByTagName("useUrlEncoding").item(0).getTextContent().trim());
+            } else {
+                log.error("The useUrlEncoding tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: useUrlEncoding");
+            }
+
+            Files.copy(configFile.toPath(), new File(backupFilePath).toPath(), StandardCopyOption.REPLACE_EXISTING);
         } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Failed to load configuration from " + configFilePath, e);
+            log.error("Failed to load configuration. Restoring from backup or default.", e);
+            restoreFromBackupOrDefault();
+//            e.printStackTrace();
+//            throw new RuntimeException("Failed to load configuration from " + configFilePath, e);
         }
     }
 
@@ -358,6 +534,33 @@ public class ConfigLoader {
         return imageFolderPath;
     }
 
+    private void restoreFromBackupOrDefault() {
+        try {
+            File backupFile = new File(backupFilePath);
+            File configFile = new File(configFilePath);
+
+            if (backupFile.exists() && backupFile.length() > 0) {
+                log.warn("Restoring Config.xml from backup.");
+                Files.copy(backupFile.toPath(), configFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            } else {
+                log.warn("No backup found. Creating default Config.xml.");
+                String defaultXml = "<Config><projectId>default</projectId><bucketNames>defaultBucket</bucketNames></Config>";
+                Files.writeString(configFile.toPath(), defaultXml, StandardCharsets.UTF_8);
+            }
+        } catch (IOException ex) {
+            throw new RuntimeException("Failed to restore Config.xml", ex);
+        }
+    }
+
+    private void createDefaultConfig(File configFile) {
+        try {
+            String defaultXml = "<Config><projectId>default</projectId><bucketNames>defaultBucket</bucketNames></Config>";
+            Files.writeString(configFile.toPath(), defaultXml, StandardCharsets.UTF_8);
+        } catch (IOException ex) {
+            throw new RuntimeException("Failed to create default Config.xml", ex);
+        }
+    }
+
     public void saveConfig() {
         try {
             File configFile = new File(configFilePath);
@@ -367,15 +570,26 @@ public class ConfigLoader {
             dbFactory.setIgnoringElementContentWhitespace(false);
 
             DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
-            Document doc = dBuilder.parse(configFile);
+            Document doc;
+
+            if (configFile.exists() && configFile.length() > 0) {
+                doc = dBuilder.parse(configFile);
+            } else {
+                // 새 Document 생성
+                doc = dBuilder.newDocument();
+                Element root = doc.createElement("Config");
+                doc.appendChild(root);
+            }
 
             doc.getDocumentElement().normalize();
 
             Element root = doc.getDocumentElement();
 
             // 기존 태그 값 수정
-            root.getElementsByTagName("imageFolderPath").item(0).setTextContent(imageFolderPath);
-            root.getElementsByTagName("resultFilePath").item(0).setTextContent(resultFilePath);
+            if (!apiUsageFlag) {
+                root.getElementsByTagName("imageFolderPath").item(0).setTextContent(imageFolderPath);
+                root.getElementsByTagName("resultFilePath").item(0).setTextContent(resultFilePath);
+            }
 
             // 변경된 내용을 XML 파일에 저장
             TransformerFactory transformerFactory = TransformerFactory.newInstance();
@@ -395,6 +609,4 @@ public class ConfigLoader {
             throw new RuntimeException("Failed to save configuration to " + configFilePath, e);
         }
     }
-
-
 }

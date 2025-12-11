@@ -40,6 +40,7 @@ public class GoogleService {
 
     //구글 버킷에 이미지 올리기 및 ocr 진행
     public void uploadAndOCR(File file) throws IOException {
+        System.out.println("upload and ocr 실행");
         EnablingGoogle = true;
         log.info("Start Upload and OCR");
         Storage storage = getStorageService();
@@ -132,6 +133,7 @@ public class GoogleService {
                 if (responseBody.contains("Bad image data")) {
                     checkBadImg = false;
                     deleteFileInBucket(storage, blobId);
+                    log.info("Bad image data: {}", blobId.getName());
                 } else {
                     String outputFileName = file.getName().substring(0, file.getName().lastIndexOf("."));
                     String outputPath = configLoader.resultFilePath + "\\" + outputFileName + "_result.dat";

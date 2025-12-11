@@ -30,6 +30,8 @@ module com.isetda.idpengine {
     requires commons.math3;
     requires org.apache.pdfbox.jbig2;
     requires google.api.client;
+    requires unirest.java;
+    requires org.checkerframework.checker.qual;
 
     opens com.isetda.idpengine to javafx.fxml;
     exports com.isetda.idpengine;

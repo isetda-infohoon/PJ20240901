@@ -3,15 +3,20 @@ package com.isetda.idpengine;
 
 
 
+import com.mashape.unirest.http.exceptions.UnirestException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.json.JSONObject;
 
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 import java.util.regex.Matcher;
@@ -30,9 +35,11 @@ public class ExcelService {
     public String docType="";
 
     public String fileName;
+    public String classificationStartDateTime;
 
     // 폴더에서 JSON 파일 가져오기
     public File[] getFilteredJsonFiles() {
+        APICaller apiCaller = new APICaller();
         File folder = new File(configLoader.resultFilePath);
 
         File[] files = folder.listFiles(new FilenameFilter() {
@@ -51,6 +58,7 @@ public class ExcelService {
                     return Long.compare(f1.lastModified(), f2.lastModified());
                 }
             });
+
             jsonFiles = files;
             log.info("폴더 내 JSON 파일 목록 저장 완료");
         } else {
@@ -499,7 +507,7 @@ public class ExcelService {
             // FileWriter의 두 번째 인자로 true를 전달하여 파일에 이어서 쓰기 모드로 설정
             try (BufferedWriter writer = new BufferedWriter(new FileWriter(saveFilePath, true))) {
                 if (fileExists) {
-                    log.info("{} Text File exists. Continuing from the existing file.", fileName);
+                    log.debug("{} Text File exists. Continuing from the existing file.", fileName);
 
                     writer.write("[cd " + a + "]\n");
 
@@ -561,6 +569,11 @@ public class ExcelService {
                             Map<String, Object> keyInfo = keyCountMap.get(keyName);
                             writer.write(keyInfo.get("TemplateName") + "(" + keyInfo.get("Country") + " - " + String.join(",", (List<String>) keyInfo.get("Languages")) + ")" + " 일치 단어 전체 개수 (" + keyInfo.get("Count") + ")" + "\n");
                             writer.write("\n");
+
+//                            // api 사용 시 update 진행
+//                            if (configLoader.apiUsageFlag) {
+//                                jsonDataWithUpdate(fileName, keyInfo);
+//                            }
                         }
                     }
                 }
@@ -569,9 +582,405 @@ public class ExcelService {
 
                 log.info("Text file creation completed: {} ", saveFilePath);
             }
-        } catch (IOException e) {
-            log.info("Text file creation failed: {} " + e.getMessage());
+        } catch (Exception e) {
+            log.warn("Text file creation failed: {} " + e.getMessage());
         }
+    }
+
+    public void jsonDataWithUpdate(String fileName, String[] values) throws UnirestException {
+        log.debug("update start");
+
+        APICaller apiCaller = new APICaller();
+        IOService ioService = new IOService();
+        String userId = configLoader.apiUserId;
+        String name = fileName.replace("_result", "");
+        String[] extensions = {".jpg", ".png", ".jpeg", ".JPG", ".PNG", ".JPEG"};
+        FileInfo fileInfo = null;
+        String imageExt = null;
+
+        for (String ext : extensions) {
+            fileInfo = apiCaller.getFileByName(userId, name + ext);
+            if (fileInfo != null && fileInfo.getFilename() != null) {
+                imageExt = ext;
+                break; // 성공했으면 반복 종료
+            }
+        }
+
+        if (fileInfo == null || fileInfo.getFilename() == null) {
+            log.warn("파일 정보가 없습니다. API 호출 생략: {}", name);
+            return;
+        }
+
+        // 원본 파일이 아닌 경우 (jpg가 원본일 경우를 제외, pdf에서 추출된 page.jpg인 경우)
+        if (fileInfo.getPageNum() != 0) {
+            String basename = name.replaceAll("-page\\d+$", "");
+            //int maxPage = ioService.getPdfPageCount(configLoader.resultFilePath + File.separator + values[2] + File.separator + basename + ".pdf");
+            String endDateTime = getCurrentTime();
+
+            JSONObject jsonBody = new JSONObject();
+            jsonBody.put("fileName", fileInfo.getFilename());
+            jsonBody.put("pageNum", fileInfo.getPageNum());
+            jsonBody.put("userId", userId);
+            jsonBody.put("ocrServiceType", fileInfo.getOcrServiceType());
+            jsonBody.put("language", fileInfo.getLanguage());
+            jsonBody.put("lClassification", getCountryName(fileInfo.getLanguage()));
+            jsonBody.put("mClassification", values[2]);
+            if (values[2].contains("미분류")) {
+                jsonBody.put("classificationStatus", "CF"); // 미분류: CF
+            } else {
+                jsonBody.put("classificationStatus", "CS"); // 정상분류: CS
+            }
+            jsonBody.put("ocrResultFileName", name + "_result.dat");
+            jsonBody.put("classificationResultFileName", name + "_result.txt");
+            jsonBody.put("classificationStartDateTime", classificationStartDateTime);
+            jsonBody.put("classificationEndDateTime", endDateTime);
+
+            apiCaller.callUpdateApi(jsonBody);
+
+            // 마지막 페이지인 경우 원본 PDF 파일 업데이트 진행
+//            if (fileInfo.getPageNum() == maxPage) {
+//                FileInfo resultFileInfo = apiCaller.getFileWithStatus3(userId, basename + "-page1.jpg", "CS");
+//                if (resultFileInfo.getFilename() == null) {
+//                    resultFileInfo = apiCaller.getFileWithStatus3(userId, basename + "-page1.jpg", "CF");
+//                }
+//
+//                System.out.println("resultFileInfo의 basename : " + basename + "-page1.jpg");
+//
+//                System.out.println("userid : " + resultFileInfo.getUserId());
+//                System.out.println("fileName : " + resultFileInfo.getFilename());
+//                System.out.println("ocrServiceType : " + resultFileInfo.getOcrServiceType());
+//                System.out.println("language : " + resultFileInfo.getLanguage());
+//                System.out.println("lClassification : " + resultFileInfo.getLClassification());
+//                System.out.println("mClassification : " + resultFileInfo.getMClassification());
+//                System.out.println("classificationStatus : " + resultFileInfo.getClassificationStatus());
+//                System.out.println("classificationStartDateTime : " + resultFileInfo.getClassificationStartDateTime());
+//                System.out.println("classificationEndDateTime : " + resultFileInfo.getClassificationEndDateTime());
+//
+//
+//                JSONObject pdfJsonBody = new JSONObject();
+//                pdfJsonBody.put("fileName", basename + ".pdf");
+//                pdfJsonBody.put("pageNum", 0);
+//                pdfJsonBody.put("userId", userId);
+//                pdfJsonBody.put("ocrServiceType", resultFileInfo.getOcrServiceType());
+//                pdfJsonBody.put("language", resultFileInfo.getLanguage());
+//                pdfJsonBody.put("lClassification", resultFileInfo.getLClassification());
+//                pdfJsonBody.put("mClassification", resultFileInfo.getMClassification());
+//                pdfJsonBody.put("classificationStatus", resultFileInfo.getClassificationStatus());
+//                pdfJsonBody.put("classificationStartDateTime", resultFileInfo.getClassificationStartDateTime());
+//                pdfJsonBody.put("classificationEndDateTime", endDateTime);
+//
+//                apiCaller.callUpdateApi(pdfJsonBody);
+//            }
+
+            // TODO: 마지막 페이지일 때 원본 pdf 업데이트 수정 했고 테스트 필요 / 테스트 전  if (fileInfo.getPageNum() == maxPage) 조건 수정 필요
+            int processedCount = getProcessedPageCount(userId, basename); // 처리된 페이지 수
+            int totalPageCount = ioService.getPdfPageCount(configLoader.resultFilePath + File.separator + values[2] + File.separator + basename + ".pdf"); // PDF의 총 페이지 수
+
+            log.debug("{} 처리된 페이지 수: {}, PDF 총 페이지 수: {}", basename+".pdf", processedCount, totalPageCount);
+
+            // 처리된 페이지 수와 PDF의 총 페이지 수 비교
+            if (processedCount == totalPageCount) {
+                FileInfo resultFileInfo = apiCaller.getFileByNameAndStatus(userId, basename + "-page1.jpg", "CS");
+                if (resultFileInfo == null || resultFileInfo.getFilename() == null) {
+                    resultFileInfo = apiCaller.getFileByNameAndStatus(userId, basename + "-page1.jpg", "CF");
+                }
+
+                if (resultFileInfo != null && resultFileInfo.getFilename() != null) {
+                    JSONObject pdfJsonBody = new JSONObject();
+                    pdfJsonBody.put("fileName", basename + ".pdf");
+                    pdfJsonBody.put("pageNum", 0);
+                    pdfJsonBody.put("userId", userId);
+                    pdfJsonBody.put("ocrServiceType", resultFileInfo.getOcrServiceType());
+                    pdfJsonBody.put("language", resultFileInfo.getLanguage());
+                    pdfJsonBody.put("lClassification", resultFileInfo.getLClassification());
+                    pdfJsonBody.put("mClassification", resultFileInfo.getMClassification());
+                    pdfJsonBody.put("classificationStatus", resultFileInfo.getClassificationStatus());
+                    pdfJsonBody.put("classificationStartDateTime", resultFileInfo.getClassificationStartDateTime());
+                    pdfJsonBody.put("classificationEndDateTime", endDateTime);
+
+                    apiCaller.callUpdateApi(pdfJsonBody);
+                } else {
+                    log.warn("page1 결과가 없어 PDF 업데이트를 진행하지 못했습니다: {}", basename);
+                }
+            } else {
+                log.debug("아직 모든 페이지가 처리되지 않았습니다. PDF 업데이트 보류: {}", basename);
+            }
+        }
+
+        // jpg, png, jpeg가 원본일 경우
+        if (fileInfo.getPageNum() == 0 && imageExt != null && !imageExt.equals(".pdf")) {
+            JSONObject jsonBody = new JSONObject();
+            jsonBody.put("fileName", fileInfo.getFilename());
+            jsonBody.put("pageNum", 0);
+            jsonBody.put("userId", userId);
+            jsonBody.put("ocrServiceType", fileInfo.getOcrServiceType());
+            jsonBody.put("language", fileInfo.getLanguage());
+            jsonBody.put("lClassification", getCountryName(fileInfo.getLanguage()));
+            jsonBody.put("mClassification", values[2]);
+
+            if (values[2].contains("미분류")) {
+                jsonBody.put("classificationStatus", "CF"); // 미분류: CF
+            } else {
+                jsonBody.put("classificationStatus", "CS"); // 정상분류: CS
+            }
+
+            jsonBody.put("ocrResultFileName", name + "_result.dat");
+            jsonBody.put("classificationResultFileName", name + "_result.txt");
+            jsonBody.put("classificationStartDateTime", classificationStartDateTime);
+            jsonBody.put("classificationEndDateTime", getCurrentTime());
+
+            apiCaller.callUpdateApi(jsonBody);
+        }
+
+
+//        // 첫번째 페이지의 결과로 pdf의 결과도 업데이트
+//        if (fileInfo.getPageNum() == 1) {
+//            String basename = name.replaceAll("-page.*$", "");
+//
+//            JSONObject pdfJsonBody = new JSONObject();
+//            pdfJsonBody.put("fileName", basename + ".pdf");
+//            pdfJsonBody.put("pageNum", 0);
+//            pdfJsonBody.put("userId", userId);
+//            pdfJsonBody.put("ocrServiceType", fileInfo.getOcrServiceType());
+//            pdfJsonBody.put("language", fileInfo.getLanguage());
+//            pdfJsonBody.put("lClassification", getCountryName(fileInfo.getLanguage()));
+//            pdfJsonBody.put("mClassification", values[2]);
+//            if (values[2].contains("미분류")) {
+//                pdfJsonBody.put("classificationStatus", "CF"); // 미분류: CF
+//            } else {
+//                pdfJsonBody.put("classificationStatus", "CS"); // 정상분류: CS
+//            }
+//            pdfJsonBody.put("classificationStartDateTime", classificationStartDateTime);
+//            pdfJsonBody.put("classificationEndDateTime", getCurrentTime());
+//
+//            apiCaller.callUpdateApi(pdfJsonBody);
+//        }
+
+//        JSONObject jsonBody = new JSONObject();
+//        jsonBody.put("fileName", fileInfo.getFilename());
+//        jsonBody.put("pageNum", fileInfo.getPageNum());
+//        jsonBody.put("userId", userId);
+//        jsonBody.put("ocrServiceType", fileInfo.getOcrServiceType());
+//        jsonBody.put("language", fileInfo.getLanguage());
+//        jsonBody.put("lClassification", getCountryName(fileInfo.getLanguage()));
+//        jsonBody.put("mClassification", values[2]);
+//        if (values[2].contains("미분류")) {
+//            jsonBody.put("classificationStatus", "CF"); // 미분류: CF
+//        } else {
+//            jsonBody.put("classificationStatus", "CS"); // 정상분류: CS
+//        }
+//        jsonBody.put("classificationStartDateTime", classificationStartDateTime);
+//        jsonBody.put("classificationEndDateTime", getCurrentTime());
+//
+//        System.out.println("Template name : " + values[2]);
+//
+//        apiCaller.callUpdateApi(jsonBody);
+    }
+
+    public void jsonDataUpdateWithUnitFile(String fileName, String[] values) throws UnirestException {
+        log.info("update start");
+
+        APICaller apiCaller = new APICaller();
+        IOService ioService = new IOService();
+        String userId = configLoader.apiUserId;
+        String name = fileName.replace("_result", "");
+        String defaultName = new File(name).getName();
+        String[] extensions = {".jpg", ".png", ".jpeg", ".JPG", ".PNG", ".JPEG"};
+        FileInfo fileInfo = null;
+        String imageExt = null;
+
+        for (String ext : extensions) {
+            fileInfo = apiCaller.getFileByName(userId, name + ext);
+            if (fileInfo != null && fileInfo.getFilename() != null) {
+                imageExt = ext;
+                break; // 성공했으면 반복 종료
+            }
+        }
+
+        if (fileInfo == null || fileInfo.getFilename() == null) {
+            log.warn("파일 정보가 없습니다. API 호출 생략: {}", name);
+            return;
+        }
+
+        // 원본 파일이 아닌 경우 (jpg가 원본일 경우를 제외, pdf에서 추출된 page.jpg인 경우)
+        if (fileInfo.getPageNum() != 0) {
+            String basename = name.replaceAll("-page\\d+$", "");
+            //int maxPage = ioService.getPdfPageCount(configLoader.resultFilePath + File.separator + values[2] + File.separator + basename + ".pdf");
+            int maxPage = 0;
+
+            String endDateTime = getCurrentTime();
+
+            JSONObject jsonBody = new JSONObject();
+            jsonBody.put("fileName", fileInfo.getFilename());
+            jsonBody.put("pageNum", fileInfo.getPageNum());
+            jsonBody.put("userId", userId);
+            jsonBody.put("ocrServiceType", fileInfo.getOcrServiceType());
+            jsonBody.put("language", fileInfo.getLanguage());
+            jsonBody.put("lClassification", getCountryName(fileInfo.getLanguage()));
+            jsonBody.put("mClassification", values[2]);
+            if (values[2].contains("미분류")) {
+                if (configLoader.useUnclassifiedAsCS) {
+                    jsonBody.put("classificationStatus", "CS");
+                } else {
+                    jsonBody.put("classificationStatus", "CF"); // 미분류: CF
+                }
+            } else {
+                jsonBody.put("classificationStatus", "CS"); // 정상분류: CS
+            }
+            jsonBody.put("ocrResultFileName", defaultName + "_result.dat");
+            jsonBody.put("classificationResultFileName", defaultName + "_result.txt");
+            jsonBody.put("classificationStartDateTime", classificationStartDateTime);
+            jsonBody.put("classificationEndDateTime", endDateTime);
+
+            apiCaller.callUpdateApi(jsonBody);
+
+            try {
+                String fileNameOnly = new File(basename).getName();
+                File pdfFile;
+                if (configLoader.createClassifiedFolder) {
+                    pdfFile = new File(configLoader.resultFilePath + File.separator + values[2] + File.separator + basename + ".pdf");
+                } else {
+                    pdfFile = new File(configLoader.resultFilePath + File.separator + basename + ".pdf");
+                }
+                if (pdfFile.exists()) {
+                    maxPage = ioService.getPdfPageCount(pdfFile.getAbsolutePath());
+                } else {
+                    log.debug("PDF 파일이 아직 존재하지 않음: {}", pdfFile.getAbsolutePath());
+                    return;
+                }
+            } catch (Exception e) {
+                log.error("PDF 페이지 수 조회 중 오류 발생", e);
+                return;
+            }
+
+            // 마지막 페이지인 경우 원본 PDF 파일 업데이트 진행
+            if (fileInfo.getPageNum() == maxPage) {
+                FileInfo resultFileInfo = apiCaller.getFileByNameAndStatus(userId, basename + "-page1.jpg", "CS");
+                if (resultFileInfo.getFilename() == null) {
+                    resultFileInfo = apiCaller.getFileByNameAndStatus(userId, basename + "-page1.jpg", "CF");
+                }
+
+//                log.info("resultFileInfo의 basename : " + basename + "-page1.jpg");
+//
+//                log.info("userid : " + resultFileInfo.getUserId());
+//                log.info("fileName : " + resultFileInfo.getFilename());
+//                log.info("ocrServiceType : " + resultFileInfo.getOcrServiceType());
+//                log.info("language : " + resultFileInfo.getLanguage());
+//                log.info("lClassification : " + resultFileInfo.getLClassification());
+//                log.info("mClassification : " + resultFileInfo.getMClassification());
+//                log.info("classificationStatus : " + resultFileInfo.getClassificationStatus());
+//                log.info("classificationStartDateTime : " + resultFileInfo.getClassificationStartDateTime());
+//                log.info("classificationEndDateTime : " + resultFileInfo.getClassificationEndDateTime());
+
+                String fileNameOnly = new File(basename).getName();
+
+                FileInfo checkFileName = apiCaller.getFileByName(configLoader.apiUserId, basename + ".pdf");
+                log.debug("basename: {}, checkFileName: {}", basename + ".pdf", checkFileName.getFilename());
+                if (checkFileName.getFilename() == null || checkFileName.getFilename().isEmpty()) {
+                    basename = basename.replace(File.separator, "/");
+                    log.debug("checkFileName is null. 수정 basename: {}", basename);
+                }
+
+                JSONObject pdfJsonBody = new JSONObject();
+                pdfJsonBody.put("fileName", basename + ".pdf");
+                pdfJsonBody.put("pageNum", 0);
+                pdfJsonBody.put("userId", userId);
+                pdfJsonBody.put("ocrServiceType", resultFileInfo.getOcrServiceType());
+                pdfJsonBody.put("language", resultFileInfo.getLanguage());
+                pdfJsonBody.put("lClassification", resultFileInfo.getLClassification());
+                pdfJsonBody.put("mClassification", resultFileInfo.getMClassification());
+                pdfJsonBody.put("classificationStatus", resultFileInfo.getClassificationStatus());
+                pdfJsonBody.put("classificationResultFileName", fileNameOnly + "_result.txt");
+                pdfJsonBody.put("classificationStartDateTime", resultFileInfo.getClassificationStartDateTime());
+                pdfJsonBody.put("classificationEndDateTime", endDateTime);
+
+                apiCaller.callUpdateApi(pdfJsonBody);
+            }
+
+            // 마지막 페이지일 때 원본 pdf 업데이트
+//            int processedCount = getProcessedPageCount(userId, basename); // 처리된 페이지 수
+//            int totalPageCount = ioService.getPdfPageCount(configLoader.resultFilePath + File.separator + values[2] + File.separator + basename + ".pdf"); // PDF의 총 페이지 수
+//
+//            log.info("{} 처리된 페이지 수: {}, PDF 총 페이지 수: {}", basename+".pdf", processedCount, totalPageCount);
+//
+//            // 처리된 페이지 수와 PDF의 총 페이지 수 비교
+//            if (processedCount == totalPageCount) {
+//                FileInfo resultFileInfo = apiCaller.getFileByNameAndStatus(userId, basename + "-page1.jpg", "CS");
+//                if (resultFileInfo == null || resultFileInfo.getFilename() == null) {
+//                    resultFileInfo = apiCaller.getFileByNameAndStatus(userId, basename + "-page1.jpg", "CF");
+//                }
+//
+//                if (resultFileInfo != null && resultFileInfo.getFilename() != null) {
+//                    JSONObject pdfJsonBody = new JSONObject();
+//                    pdfJsonBody.put("fileName", basename + ".pdf");
+//                    pdfJsonBody.put("pageNum", 0);
+//                    pdfJsonBody.put("userId", userId);
+//                    pdfJsonBody.put("ocrServiceType", resultFileInfo.getOcrServiceType());
+//                    pdfJsonBody.put("language", resultFileInfo.getLanguage());
+//                    pdfJsonBody.put("lClassification", resultFileInfo.getLClassification());
+//                    pdfJsonBody.put("mClassification", resultFileInfo.getMClassification());
+//                    pdfJsonBody.put("classificationStatus", resultFileInfo.getClassificationStatus());
+//                    pdfJsonBody.put("classificationStartDateTime", resultFileInfo.getClassificationStartDateTime());
+//                    pdfJsonBody.put("classificationEndDateTime", endDateTime);
+//
+//                    apiCaller.callUpdateApi(pdfJsonBody);
+//                } else {
+//                    log.warn("page1 결과가 없어 PDF 업데이트를 진행하지 못했습니다: {}", basename);
+//                }
+//            } else {
+//                log.info("아직 모든 페이지가 처리되지 않았습니다. PDF 업데이트 보류: {}", basename);
+//            }
+        }
+
+        // jpg, png, jpeg가 원본일 경우
+        if (fileInfo.getPageNum() == 0 && imageExt != null && !imageExt.equals(".pdf")) {
+            JSONObject jsonBody = new JSONObject();
+            jsonBody.put("fileName", fileInfo.getFilename());
+            jsonBody.put("pageNum", 0);
+            jsonBody.put("userId", userId);
+            jsonBody.put("ocrServiceType", fileInfo.getOcrServiceType());
+            jsonBody.put("language", fileInfo.getLanguage());
+            jsonBody.put("lClassification", getCountryName(fileInfo.getLanguage()));
+            jsonBody.put("mClassification", values[2]);
+
+            if (values[2].contains("미분류")) {
+                if (configLoader.useUnclassifiedAsCS) {
+                    jsonBody.put("classificationStatus", "CS");
+                } else {
+                    jsonBody.put("classificationStatus", "CF"); // 미분류: CF
+                }
+            } else {
+                jsonBody.put("classificationStatus", "CS"); // 정상분류: CS
+            }
+
+            jsonBody.put("ocrResultFileName", defaultName + "_result.dat");
+            jsonBody.put("classificationResultFileName", defaultName + "_result.txt");
+            jsonBody.put("classificationStartDateTime", classificationStartDateTime);
+            jsonBody.put("classificationEndDateTime", getCurrentTime());
+
+            apiCaller.callUpdateApi(jsonBody);
+        }
+    }
+
+    public int getProcessedPageCount(String userId, String basename) throws UnirestException {
+        APICaller apiCaller = new APICaller();
+        int count = 0;
+
+        List<FileInfo> filesWithCS = apiCaller.getAllFilesWithStatus(userId, "CS");
+        for (FileInfo file : filesWithCS) {
+            if (file.getFilename().startsWith(basename + "-page")) {
+                count++;
+            }
+        }
+
+        List<FileInfo> filesWithCF = apiCaller.getAllFilesWithStatus(userId, "CF");
+        for (FileInfo file : filesWithCF) {
+            if (file.getFilename().startsWith(basename + "-page")) {
+                count++;
+            }
+        }
+
+        return count;
     }
 
     public void textFinalResult(String textSaveFilePath, String fileName, Map<String, Map<String, String>> finalResultByVersion, String version, String subVersion, Map<String, List<String>> finalCertificateResult) {
@@ -588,26 +997,97 @@ public class ExcelService {
                         value = valueList.get(subVersion);
                     }
 
-                    String[] values = value.split("/");
+                    String[] values = value.split(Pattern.quote(File.separator));
 
                     try (BufferedWriter writer = new BufferedWriter(new FileWriter(textSaveFilePath, true))) {
-                        writer.write("[결과]\n");
-                        writer.write("국가: " + values[0] + "\n");
-                        writer.write("언어: " + values[1] + "\n");
-                        writer.write("문서 양식: " + values[2] + "\n");
+                        if (configLoader.ocrServiceType.equals("google")) {
+                            writer.write("[결과]\n");
+                            writer.write("국가: " + values[0] + "\n");
+                            writer.write("언어: " + values[1] + "\n");
+                            writer.write("문서 양식: " + values[2] + "\n");
 
-                        if (values[2].contains("인증서")) {
-                            List<String> certificateTypeList = finalCertificateResult.get(baseName);
-                            String certificateType = certificateTypeList.isEmpty() ? "-" : String.join(", ", certificateTypeList);
-                            writer.write("인증서 유형: " + certificateType);
+                            if (values[2].contains("인증서")) {
+                                List<String> certificateTypeList = finalCertificateResult.get(baseName);
+                                String certificateType = certificateTypeList.isEmpty() ? "-" : String.join(", ", certificateTypeList);
+                                writer.write("인증서 유형: " + certificateType);
+                            }
+
+                            log.info("Text final results completed. (Google OCR)");
+                        } else if (configLoader.ocrServiceType.equals("synap")) {
+                            writer.write("[결과]\n");
+                            writer.write("대분류: " + "\n");
+                            writer.write("언어: " + values[1] + "\n");
+                            writer.write("중분류: " + values[2] + "\n");
+
+                            log.info("Text final results completed. (Synap OCR)");
                         }
-
-                        log.info("Excel final results completed.");
                     } catch (IOException e) {
-                        log.info("Excel final results failed. {}", e.getMessage());
+                        log.warn("Text final results failed. {}", e.getMessage());
                     }
+
+//                    // api 사용 시 update 진행
+//                    // DocumentService의 createFinalResultFile()에서 moveFiles() 실행 후 UPDATE 하도록 순서 변경
+//                    if (configLoader.apiUsageFlag) {
+//                        try {
+//                            jsonDataWithUpdate(fileName, values);
+//                        } catch (Exception e) {
+//                            log.info("update api failed. {}", e.getMessage());
+//                        }
+//                    }
                 }
             }
+        }
+    }
+
+    public void appendPageResultToMaster(String pageFileName) {
+        // pageFileName 예: "파일명-page1_result"
+        String pageFilePath = configLoader.resultFilePath + File.separator + pageFileName + ".txt";
+
+        // masterFileName 예: "파일명_result"
+        String masterFileName = pageFileName.contains("-page")
+                ? pageFileName.substring(0, pageFileName.indexOf("-page")) + "_result"
+                : pageFileName;
+
+        String masterFilePath = configLoader.resultFilePath + File.separator + masterFileName + ".txt";
+
+        File pageFile = new File(pageFilePath);
+        File masterFile = new File(masterFilePath);
+
+        if (!pageFile.exists()) {
+            log.warn("Page result file not found: {}", pageFilePath);
+            return;
+        }
+
+        boolean masterExists = masterFile.exists();
+
+        try (
+                BufferedReader reader = new BufferedReader(new FileReader(pageFile));
+                BufferedWriter writer = new BufferedWriter(new FileWriter(masterFile, true)) // 이어쓰기
+        ) {
+            String firstLine = reader.readLine();
+
+            if (firstLine != null) {
+                if (!masterExists) {
+                    writer.write("[결과] ");
+                } else {
+                    writer.newLine();
+                    writer.write("-----------------------------------------------------");
+                    writer.newLine();
+                    writer.newLine();
+                    writer.write("[다음 페이지] ");
+                }
+                writer.write(firstLine);
+                writer.newLine();
+            }
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+                writer.write(line);
+                writer.newLine();
+            }
+            log.info("Appended page result to master result file: {}", masterFileName);
+        } catch (IOException e) {
+            log.warn("Failed to append page result. {}", e.getMessage());
         }
     }
 
@@ -619,7 +1099,7 @@ public class ExcelService {
 
             Sheet sheet = workbook.getSheetAt(0); // 첫 번째 시트를 가져옵니다
             int lastColumnIndex = getLastColumnIndex(sheet);
-            System.out.println("마지막 열의 인덱스: " + lastColumnIndex);
+            //System.out.println("마지막 열의 인덱스: " + lastColumnIndex);
 
             if (finalResultByVersion != null) {
                 Map<String, String> valueList = finalResultByVersion.get(baseName);
@@ -648,7 +1128,7 @@ public class ExcelService {
             }
 
         } catch (IOException e) {
-            log.info("Excel final results failed. {}", e.getMessage());
+            log.warn("Excel final results failed. {}", e.getMessage());
         }
     }
 
@@ -671,15 +1151,17 @@ public class ExcelService {
         }
     }
 
-    public static void moveFiles(String resultFilePath, Map<String, Map<String, String>> resultByVersion, String version, String subVersion) {
-        File folder = new File(resultFilePath);
+    public void moveFiles(String resultFilePath, Map<String, Map<String, String>> resultByVersion, String version, String subVersion, String subPath) throws InterruptedException, UnirestException {
+        IOService ioService = new IOService();
+        APICaller apiCaller = new APICaller();
+
+        File folder = Paths.get(resultFilePath).toFile();
         File[] listOfFiles = folder.listFiles((dir, name) -> name.endsWith(".dat"));
 
         if (listOfFiles != null) {
             for (File file : listOfFiles) {
                 String fileName = file.getName();
                 String baseName = fileName.replace("_result.dat", ""); // 파일 이름에서 확장자 제거
-                System.out.println("base name : " + baseName);
 
                 if (resultByVersion != null) {
                     Map<String, String> valueList = resultByVersion.get(baseName);
@@ -691,46 +1173,187 @@ public class ExcelService {
                                 value = valueList.get(subVersion);
                             }
 
-                            Path targetDir = Paths.get(resultFilePath, value);
+                            Path targetDir;
+
+                            if (configLoader.createClassifiedFolder) {
+                                targetDir = Paths.get(resultFilePath, value, subPath);
+                            } else {
+                                targetDir = Paths.get(resultFilePath, subPath);
+                            }
+
                             if (!Files.exists(targetDir)) {
                                 try {
                                     Files.createDirectories(targetDir);
                                 } catch (IOException e) {
-                                    log.info("Folder create failed");
+                                    log.warn("Folder create failed");
                                     e.printStackTrace();
                                 }
                             }
 
-                            File[] relatedFiles = folder.listFiles((dir, name) -> name.startsWith(baseName));
-                            if (relatedFiles != null) {
-                                for (File relatedFile : relatedFiles) {
-                                    Path targetPath = targetDir.resolve(relatedFile.getName());
-                                    try {
-                                        Files.move(relatedFile.toPath(), targetPath);
-                                        log.info("Moved file : '{}' to '{}'",  relatedFile.getName(), targetPath);
-                                    } catch (IOException e) {
-                                        log.info("'{}' File move failed : {}", relatedFile.getName(), e);
-                                    }
-                                }
-                            }
-
-                            // PDF 파일 이동 처리
-                            Pattern pattern = Pattern.compile("(.+)-page\\d+$");
-                            Matcher matcher = pattern.matcher(baseName);
-                            if (matcher.matches()) {
-                                String pdfBaseName = matcher.group(1); // -page?를 제외한 이름
-                                //구버전
-                                File[] pdfFiles = folder.listFiles((dir, name) -> name.startsWith(pdfBaseName) && (name.toLowerCase().matches(".*\\.(pdf)$")));;
-                                if (pdfFiles != null) {
-                                    for (File pdfFile : pdfFiles) {
-                                        Path targetPath = targetDir.resolve(pdfFile.getName());
+                            // 이동 api 사용에 따라 분기
+                            if (!configLoader.apiUsageFlag) {
+                                //if (!baseName.contains("-page")) { // pdfBaseName 으로 시작하는 모든 파일 이동 시
+                                File[] relatedFiles = folder.listFiles((dir, name) -> name.startsWith(baseName));
+                                if (relatedFiles != null) {
+                                    for (File relatedFile : relatedFiles) {
+                                        Path targetPath = targetDir.resolve(relatedFile.getName());
                                         try {
-                                            Files.copy(pdfFile.toPath(), targetPath);
-                                            log.info("Moved PDF file : '{}' to '{}'", pdfFile.getName(), targetPath);
+                                            Files.move(relatedFile.toPath(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+                                            log.info("Moved file : '{}' to '{}'", relatedFile.getName(), targetPath);
                                         } catch (IOException e) {
-                                            log.info("'{}' PDF file move failed : {}", pdfFile.getName(), e);
+                                            log.warn("'{}' File move failed : {}", relatedFile.getName(), e);
                                         }
                                     }
+                                }
+                                //}
+
+                                // PDF 파일 이동 처리
+                                Pattern pattern = Pattern.compile("(.+)-page\\d+$");
+                                Matcher matcher = pattern.matcher(baseName);
+                                //if (matcher.matches() && baseName.endsWith("-page1")) { // pdfBaseName 으로 시작하는 모든 파일 이동 시
+                                if (matcher.matches()) {
+                                    String pdfBaseName = matcher.group(1); // -page?를 제외한 이름
+
+                                    //구버전
+                                    // pdf 원본 파일만 이동
+                                    File[] pdfFiles = folder.listFiles((dir, name) -> name.startsWith(pdfBaseName) && (name.toLowerCase().matches(".*\\.(pdf)$")));
+
+                                    // pdfBaseName 으로 시작하는 모든 파일 (pdf 원본, 추출 이미지, 결과) 전체 이동
+                                    //File[] pdfFiles = folder.listFiles((dir, name) -> name.startsWith(pdfBaseName));
+                                    if (pdfFiles != null) {
+                                        for (File pdfFile : pdfFiles) {
+                                            Path targetPath = targetDir.resolve(pdfFile.getName());
+                                            try {
+                                                Files.copy(pdfFile.toPath(), targetPath);
+                                                log.info("Moved PDF file : '{}' to '{}'", pdfFile.getName(), targetPath);
+
+                                                // 복사 성공 후 원본 파일 삭제
+                                                Files.delete(pdfFile.toPath());
+                                                if (Files.exists(Paths.get(configLoader.imageFolderPath, pdfFile.getName()))) {
+                                                    Files.delete(Paths.get(configLoader.imageFolderPath, pdfFile.getName()));
+                                                    log.info("Deleted image folder path PDF file");
+                                                } else {
+                                                    log.info("image folder path PDF file Not exist");
+                                                }
+                                                log.info("Deleted original PDF file : '{}'", "path: " + pdfFile.toPath() + ", name: " +pdfFile.getName());
+                                            } catch (IOException e) {
+                                                log.warn("'{}' PDF file move failed : {}", pdfFile.getName(), e);
+                                            }
+                                        }
+                                    }
+                                }
+                            } else {
+                                String[] expectedSuffixes = {
+                                        ".jpg",
+                                        ".png",
+                                        ".jpeg",
+                                        "_result.dat",
+                                        "_result.txt",
+                                        "_result.xlsx"
+                                };
+
+                                for (String suffix : expectedSuffixes) {
+                                    String expectedFileName = baseName + suffix;
+                                    File sourceFile = Paths.get(folder.getAbsolutePath(), expectedFileName).toFile();
+
+                                    if (sourceFile.exists()) {
+                                        Path targetPath = targetDir.resolve(expectedFileName);
+                                        try {
+                                            Files.move(sourceFile.toPath(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+                                            log.info("Moved file : '{}' to '{}'", expectedFileName, targetPath);
+                                        } catch (IOException e) {
+                                            log.info("'{}' File move failed : {}", expectedFileName, e);
+                                        }
+                                    } else {
+                                        log.debug("File not found, skipping: {}", expectedFileName);
+                                    }
+                                }
+
+                                // CSV 파일들 (_result.csv, _result_2.csv, _result_3.csv 등) 이동 처리
+                                File[] resultFiles = folder.listFiles((dir, name) -> {
+                                    boolean matchCsv = name.matches(Pattern.quote(baseName) + "_result(_\\d+)?\\.csv");
+                                    boolean matchHtml = name.matches(Pattern.quote(baseName) + "_result(_\\d+)?\\.html");
+                                    boolean match = matchCsv || matchHtml;
+                                    if (match) {
+                                        log.info("Matched result(CSV/HTML) file: {}", name);
+                                    }
+                                    return match;
+                                });
+
+                                if (resultFiles == null) {
+                                    log.warn("Result(CSV/HTML) file list is null. Check folder path or permissions.");
+                                } else {
+                                    log.debug("Found {} matching result(CSV/HTML) files", resultFiles.length);
+                                }
+
+                                if (resultFiles != null) {
+                                    for (File resultFile : resultFiles) {
+                                        Path targetPath = targetDir.resolve(resultFile.getName());
+                                        try {
+                                            Files.move(resultFile.toPath(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+                                            log.info("Moved result(CSV/HTML) file : '{}' to '{}'", resultFile.getName(), targetPath);
+                                        } catch (IOException e) {
+                                            log.warn("Result(CSV/HTML) file move failed : '{}', {}", resultFile.getName(), e.getMessage());
+                                        }
+                                    }
+                                }
+
+                                // PDF 및 전체 결과 TXT 파일 이동 처리
+                                try {
+                                    String originalName = baseName.replaceAll("-page\\d+$", "");
+                                    int maxPage = ioService.getPdfPageCount(configLoader.resultFilePath + File.separator + originalName + ".pdf");
+                                    FileInfo fileInfo = apiCaller.getFileByName(configLoader.apiUserId, subPath + baseName + ".jpg");
+
+                                    if (fileInfo == null) {
+                                        log.info("fileInfo 조회 불가로 PDF 이동을 위한 마지막 페이지 이동 여부 체크 불가");
+                                        return;
+                                    }
+
+                                    if (maxPage == fileInfo.getPageNum()) {
+                                        File pdfFile = Paths.get(configLoader.resultFilePath, originalName + ".pdf").toFile();
+                                        File txtFile = Paths.get(configLoader.resultFilePath, originalName + "_result.txt").toFile();
+
+                                        if (pdfFile.exists()) {
+                                            Path targetPath = targetDir.resolve(pdfFile.getName());
+
+                                            try {
+                                                Files.move(pdfFile.toPath(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+                                                log.info("Moved PDF file : '{}' to '{}'", pdfFile.getName(), targetPath);
+
+                                                // 복사 성공 후 원본 파일 삭제
+                                                //Files.delete(pdfFile.toPath());
+                                                //log.info("Deleted original PDF file : '{}'", pdfFile.getName());
+
+                                                // 소스 경로 원본 파일 삭제
+                                                if (Files.exists(Paths.get(configLoader.imageFolderPath, pdfFile.getName()))) {
+                                                    Files.delete(Paths.get(configLoader.imageFolderPath, pdfFile.getName()));
+                                                    log.info("Deleted image folder path PDF file");
+                                                } else {
+                                                    log.info("image folder path PDF file Not exist");
+                                                }
+                                            } catch (IOException e) {
+                                                log.warn("'{}' PDF file move failed : {}", pdfFile.getName(), e);
+                                            }
+                                        } else {
+                                            log.warn("PDF file not found: '{}'", pdfFile.getAbsolutePath());
+                                        }
+
+                                        // 전체 결과 TXT 이동
+                                        if (txtFile.exists()) {
+                                            Path targetPath = targetDir.resolve(txtFile.getName());
+
+                                            try {
+                                                Files.move(txtFile.toPath(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+                                                log.info("Moved TXT file : '{}' to '{}'", txtFile.getName(), targetPath);
+                                            } catch (IOException e) {
+                                                log.warn("'{}' TXT file move failed : {}", txtFile.getName(), e);
+                                            }
+                                        } else {
+                                            log.warn("TXT file not found: '{}'", txtFile.getAbsolutePath());
+                                        }
+                                    }
+                                } catch (Exception e) {
+                                    log.warn("Move Files - PDF 파일 정보 조회 실패: {}", e.getMessage());
                                 }
                             }
                         }
@@ -739,7 +1362,53 @@ public class ExcelService {
             }
         }
 
+        Thread.sleep(200);
+
         // 모든 파일을 확인한 후, 폴더를 제외하고 남아있는 PDF 파일 삭제
+        if (!configLoader.apiUsageFlag) {
+            File[] remainingFiles = folder.listFiles();
+            if (remainingFiles != null) {
+                for (File remainingFile : remainingFiles) {
+                    if (remainingFile.isFile() && remainingFile.getName().toLowerCase().matches(".*\\.(pdf|jpg|png|jpeg)$")) {
+                        try {
+                            Files.delete(remainingFile.toPath());
+                            log.info("Deleted PDF or IMG file : '{}'", remainingFile.getName());
+                        } catch (IOException e) {
+                            log.info("'{}' PDF file or IMG delete failed : {}", remainingFile.getName(), e);
+                        }
+                    }
+                }
+            }
+        } else {
+            File imageFolder = new File(configLoader.imageFolderPath);
+            if (imageFolder.exists() && imageFolder.isDirectory()) {
+                for (File file : listOfFiles) {
+                    String baseName = file.getName().replace("_result.dat", "");
+
+                    File[] imageFilesToDelete = imageFolder.listFiles((dir, name) ->
+                            name.startsWith(baseName) &&
+                                    name.toLowerCase().matches(".*\\.(pdf|jpg|png|jpeg)$")
+                    );
+
+                    if (imageFilesToDelete != null) {
+                        for (File imageFile : imageFilesToDelete) {
+                            try {
+                                if (Files.exists(imageFile.toPath())) {
+                                    Files.delete(imageFile.toPath());
+                                    log.info("Deleted image file from imageFolderPath: '{}'", imageFile.getName());
+                                }
+                            } catch (IOException e) {
+                                log.info("Failed to delete image file '{}': {}", imageFile.getName(), e.getMessage());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    public void deleteFileList() {
+        File folder = new File(configLoader.resultFilePath);
         File[] remainingFiles = folder.listFiles();
         if (remainingFiles != null) {
             for (File remainingFile : remainingFiles) {
@@ -910,5 +1579,37 @@ public class ExcelService {
             e.printStackTrace();
         }
     }
+
+    // 현재 시간 가져오기
+    public String getCurrentTime() {
+        LocalDateTime now = LocalDateTime.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS");
+        String formattedDateTime = now.format(formatter);
+
+        //System.out.println(formattedDateTime);
+        return formattedDateTime;
+    }
+
+    public static String getCountryName(String languageCode) {
+        switch (languageCode.toUpperCase()) {
+            case "FR":
+                return "프랑스";
+            case "US":
+                return "미국";
+            case "IT":
+                return "이탈리아";
+            case "VN":
+                return "베트남";
+            case "JP":
+                return "일본";
+            case "CN":
+                return "중국";
+            case "KR":
+                return "한국";
+            default:
+                return "알 수 없는 국가";
+        }
+    }
+
 }
 
