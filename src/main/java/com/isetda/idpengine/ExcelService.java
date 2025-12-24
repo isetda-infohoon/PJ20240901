@@ -21,6 +21,8 @@ import java.util.*;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 
 public class ExcelService {
@@ -834,6 +836,8 @@ public class ExcelService {
 
             apiCaller.callUpdateApi(jsonBody);
 
+            File pdfResultPath;
+
             try {
                 String fileNameOnly = new File(basename).getName();
                 File pdfFile;
@@ -843,12 +847,14 @@ public class ExcelService {
                     pdfFile = new File(configLoader.resultFilePath + File.separator + basename + ".pdf");
                 }
                 if (pdfFile.exists()) {
+                    pdfResultPath = pdfFile;
                     maxPage = ioService.getPdfPageCount(pdfFile.getAbsolutePath());
                 } else {
                     log.debug("PDF 파일이 아직 존재하지 않음: {}", pdfFile.getAbsolutePath());
                     return;
                 }
             } catch (Exception e) {
+                pdfResultPath = null;
                 log.error("PDF 페이지 수 조회 중 오류 발생", e);
                 return;
             }
@@ -895,6 +901,15 @@ public class ExcelService {
                 pdfJsonBody.put("classificationEndDateTime", endDateTime);
 
                 apiCaller.callUpdateApi(pdfJsonBody);
+
+                FileInfo originalFileInfo = apiCaller.getFileByNameAndPageNumAndStatusNotNull(userId, basename + ".pdf", "CS", 0);
+                if (originalFileInfo.getFilename() == null) {
+                    originalFileInfo = apiCaller.getFileByNameAndPageNumAndStatusNotNull(userId, basename + ".pdf", "CF", 0);
+                }
+
+                if (configLoader.useCallbackUpdate && configLoader.ocrServiceType.contains("da")) {
+                    apiCaller.callbackApi(originalFileInfo, pdfResultPath.getPath(), 200, "완료");
+                }
             }
 
             // 마지막 페이지일 때 원본 pdf 업데이트
@@ -934,6 +949,20 @@ public class ExcelService {
 
         // jpg, png, jpeg가 원본일 경우
         if (fileInfo.getPageNum() == 0 && imageExt != null && !imageExt.equals(".pdf")) {
+            File imgResultPath;
+            String fileNameOnly = new File(name).getName();
+            if (configLoader.createClassifiedFolder) {
+                imgResultPath = new File(configLoader.resultFilePath + File.separator + values[2] + File.separator + name + imageExt);
+            } else {
+                imgResultPath = new File(configLoader.resultFilePath + File.separator + name + imageExt);
+            }
+
+            if (!imgResultPath.exists()) {
+                imgResultPath = null;
+                log.debug("IMAGE 파일이 존재하지 않음: {}", imgResultPath.getAbsolutePath());
+                return;
+            }
+
             JSONObject jsonBody = new JSONObject();
             jsonBody.put("fileName", fileInfo.getFilename());
             jsonBody.put("pageNum", 0);
@@ -959,6 +988,9 @@ public class ExcelService {
             jsonBody.put("classificationEndDateTime", getCurrentTime());
 
             apiCaller.callUpdateApi(jsonBody);
+            if (configLoader.useCallbackUpdate && configLoader.ocrServiceType.contains("da")) {
+                apiCaller.callbackApi(fileInfo, imgResultPath.getPath(), 200, "완료");
+            }
         }
     }
 
@@ -1088,6 +1120,86 @@ public class ExcelService {
             log.info("Appended page result to master result file: {}", masterFileName);
         } catch (IOException e) {
             log.warn("Failed to append page result. {}", e.getMessage());
+        }
+    }
+
+    public void appendMdResultToMaster(String pageFileName) {
+        // pageFileName 예: "파일명-page1_result"
+        String pageFilePath = configLoader.resultFilePath + File.separator + pageFileName + ".dat";
+
+        // masterFileName 예: "파일명_result"
+        String masterFileName = pageFileName.contains("-page")
+                ? pageFileName.substring(0, pageFileName.indexOf("-page")) + "_result"
+                : pageFileName;
+
+        String masterFilePath = configLoader.resultFilePath + File.separator + masterFileName + ".md";
+
+        File pageFile = new File(pageFilePath);
+        File masterFile = new File(masterFilePath);
+
+        if (!pageFile.exists()) {
+            log.warn("Page result file not found: {}", pageFilePath);
+            return;
+        }
+
+        if (configLoader.useMdFileCreation) {
+            // .jpg인 경우 (단일 페이지) md 파일 저장
+            if (!pageFileName.contains("-page")) {
+                try {
+                    String content;
+                    if (configLoader.encodingCheck) {
+                        // 암호화된 .dat인 경우: 복호화
+                        byte[] bytes = java.nio.file.Files.readAllBytes(pageFile.toPath());
+                        content = JsonService.aesDecode(bytes);
+                    } else {
+                        // 평문 .dat인 경우: UTF-8 그대로 읽기
+                        content = java.nio.file.Files.readString(pageFile.toPath(), java.nio.charset.StandardCharsets.UTF_8);
+                    }
+
+                    // master 파일 생성/덮어쓰기 (필요시 APPEND로 바꿀 수 있음)
+                    try (BufferedWriter writer = new BufferedWriter(new FileWriter(masterFile, false))) {
+                        writer.write(content);
+                    }
+
+                    log.info("Converted single-page .dat to .md: {}", masterFileName);
+                } catch (Exception e) {
+                    log.warn("Failed to convert single-page .dat to .md. {}", e.getMessage());
+                }
+                return; // 단일 페이지 처리 완료
+            }
+
+            // pdf인 경우 (멀티 페이지) md 파일 저장
+            boolean masterExists = masterFile.exists();
+
+            try (
+                    BufferedReader reader = new BufferedReader(new FileReader(pageFile));
+                    BufferedWriter writer = new BufferedWriter(new FileWriter(masterFile, true)) // 이어쓰기
+            ) {
+                String firstLine = reader.readLine();
+
+                if (firstLine != null) {
+                    if (!masterExists) {
+                        writer.write("");
+                    } else {
+                        writer.newLine();
+                        //writer.write("-----------------------------------------------------");
+                        //writer.newLine();
+                        writer.newLine();
+                        writer.write("[다음 페이지] ");
+                    }
+                    writer.write(firstLine);
+                    writer.newLine();
+                }
+
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    writer.write(line);
+                    writer.newLine();
+                }
+                log.info("Appended page result to master result file: {}", masterFileName);
+            } catch (IOException e) {
+                log.warn("Failed to append page result. {}", e.getMessage());
+            }
         }
     }
 
@@ -1249,7 +1361,8 @@ public class ExcelService {
                                         ".jpeg",
                                         "_result.dat",
                                         "_result.txt",
-                                        "_result.xlsx"
+                                        "_result.xlsx",
+                                        "_result.zip"
                                 };
 
                                 for (String suffix : expectedSuffixes) {
@@ -1297,6 +1410,18 @@ public class ExcelService {
                                         }
                                     }
                                 }
+
+                                // ZIP 파일에서 png 파일 추출 후 ZIP 삭제
+                                String zipFileName = baseName + "_result.zip";
+                                //File zipFilePath = Paths.get(folder.getAbsolutePath(), zipFileName).toFile();
+                                File zipFilePath;
+                                if (configLoader.createClassifiedFolder) {
+                                    zipFilePath = Paths.get(folder.getAbsolutePath(), value, subPath, zipFileName).toFile();
+                                } else {
+                                    zipFilePath = Paths.get(folder.getAbsolutePath(), subPath, zipFileName).toFile();
+                                }
+                                log.debug("zipFileName: {}, zipFilePath: {}, targetDir: {}", zipFileName, zipFilePath, targetDir.toFile());
+                                extractPNGFromZIP(zipFilePath, targetDir.toFile());
 
                                 // PDF 및 전체 결과 TXT 파일 이동 처리
                                 try {
@@ -1350,6 +1475,24 @@ public class ExcelService {
                                             }
                                         } else {
                                             log.warn("TXT file not found: '{}'", txtFile.getAbsolutePath());
+                                        }
+
+                                        if (configLoader.useMdFileCreation) {
+                                            File mdFile = Paths.get(configLoader.resultFilePath, originalName + "_result.md").toFile();
+
+                                            // 전체 결과 MD 이동
+                                            if (mdFile.exists()) {
+                                                Path targetPath = targetDir.resolve(mdFile.getName());
+
+                                                try {
+                                                    Files.move(mdFile.toPath(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+                                                    log.info("Moved MD file : '{}' to '{}'", mdFile.getName(), targetPath);
+                                                } catch (IOException e) {
+                                                    log.warn("'{}' MD file move failed : {}", mdFile.getName(), e);
+                                                }
+                                            } else {
+                                                log.warn("MD file not found: '{}'", mdFile.getAbsolutePath());
+                                            }
                                         }
                                     }
                                 } catch (Exception e) {
@@ -1405,6 +1548,37 @@ public class ExcelService {
                 }
             }
         }
+    }
+
+    public void extractPNGFromZIP(File zipFile, File targetDir) {
+        targetDir.mkdirs();
+
+        try (ZipInputStream zis = new ZipInputStream(new FileInputStream(zipFile))) {
+            ZipEntry entry;
+            byte[] buf = new byte[4096];
+
+            while ((entry = zis.getNextEntry()) != null) {
+                if (!entry.isDirectory() && entry.getName().toLowerCase().endsWith(".png")) {
+
+                    // ZIP 내부 경로 제거하고 파일명만 추출
+                    String name = entry.getName().substring(entry.getName().lastIndexOf('/') + 1);
+
+                    File outFile = new File(targetDir, name);
+                    try (FileOutputStream fos = new FileOutputStream(outFile)) {
+                        int n;
+                        while ((n = zis.read(buf)) > 0) {
+                            fos.write(buf, 0, n);
+                        }
+                    }
+                }
+                zis.closeEntry();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        // ZIP 삭제
+        zipFile.delete();
     }
 
     public void deleteFileList() {

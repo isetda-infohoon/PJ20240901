@@ -225,6 +225,73 @@ public class APICaller {
         return fileInfo;
     }
 
+    // CLASSIFICATION_STATUS 가 NULL 이 아닐 때에도 사용 가능
+    public FileInfo getFileByNameAndPageNumAndStatusNotNull(String userId, String filename, String status, int pageNum) throws UnirestException {
+        String defaultUrl = configLoader.apiURL;
+        FileInfo fileInfo = new FileInfo();
+
+        //log.trace("getFileWithStatus call");
+
+        String apiUrl = defaultUrl + "/doc/process/status";
+        HttpResponse<String> response = Unirest.get(apiUrl)
+                .queryString("USERID", userId)
+                .queryString("FILENAME", filename)
+                .queryString("OCR_SERVICE_TYPE", "")
+                .queryString("CLASSIFICATION_STATUS", status)
+                .queryString("REQUEST_START_DATE", "")
+                .queryString("REQUEST_END_DATE", "")
+                .queryString("PAGENUM", pageNum)
+                .asString();
+
+        if (response.getStatus() == 200) {
+            log.debug("STATUS CHECK API 호출 성공: " + response.getBody());
+            JSONObject statusJson = new JSONObject(response.getBody());
+
+            if (statusJson.getBoolean("success")) {
+                JSONArray dataArray = statusJson.getJSONArray("data");
+
+                for (int i = 0; i < dataArray.length(); i++) {
+                    JSONObject data = dataArray.getJSONObject(i);
+
+                    if ("Y".equalsIgnoreCase(data.optString("cancelStatus"))) {
+                        continue;
+                    }
+
+                    fileInfo.setFilename(data.optString("fileName"));
+                    fileInfo.setUserId(data.optString("userId"));
+                    fileInfo.setPageNum(data.optInt("pageNum"));
+                    fileInfo.setOcrServiceType(data.optString("ocrServiceType"));
+                    fileInfo.setLanguage(data.optString("language"));
+                    fileInfo.setLClassification(data.optString("lClassification"));
+                    fileInfo.setMClassification(data.optString("mClassification"));
+                    fileInfo.setSClassification(data.optString("sClassification"));
+                    fileInfo.setClassificationStatus(data.optString("classificationStatus"));
+                    fileInfo.setJobType(data.optString("jobType"));
+                    fileInfo.setClassificationStartDateTime(data.optString("classificationStartDateTime"));
+                    fileInfo.setClassificationEndDateTime(data.optString("classificationEndDateTime"));
+                    fileInfo.setCreateDateTime(data.optString("createDateTime"));
+                    fileInfo.setRequestId(data.optString("requestId"));
+                    fileInfo.setReceiveData(data.optString("receiveData"));
+                    fileInfo.setUrlData(data.optString("urlData"));
+                }
+            }
+        } else {
+            log.info("STATUS CHECK API 호출 실패: " + response.getStatus() + " - " + response.getStatusText());
+        }
+
+//        System.out.println(fileInfo.getFilename());
+//        System.out.println(fileInfo.getUserId());
+//        System.out.println(fileInfo.getPageNum());
+//        System.out.println(fileInfo.getOcrServiceType());
+//        System.out.println(fileInfo.getLanguage());
+//        System.out.println(fileInfo.getLClassification());
+//        System.out.println(fileInfo.getMClassification());
+//        System.out.println(fileInfo.getSClassification());
+//        System.out.println(fileInfo.getClassificationStatus());
+
+        return fileInfo;
+    }
+
     // 이미 분류 완료된 데이터를 조회하기 위해 CLASSIFICATION_STATUS를 추가 전달
     public FileInfo getFileByNameAndStatus(String userId, String filename, String status) throws UnirestException {
         String defaultUrl = configLoader.apiURL;
@@ -269,6 +336,9 @@ public class APICaller {
                     fileInfo.setJobType(data.optString("jobType"));
                     fileInfo.setClassificationStartDateTime(data.optString("classificationStartDateTime"));
                     fileInfo.setClassificationEndDateTime(data.optString("classificationEndDateTime"));
+                    fileInfo.setRequestId(data.optString("requestId"));
+                    fileInfo.setReceiveData(data.optString("receiveData"));
+                    fileInfo.setUrlData(data.optString("urlData"));
                 }
             }
         } else {
@@ -541,27 +611,26 @@ public class APICaller {
         }
     }
 
-    // 파일 에러 시에만 호출
-    public void callbackApi(FileInfo fileInfo, String subPath, String message) throws UnirestException {
+    // 파일 에러 시 -> 오류 코드 호출 / DA 작업 완료 시 -> 성공 코드 호출
+    public void callbackApi(FileInfo fileInfo, String imagePath, int resultCode, String message) throws UnirestException {
         String defaultUrl = fileInfo.getUrlData();
         Unirest.setTimeouts(0, 0);
 
-        String errorDir = Paths.get(configLoader.resultFilePath, "오류", subPath).toString();
         HttpResponse<String> response;
 
         if (configLoader.useUrlEncoding) {
             response = Unirest.post(defaultUrl)
                     .header("Content-Type", "application/x-www-form-urlencoded")
                     .field("ocrRequestId", fileInfo.getRequestId())
-                    .field("imagePath", errorDir)
-                    .field("resultCode", 666)
+                    .field("imagePath", imagePath)
+                    .field("resultCode", resultCode)
                     .field("resultContents", message)
                     .asString();
         } else {
             response = Unirest.post(defaultUrl)
                     .queryString("ocrRequestId", fileInfo.getRequestId())
-                    .queryString("imagePath", errorDir)
-                    .queryString("resultCode", 666)
+                    .queryString("imagePath", imagePath)
+                    .queryString("resultCode", resultCode)
                     .queryString("resultContents", message)
                     .body("").asString();
         }

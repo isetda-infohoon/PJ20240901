@@ -1,0 +1,31 @@
+<Configuration status="WARN">
+  <Appenders>
+    <!--  콘솔에 로그를 출력하는 Appender  -->
+    <Console name="CONSOLE" target="SYSTEM_OUT">
+      <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss,SSS} [%-5level] %C{1}.%M(%L) - %msg%n"/>
+    </Console>
+    <!--  파일에 로그를 저장하는 Appender  -->
+    <RollingFile name="FILE" fileName="LOG/${date:yyyy}/${date:MM}/IDPEngine.log" filePattern="LOG/${date:yyyy}/${date:MM}/IDPEngine_%d{yyyy-MM-dd}.%i.log">
+      <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%-5level] %c{1}.%M(%L) - %msg%n" charset="UTF-8"/>
+      <Policies>
+        <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+        <SizeBasedTriggeringPolicy size="10MB"/>
+      </Policies>
+      <DefaultRolloverStrategy max="30"/>
+    </RollingFile>
+  </Appenders>
+  <Loggers>
+    <!--  org.apache.poi 로거는 로그를 출력하지 않음  -->
+    <Logger name="org.apache.poi" level="OFF">
+      <AppenderRef ref="CONSOLE"/>
+      <!--  수정: CONSOLE Appender로 참조  -->
+    </Logger>
+    <!--  최상위 로그 설정  -->
+    <Root level="info">
+      <AppenderRef ref="CONSOLE"/>
+      <!--  수정: CONSOLE Appender로 참조  -->
+      <AppenderRef ref="FILE"/>
+      <!--  파일로 로그 저장  -->
+    </Root>
+  </Loggers>
+</Configuration>

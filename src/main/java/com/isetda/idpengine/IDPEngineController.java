@@ -1000,6 +1000,7 @@ public class IDPEngineController {
 
         GoogleService googleService = new GoogleService();
         SynapService synapService = new SynapService();
+        DocuAnalyzerService docuAnalyzerService = new DocuAnalyzerService();
         IOService ioService = new IOService();
 
         // UI가 없을 경우, 설정값 그대로 사용
@@ -1157,6 +1158,8 @@ public class IDPEngineController {
                                     googleService.FullTextOCR(file);
                                 } else if (fileInfo.getOcrServiceType().contains("synap")) {
                                     synapService.synapOCR(file, subPath);
+                                } else if (fileInfo.getOcrServiceType().contains("da")) {
+                                    docuAnalyzerService.docuAnalyzer(file, subPath);
                                 } else {
                                     log.info("The file operation is skipped because there is no matching OCR Service Type.");
                                     continue;
@@ -1177,6 +1180,14 @@ public class IDPEngineController {
                                     googleService.uploadAndOCR(file);
                                 } else if (fileInfo.getOcrServiceType().contains("synap")) {
                                     synapService.synapOCR(file, subPath);
+
+                                    try {
+                                        onButton2API(fileInfo);
+                                    } catch (Exception e) {
+                                        log.error("Error executing onButton2API", e);
+                                    }
+                                } else if (fileInfo.getOcrServiceType().contains("da")) {
+                                    docuAnalyzerService.docuAnalyzer(file, subPath);
 
                                     try {
                                         onButton2API(fileInfo);
@@ -1405,7 +1416,11 @@ public class IDPEngineController {
 //                        }
 
             try {
-                classificationDocument();
+                if (fileInfo.getOcrServiceType().contains("da")) {
+                    classificationDocumentWithDa();
+                } else {
+                    classificationDocument();
+                }
             } catch (Exception e) {
                 log.error("분류 실패: {}", e.getMessage());
             }
@@ -1496,6 +1511,14 @@ public class IDPEngineController {
 //            System.out.println("---------- documentService jsonFiles : " + file.getPath());
 //        }
         documentService.createFinalResultFile();
+    }
+
+    public void classificationDocumentWithDa() throws Exception {
+        configLoader.resultFilePath = resultFilePath;
+        excelService.configLoader = configLoader;
+        documentService.configLoader = configLoader;
+
+        documentService.createFinalResultFileWithDa();
     }
 
     public void movefilefulltext(String outputpath) {

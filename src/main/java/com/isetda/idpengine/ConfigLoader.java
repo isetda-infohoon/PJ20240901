@@ -33,6 +33,8 @@ public class ConfigLoader {
     public String ocrUrl;
     public String synapApiKey;
     public String synapOcrUrl;
+    public String docuAnalyzerApiKey;
+    public String docuAnalyzerUrl;
     public String excelFilePath;
     public String jsonFilePath;
     List<FolderMapping> folderMappings = new ArrayList<>();
@@ -84,6 +86,8 @@ public class ConfigLoader {
     public boolean useUnclassifiedAsCS;
     public boolean createClassifiedFolder;
     public boolean useUrlEncoding;
+    public boolean useCallbackUpdate;
+    public boolean useMdFileCreation;
 
     public boolean excelFileDownload;
     public boolean csvFileDownload;
@@ -183,6 +187,20 @@ public class ConfigLoader {
             } else {
                 log.error("The synapOcrUrl tag does not exist in Config.xml. Application will terminate.");
                 throw new RuntimeException("Missing required configuration: synapOcrUrl");
+            }
+
+            if (root.getElementsByTagName("docuAnalyzerApiKey").getLength() > 0) {
+                docuAnalyzerApiKey = root.getElementsByTagName("docuAnalyzerApiKey").item(0).getTextContent().trim();
+            } else {
+                log.error("The docuAnalyzerApiKey tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: docuAnalyzerApiKey");
+            }
+
+            if (root.getElementsByTagName("docuAnalyzerUrl").getLength() > 0) {
+                docuAnalyzerUrl = root.getElementsByTagName("docuAnalyzerUrl").item(0).getTextContent().trim();
+            } else {
+                log.error("The docuAnalyzerUrl tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: docuAnalyzerUrl");
             }
 
             if (root.getElementsByTagName("jsonFilePath").getLength() > 0) {
@@ -483,6 +501,20 @@ public class ConfigLoader {
             } else {
                 log.error("The useUrlEncoding tag does not exist in Config.xml. Application will terminate.");
                 throw new RuntimeException("Missing required configuration: useUrlEncoding");
+            }
+
+            if (root.getElementsByTagName("useCallbackUpdate").getLength() > 0) {
+                useCallbackUpdate = Boolean.parseBoolean(root.getElementsByTagName("useCallbackUpdate").item(0).getTextContent().trim());
+            } else {
+                log.error("The useCallbackUpdate tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: useCallbackUpdate");
+            }
+
+            if (root.getElementsByTagName("useMdFileCreation").getLength() > 0) {
+                useMdFileCreation = Boolean.parseBoolean(root.getElementsByTagName("useMdFileCreation").item(0).getTextContent().trim());
+            } else {
+                log.error("The useMdFileCreation tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: useMdFileCreation");
             }
 
             Files.copy(configFile.toPath(), new File(backupFilePath).toPath(), StandardCopyOption.REPLACE_EXISTING);

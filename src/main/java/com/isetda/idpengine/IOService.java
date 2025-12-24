@@ -40,6 +40,16 @@ public class IOService {
     public String fullResultPath;
     public String subPath;
 
+    private static final Set<String> DA_SUPPORTED_EXT = new HashSet<>(Arrays.asList(
+            "doc","dot","dotx",
+            "docx","docm","dotm",
+            "ppt","pot","pps",
+            "pptx","pptm","potx","potm","ppsx",
+            "xls","xlt",
+            "xlsx","xlsm","xltx","xltm","xlsb",
+            "hwp","hwt","hml","hwpx"
+    ));
+
     // JBIG2 이미지 처리를 위한 초기화
     static {
         try {
@@ -167,7 +177,8 @@ public class IOService {
                 String message = "File Error";
                 apiCaller.callDeleteApi(configLoader.apiUserId, fileInfo.getFilename(), fileInfo.getOcrServiceType());
                 if (fileInfo.getUrlData() != null) {
-                    apiCaller.callbackApi(fileInfo, subPath, message);
+                    String errorDir = Paths.get(configLoader.resultFilePath, "오류", subPath).toString();
+                    apiCaller.callbackApi(fileInfo, errorDir, 666, message);
                 } else {
                     log.info("URL DATA IS NULL");
                 }
@@ -394,6 +405,11 @@ public class IOService {
         return resultFiles;
     }
 
+    private String ext(String filename) {
+        int i = filename.lastIndexOf('.');
+        return (i > -1) ? filename.substring(i + 1).toLowerCase() : "";
+    }
+
     // 처리 단위가 1개 파일일 때
     public List<File> getFileWithAPIAndExtractedImages(FileInfo unitFileInfo) {
         APICaller apiCaller = new APICaller();
@@ -468,6 +484,10 @@ public class IOService {
             } else if (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg") || lowerName.endsWith(".png")) {
                 resultFiles.add(file);
                 ioService.copyFiles(file);
+            } else if (configLoader.ocrServiceType.equalsIgnoreCase("da") && DA_SUPPORTED_EXT.contains(ext(fileName))) {
+                //TODO: da 서비스에서 처리해야 할 Office/HWP 파일 처리
+                resultFiles.add(file);
+                ioService.copyFiles(file);
             } else {
                 log.warn("지원하지 않는 파일 형식: {}", fileName);
             }
@@ -475,7 +495,6 @@ public class IOService {
             log.warn("API 조회 실패: {}", e.getMessage(), e);
 
         }
-
 
 //        if (allFiles != null) {
 //            for (File file : allFiles) {

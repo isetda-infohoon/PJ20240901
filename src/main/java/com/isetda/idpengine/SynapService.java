@@ -228,12 +228,13 @@ public class SynapService {
         log.info("imageFolderPath: " + imageFolderPath);
         IOService.moveFileToErrorDirectory(imageFolderPath, subPath);
         try {
-            FileInfo fileInfo = apiCaller.getFileByNameAndPageNum(configLoader.apiUserId, apiFileName, 0);
+            FileInfo fileInfo = apiCaller.getFileByNameAndPageNum(configLoader.apiUserId, apiFileName,0);
             log.info(fileInfo.getFilename());
             String message = "Synap OCR Error";
             apiCaller.callDeleteApi(configLoader.apiUserId, fileInfo.getFilename(), fileInfo.getOcrServiceType());
             if (fileInfo.getUrlData() != null) {
-                apiCaller.callbackApi(fileInfo, subPath, message);
+                String errorDir = Paths.get(configLoader.resultFilePath, "오류", subPath).toString();
+                apiCaller.callbackApi(fileInfo, errorDir, 666, message);
             } else {
                 log.info("URL DATA IS NULL");
             }
