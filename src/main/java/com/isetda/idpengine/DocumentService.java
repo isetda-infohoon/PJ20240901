@@ -264,7 +264,7 @@ public class DocumentService {
 //        }
 
         if (configLoader.createFolders) {
-            excelService.moveFiles(configLoader.resultFilePath, resultByVersion, configLoader.classificationCriteria, configLoader.subClassificationCriteria, subPath);
+            excelService.moveFiles(configLoader.resultFilePath, resultByVersion, configLoader.classificationCriteria, configLoader.subClassificationCriteria, subPath, false);
         }
 
         // api 사용 시 update 진행
@@ -313,7 +313,7 @@ public class DocumentService {
         }
     }
 
-    public void createFinalResultFileWithDa() throws Exception {
+    public void createFinalResultFileWithDa(boolean officeExtensionFlag) throws Exception {
         new IDPEngineController(sharedState).jsonfiles = jsonFiles.length;
 
         //TODO
@@ -352,7 +352,6 @@ public class DocumentService {
 
             // TODO: 공백, 줄바꿈, 유니코드 공백 제거
             String allWords = rawText.replaceAll("[\\p{Z}\\s]+", "");
-            log.info("allWords: " + allWords);
 
             resultByVersion.put(fileName.replace("_result", ""), new HashMap<>());
             finalResultByVersion.put(fileName.replace("_result", ""), new HashMap<>());
@@ -387,7 +386,7 @@ public class DocumentService {
                 }
 
                 if (configLoader.ocrServiceType.contains("da")) {
-                    excelService.appendMdResultToMaster(fileName);
+                    excelService.appendMdResultToMaster(fileName, officeExtensionFlag);
                 }
             }
             cnt++;
@@ -396,7 +395,7 @@ public class DocumentService {
         System.out.println();
 
         if (configLoader.createFolders) {
-            excelService.moveFiles(configLoader.resultFilePath, resultByVersion, configLoader.classificationCriteria, configLoader.subClassificationCriteria, subPath);
+            excelService.moveFiles(configLoader.resultFilePath, resultByVersion, configLoader.classificationCriteria, configLoader.subClassificationCriteria, subPath, officeExtensionFlag);
 
         }
 

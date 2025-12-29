@@ -1067,6 +1067,8 @@ public class IDPEngineController {
                         }
 
                         try {
+                            String ext = FileExtensionUtil.getExtension(file.getName());
+
                             if (file.getName().toLowerCase().endsWith(".pdf")) {
                                 // PDF 처리
 //                                IOService.copyFiles(file);
@@ -1159,7 +1161,11 @@ public class IDPEngineController {
                                 } else if (fileInfo.getOcrServiceType().contains("synap")) {
                                     synapService.synapOCR(file, subPath);
                                 } else if (fileInfo.getOcrServiceType().contains("da")) {
-                                    docuAnalyzerService.docuAnalyzer(file, subPath);
+                                    if (FileExtensionUtil.DA_SUPPORTED_EXT.contains(ext)) {
+                                        docuAnalyzerService.docuAnalyzerForExtendedFormats(file, subPath);
+                                    } else {
+                                        docuAnalyzerService.docuAnalyzer(file, subPath);
+                                    }
                                 } else {
                                     log.info("The file operation is skipped because there is no matching OCR Service Type.");
                                     continue;
@@ -1187,7 +1193,11 @@ public class IDPEngineController {
                                         log.error("Error executing onButton2API", e);
                                     }
                                 } else if (fileInfo.getOcrServiceType().contains("da")) {
-                                    docuAnalyzerService.docuAnalyzer(file, subPath);
+                                    if (FileExtensionUtil.DA_SUPPORTED_EXT.contains(ext)) {
+                                        docuAnalyzerService.docuAnalyzerForExtendedFormats(file, subPath);
+                                    } else {
+                                        docuAnalyzerService.docuAnalyzer(file, subPath);
+                                    }
 
                                     try {
                                         onButton2API(fileInfo);
@@ -1383,12 +1393,26 @@ public class IDPEngineController {
             //String imageBaseName = fileInfo.getFilename().replaceAll("\\.[^.]+$", "");
 
             // 파일 단위로 돌 때 (unitFileInfo 사용 시)
-            List<File> matchedFiles = Arrays.stream(datFiles)
-                    .filter(datFile -> {
-                        String datBaseName = datFile.getName().replaceAll("_result\\.dat$", "");
-                        return datBaseName.equals(imageBaseName);
-                    })
-                    .collect(Collectors.toList());
+            List<File> matchedFiles;
+            boolean officeExtensionFlag = false;
+
+            String ext = FileExtensionUtil.getExtension(justFileName);
+            if (FileExtensionUtil.DA_SUPPORTED_EXT.contains(ext)) {
+                matchedFiles = Arrays.stream(datFiles)
+                        .filter(datFile -> {
+                            String datBaseName = datFile.getName().replaceAll("_result\\.dat$", "");
+                            return datBaseName.equals(imageBaseName + "-page1");
+                        })
+                        .collect(Collectors.toList());
+                officeExtensionFlag = true;
+            } else {
+                matchedFiles = Arrays.stream(datFiles)
+                        .filter(datFile -> {
+                            String datBaseName = datFile.getName().replaceAll("_result\\.dat$", "");
+                            return datBaseName.equals(imageBaseName);
+                        })
+                        .collect(Collectors.toList());
+            }
 
             if (matchedFiles.isEmpty()) {
                 log.warn("해당 페이지에 대한 .dat 파일이 없어 분류를 건너뜁니다: {}", imageBaseName);
@@ -1417,7 +1441,7 @@ public class IDPEngineController {
 
             try {
                 if (fileInfo.getOcrServiceType().contains("da")) {
-                    classificationDocumentWithDa();
+                    classificationDocumentWithDa(officeExtensionFlag);
                 } else {
                     classificationDocument();
                 }
@@ -1513,12 +1537,12 @@ public class IDPEngineController {
         documentService.createFinalResultFile();
     }
 
-    public void classificationDocumentWithDa() throws Exception {
+    public void classificationDocumentWithDa(boolean officeExtensionFlag) throws Exception {
         configLoader.resultFilePath = resultFilePath;
         excelService.configLoader = configLoader;
         documentService.configLoader = configLoader;
 
-        documentService.createFinalResultFileWithDa();
+        documentService.createFinalResultFileWithDa(officeExtensionFlag);
     }
 
     public void movefilefulltext(String outputpath) {

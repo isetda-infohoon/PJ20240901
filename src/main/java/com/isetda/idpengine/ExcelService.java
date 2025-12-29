@@ -11,10 +11,8 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.json.JSONObject;
 
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -786,16 +784,28 @@ public class ExcelService {
         IOService ioService = new IOService();
         String userId = configLoader.apiUserId;
         String name = fileName.replace("_result", "");
+        String name2 = name.replaceAll("-page\\d+$", "");
         String defaultName = new File(name).getName();
         String[] extensions = {".jpg", ".png", ".jpeg", ".JPG", ".PNG", ".JPEG"};
         FileInfo fileInfo = null;
         String imageExt = null;
+        String officeExt = null;
 
-        for (String ext : extensions) {
-            fileInfo = apiCaller.getFileByName(userId, name + ext);
+        for (String ext : FileExtensionUtil.DA_SUPPORTED_EXT) {
+            fileInfo = apiCaller.getFileByName(userId, name2 + "." + ext);
             if (fileInfo != null && fileInfo.getFilename() != null) {
-                imageExt = ext;
+                officeExt = ext;
                 break; // 성공했으면 반복 종료
+            }
+        }
+
+        if (officeExt == null) {
+            for (String ext : extensions) {
+                fileInfo = apiCaller.getFileByName(userId, name + ext);
+                if (fileInfo != null && fileInfo.getFilename() != null) {
+                    imageExt = ext;
+                    break; // 성공했으면 반복 종료
+                }
             }
         }
 
@@ -992,6 +1002,52 @@ public class ExcelService {
                 apiCaller.callbackApi(fileInfo, imgResultPath.getPath(), 200, "완료");
             }
         }
+
+        if (fileInfo.getPageNum() == 0 && officeExt != null && !officeExt.equals(".pdf")) {
+            File officeResultPath;
+            String fileNameOnly = new File(name).getName();
+            if (configLoader.createClassifiedFolder) {
+                officeResultPath = new File(configLoader.resultFilePath + File.separator + values[2] + File.separator + name2 + "." + officeExt);
+            } else {
+                officeResultPath = new File(configLoader.resultFilePath + File.separator + name2 + "." + officeExt);
+            }
+
+            if (!officeResultPath.exists()) {
+                officeResultPath = null;
+                log.debug("Office 파일이 존재하지 않음: {}", officeResultPath.getAbsolutePath());
+                return;
+            }
+
+            JSONObject jsonBody = new JSONObject();
+            jsonBody.put("fileName", fileInfo.getFilename());
+            jsonBody.put("pageNum", 0);
+            jsonBody.put("userId", userId);
+            jsonBody.put("ocrServiceType", fileInfo.getOcrServiceType());
+            jsonBody.put("language", fileInfo.getLanguage());
+            jsonBody.put("lClassification", getCountryName(fileInfo.getLanguage()));
+            jsonBody.put("mClassification", values[2]);
+
+            if (values[2].contains("미분류")) {
+                if (configLoader.useUnclassifiedAsCS) {
+                    jsonBody.put("classificationStatus", "CS");
+                } else {
+                    jsonBody.put("classificationStatus", "CF"); // 미분류: CF
+                }
+            } else {
+                jsonBody.put("classificationStatus", "CS"); // 정상분류: CS
+            }
+
+            String defaultName2 = new File(name2).getName();
+
+            jsonBody.put("classificationResultFileName", defaultName2 + "_result.txt");
+            jsonBody.put("classificationStartDateTime", classificationStartDateTime);
+            jsonBody.put("classificationEndDateTime", getCurrentTime());
+
+            apiCaller.callUpdateApi(jsonBody);
+            if (configLoader.useCallbackUpdate && configLoader.ocrServiceType.contains("da")) {
+                apiCaller.callbackApi(fileInfo, officeResultPath.getPath(), 200, "완료");
+            }
+        }
     }
 
     public int getProcessedPageCount(String userId, String basename) throws UnirestException {
@@ -1117,13 +1173,13 @@ public class ExcelService {
                 writer.write(line);
                 writer.newLine();
             }
-            log.info("Appended page result to master result file: {}", masterFileName);
+            log.debug("Appended page result to master result file: {}", masterFileName);
         } catch (IOException e) {
             log.warn("Failed to append page result. {}", e.getMessage());
         }
     }
 
-    public void appendMdResultToMaster(String pageFileName) {
+    public void appendMdResultToMaster(String pageFileName, boolean officeExtensionFlag) {
         // pageFileName 예: "파일명-page1_result"
         String pageFilePath = configLoader.resultFilePath + File.separator + pageFileName + ".dat";
 
@@ -1168,6 +1224,67 @@ public class ExcelService {
                 return; // 단일 페이지 처리 완료
             }
 
+            if (officeExtensionFlag) {
+                Path resultDir = Paths.get(configLoader.resultFilePath);
+                String baseName = pageFileName.substring(0, pageFileName.indexOf("-page"));
+                // 파일명 정규식: 파일명-pageNN_result.dat
+                Pattern pat = Pattern.compile(Pattern.quote(baseName) + "-page(\\d+)_result\\.dat", Pattern.CASE_INSENSITIVE);
+
+                // 결과 폴더에서 대상 페이지 파일 검색
+                File dirFile = resultDir.toFile();
+                File[] candidates = dirFile.listFiles((dir, name) -> pat.matcher(name).matches());
+
+                if (candidates == null || candidates.length == 0) {
+                    log.warn("No page result files found for base: {}", baseName);
+                    return;
+                }
+
+                // 숫자 페이지 기준 정렬 (page1, page2, ... page10, page11)
+                Arrays.sort(candidates, Comparator.comparingInt(f -> {
+                    Matcher m = pat.matcher(f.getName());
+                    if (m.matches()) {
+                        return Integer.parseInt(m.group(1)); // "1", "2", ..."10"
+                    }
+                    return Integer.MAX_VALUE; // 안전장치
+                }));
+
+                boolean masterExists = Files.exists(Paths.get(masterFilePath));
+
+                try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(masterFilePath), StandardCharsets.UTF_8,
+                        StandardOpenOption.CREATE, StandardOpenOption.APPEND)) {
+
+                    for (File file : candidates) {
+                        // 각 페이지 파일 읽어서 기존 형식대로 작성
+                        try (BufferedReader reader = Files.newBufferedReader(file.toPath(), StandardCharsets.UTF_8)) {
+                            String firstLine = reader.readLine();
+
+                            if (firstLine != null) {
+                                if (!masterExists) {
+                                    writer.write(""); // 첫 생성 시(기존 로직 유지)
+                                    masterExists = true; // 이후부터는 구분 라인 적용
+                                } else {
+                                    writer.newLine();
+                                    writer.newLine();
+                                    //writer.write("[다음 페이지] ");
+                                }
+                                writer.write(firstLine);
+                                writer.newLine();
+                            }
+
+                            String line;
+                            while ((line = reader.readLine()) != null) {
+                                writer.write(line);
+                                writer.newLine();
+                            }
+                        }
+                    }
+                    log.debug("Appended ordered page results to master md: {}", masterFileName);
+                } catch (IOException e) {
+                    log.warn("Failed to append ordered page results. {}", e.getMessage());
+                }
+                return; // office 처리 완료
+            }
+
             // pdf인 경우 (멀티 페이지) md 파일 저장
             boolean masterExists = masterFile.exists();
 
@@ -1185,7 +1302,7 @@ public class ExcelService {
                         //writer.write("-----------------------------------------------------");
                         //writer.newLine();
                         writer.newLine();
-                        writer.write("[다음 페이지] ");
+                        //writer.write("[다음 페이지] ");
                     }
                     writer.write(firstLine);
                     writer.newLine();
@@ -1263,7 +1380,7 @@ public class ExcelService {
         }
     }
 
-    public void moveFiles(String resultFilePath, Map<String, Map<String, String>> resultByVersion, String version, String subVersion, String subPath) throws InterruptedException, UnirestException {
+    public void moveFiles(String resultFilePath, Map<String, Map<String, String>> resultByVersion, String version, String subVersion, String subPath, boolean officeExtensionFlag) throws InterruptedException, UnirestException {
         IOService ioService = new IOService();
         APICaller apiCaller = new APICaller();
 
@@ -1355,6 +1472,72 @@ public class ExcelService {
                                     }
                                 }
                             } else {
+                                if (officeExtensionFlag) {
+                                    String originalName = baseName.replaceFirst("-page\\d+$", "");
+                                    log.debug("officeExtension File Move - originalName: {}", originalName);
+
+                                    File[] toMove = folder.listFiles((dir, name) -> {
+                                        File f = new File(dir, name);
+                                        return f.isFile() && name.contains(originalName); // 디렉터리 제외, 부분 문자열 매칭
+                                    });
+
+                                    if (toMove == null || toMove.length == 0) {
+                                        log.warn("No files found containing '{}'", originalName);
+                                    } else {
+                                        log.info("Found {} files to move (contains '{}')", toMove.length, originalName);
+                                        for (File src : toMove) {
+                                            Path targetPath = targetDir.resolve(src.getName());
+                                            try {
+                                                Files.move(src.toPath(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+                                                log.info("Moved '{}' → '{}'", src.getName(), targetPath);
+                                            } catch (IOException e) {
+                                                log.warn("Move failed: '{}' → '{}': {}", src.getAbsolutePath(), targetPath, e.getMessage());
+                                            }
+                                        }
+
+                                        // 소스 경로 원본 파일 삭제
+                                        File imageDir = new File(configLoader.imageFolderPath);
+
+                                        File[] files = imageDir.listFiles(f ->
+                                                f.isFile() &&
+                                                        f.getName().contains(originalName) &&  // 파일명에 originalName 포함
+                                                        FileExtensionUtil.DA_SUPPORTED_EXT.contains(
+                                                                FileExtensionUtil.getExtension(f.getName()) // 확장자 확인
+                                                        )
+                                        );
+
+                                        if (files != null) {
+                                            for (File f : files) {
+                                                try {
+                                                    Files.delete(f.toPath());
+                                                    log.info("Deleted source file: {}", f.getName());
+                                                } catch (Exception e) {
+                                                    log.warn("Failed to delete: {}", f.getName());
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    File[] zipFilesInTarget = targetDir.toFile().listFiles((dir, name) ->
+                                            name.toLowerCase().endsWith(".zip") && name.contains(originalName));
+                                    if (zipFilesInTarget != null && zipFilesInTarget.length > 0) {
+                                        for (File zip : zipFilesInTarget) {
+                                            log.debug("[officeMode] Extract PNG from ZIP: {}", zip.getAbsolutePath());
+                                            try {
+                                                extractPNGFromZIP(zip, targetDir.toFile());
+                                                // 필요 시 직접 삭제:
+                                                // Files.deleteIfExists(zip.toPath());
+                                            } catch (Exception ex) {
+                                                log.warn("[officeMode] ZIP extract failed: '{}': {}", zip.getAbsolutePath(), ex.getMessage());
+                                            }
+                                        }
+                                    } else {
+                                        log.debug("[officeMode] No ZIP found in target dir for '{}'", originalName);
+                                    }
+
+                                    return;
+                                }
+
                                 String[] expectedSuffixes = {
                                         ".jpg",
                                         ".png",

@@ -10,10 +10,17 @@ import org.json.JSONObject;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 public class DocuAnalyzerService {
     private static final Logger log = LogManager.getLogger(SynapService.class);
@@ -70,7 +77,7 @@ public class DocuAnalyzerService {
                     log.error("DocuAnalyzer Request failed: " + response.code() + ", " + response.message());
 
                     //TODO: docuAnalyzer 실패 시 해당 파일의 원본 정보를 DELETE, CALLBACK 호출 (DELETE 시 DIVISION 된 page 모두 삭제 필요)
-                    //deleteErrorFile(file, localDir, subPath);
+                    deleteErrorFile(file, localDir, subPath);
                     return;
                 }
 
@@ -124,19 +131,17 @@ public class DocuAnalyzerService {
                         // jsonFilePaths.add(outputPath);
                         log.debug("DocuAnalyzer md file saved successfully");
 
-                        //if (configLoader.excelFileDownload) {
-                            if (fid != null && !fid.trim().isEmpty()) {
-                                zipDownload(outputFileName, fid);
-                                log.debug("ZIP file download successful: {}", file.getName());
-                            } else {
-                                log.debug("No ZIP file to download for: {}", file.getName());
-                            }
-                        //}
+                        if (fid != null && !fid.trim().isEmpty()) {
+                            zipDownload(outputFileName, fid);
+                            log.debug("ZIP file download successful: {}", file.getName());
+                        } else {
+                            log.debug("No ZIP file to download for: {}", file.getName());
+                        }
                     } catch (Exception e) {
                         log.error("Error saving DocuAnalyzer result file", e);
 
                         //TODO: TEST 필요 (deleteAPI 호출 -> 원본, division page의 DB 정보 모두 삭제된 후 각 페이지 OCR 진행이 어떻게 처리되는지)
-                        //deleteErrorFile(file, localDir, subPath);
+                        deleteErrorFile(file, localDir, subPath);
                     }
                 }
 
@@ -145,6 +150,130 @@ public class DocuAnalyzerService {
             }
         } catch (Exception e) {
             log.error("DocuAnalyzer error: " + e);
+        }
+    }
+
+    public void docuAnalyzerForExtendedFormats(File file, String subPath) {
+        log.info("Start Upload and OCR with DocuAnalyzer");
+
+        File localDir = new File(configLoader.resultFilePath);
+
+        if (!localDir.exists()) {
+            localDir.mkdirs();
+            log.debug("Create a resulting directory: ", configLoader.resultFilePath);
+        }
+
+        // PDF 파일 제외
+        if (file.getName().toLowerCase().endsWith(".pdf")) {
+            log.debug("Skipping PDF file: {}", file.getName());
+            return;
+        }
+
+        OkHttpClient client = new OkHttpClient.Builder()
+                .connectTimeout(15, TimeUnit.SECONDS)  // 연결 타임아웃
+                .readTimeout(30, TimeUnit.SECONDS)     // 응답 읽기 타임아웃
+                .writeTimeout(30, TimeUnit.SECONDS)    // 요청 쓰기 타임아웃
+                .retryOnConnectionFailure(true)
+                .addInterceptor(new RetryInterceptor(3, 2000)) // 최대 3회 재시도, 2초씩 증가
+                .build();
+
+        try {
+            RequestBody fileBody = RequestBody.create(file, MediaType.parse("application/octet-stream"));
+
+            RequestBody requestBody = new MultipartBody.Builder()
+                    .setType(MultipartBody.FORM)
+                    .addFormDataPart("api_key", configLoader.docuAnalyzerApiKey)
+                    .addFormDataPart("type", "upload")
+                    .addFormDataPart("file", file.getName(), fileBody)
+                    .build();
+
+            Request request = new Request.Builder()
+                    .url(configLoader.docuAnalyzerUrl + "da")
+                    .post(requestBody)
+                    .build();
+
+            try (Response response = client.newCall(request).execute()) {
+                if (!response.isSuccessful()) {
+                    log.error("DocuAnalyzer Request failed: " + response.code() + ", " + response.message());
+
+                    //TODO: docuAnalyzer 실패 시 해당 파일의 원본 정보를 DELETE, CALLBACK 호출 (DELETE 시 DIVISION 된 page 모두 삭제 필요)
+                    deleteErrorFile(file, localDir, subPath);
+                    return;
+                }
+
+                String responseBody = response.body().string();
+                log.trace("DocuAnalyzer Upload Response: " + responseBody);
+
+                JSONObject json = new JSONObject(responseBody);
+                String fid = json.getJSONObject("result").getString("fid");
+                log.debug("Received fid: {}", fid);
+
+                if (!waitUntilSuccessOrFail(client, fid)) {
+                    log.error("Processing  not completed or failed. fid={}", fid);
+                    return;
+                }
+
+                String outputFileName = file.getName().substring(0, file.getName().lastIndexOf("."));
+                String outputPath = configLoader.resultFilePath + File.separator + outputFileName + "_result.dat";
+
+                try {
+                    if (fid != null && !fid.trim().isEmpty()) {
+                        zipDownload(outputFileName, fid);
+                        log.debug("ZIP file download successful: {}", file.getName());
+
+                        File downloadedZip = new File(configLoader.resultFilePath, outputFileName + "_result" + ".zip");
+                        extractMdFromZipAndSaveAsDat(downloadedZip, outputFileName, configLoader.resultFilePath);
+
+                    } else {
+                        log.debug("No ZIP file to download for: {}", file.getName());
+                    }
+                } catch (Exception e) {
+                    log.error("Error saving DocuAnalyzer result file", e);
+
+                    //TODO: TEST 필요 (deleteAPI 호출 -> 원본, division page의 DB 정보 모두 삭제된 후 각 페이지 OCR 진행이 어떻게 처리되는지)
+                    deleteErrorFile(file, localDir, subPath);
+                }
+
+                log.info("DocuAnalyzer request successful");
+                checkBadImg = true;
+            }
+        } catch (Exception e) {
+            log.error("DocuAnalyzer error: " + e);
+        }
+    }
+
+    public void extractMdFromZipAndSaveAsDat(File zipFile, String baseOutputName, String resultDirPath) throws IOException {
+        // ZIP 내부 파일명: 원본명.확장자_0001.md → 결과: 원본명-page1_result.dat
+        Pattern pat = Pattern.compile("^(.+)\\.(.+)_(\\d{4})\\.md$", Pattern.CASE_INSENSITIVE);
+
+        Path outDir = Paths.get(resultDirPath);
+        Files.createDirectories(outDir);
+
+        try (ZipFile zf = new ZipFile(zipFile, StandardCharsets.UTF_8)) { // ⚠️ 엔트리 이름 인코딩: UTF-8 기준
+            Enumeration<? extends ZipEntry> entries = zf.entries();
+            while (entries.hasMoreElements()) {
+                ZipEntry e = entries.nextElement();
+                if (e.isDirectory()) continue;
+
+                String name = Paths.get(e.getName()).getFileName().toString(); // 하위 폴더 제거
+                Matcher m = pat.matcher(name);
+                if (!m.matches()) continue;
+
+                int page = Integer.parseInt(m.group(3)); // "0001" → 1
+                Path target = outDir.resolve(baseOutputName + "-page" + page + "_result.dat");
+
+                try (InputStream is = zf.getInputStream(e);
+                     Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8);
+                     Writer writer = Files.newBufferedWriter(target, StandardCharsets.UTF_8,
+                             StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
+
+                    char[] buf = new char[8192];
+                    int n;
+                    while ((n = reader.read(buf)) != -1) {
+                        writer.write(buf, 0, n);
+                    }
+                }
+            }
         }
     }
 
@@ -262,7 +391,7 @@ public class DocuAnalyzerService {
                 return;
             }
 
-            log.info("ZIP saved: {}", zipFile.getAbsolutePath());
+            log.debug("ZIP saved: {}", zipFile.getAbsolutePath());
         } catch (IOException e) {
             log.error("Failed to download ZIP: {}", e.getMessage(), e);
             return;
@@ -271,52 +400,96 @@ public class DocuAnalyzerService {
 
     public void deleteErrorFile(File file, File localDir, String subPath) {
         APICaller apiCaller = new APICaller();
-        String originalFileName;
-        Pattern pattern = Pattern.compile("(.+)-page\\d+\\.jpg$");
-        Matcher matcher = pattern.matcher(file.getName());
 
-        if (matcher.matches()) {
-            // -page숫자.jpg 제거 후 .pdf 붙이기
-            originalFileName = matcher.group(1) + ".pdf";
-        } else {
-            // 그대로 반환
-            originalFileName = file.getName();
-        }
+        // 원본 확장자 확인
+        Resolution res = resolveOriginal(file);
 
-        log.info("subpath: {}, fileName:{}", subPath, originalFileName);
-        String apiFileName = Paths.get(subPath, originalFileName).toString();
-        log.info("apiFileName: " + apiFileName);
-        File imageFolderPath = Paths.get(configLoader.imageFolderPath, originalFileName).toFile();
-        log.info("imageFolderPath: " + imageFolderPath);
-        IOService.moveFileToErrorDirectory(imageFolderPath, subPath);
-        try {
-            FileInfo fileInfo = apiCaller.getFileByNameAndPageNum(configLoader.apiUserId, apiFileName,0);
-            log.info(fileInfo.getFilename());
-            String message = "Synap OCR Error";
-            apiCaller.callDeleteApi(configLoader.apiUserId, fileInfo.getFilename(), fileInfo.getOcrServiceType());
-            if (fileInfo.getUrlData() != null) {
-                String errorDir = Paths.get(configLoader.resultFilePath, "오류", subPath).toString();
-                apiCaller.callbackApi(fileInfo, errorDir, 666, message);
-            } else {
-                log.info("URL DATA IS NULL");
+        // 오류 디렉토리 이동
+        for (File f : res.toMove) {
+            try {
+                IOService.moveFileToErrorDirectory(f, subPath);
+            } catch (Exception e) {
+                log.warn("Move failed: {}", f.getName(), e);
             }
-        } catch (UnirestException ex) {
-            log.info("DELETE API/CALLBACK API 호출 실패: {}", ex);
         }
 
-        if (localDir.exists() && localDir.isDirectory()) {
-            File[] files = localDir.listFiles(File::isFile); // 폴더 내 파일만 가져옴
-            if (files != null) {
-                for (File f : files) {
-                    if (f.delete()) {
-                        log.info("FILE DELETE: " + f.getName());
-                    } else {
-                        log.info("FILE DELETE FAILED: " + f.getName());
-                    }
+        String apiFileName = Paths.get(subPath, res.originalName)
+                .toString()
+                .replace(File.separatorChar, '/');
+
+        try {
+            FileInfo info = apiCaller.getFileByNameAndPageNum(
+                    configLoader.apiUserId, apiFileName, 0);
+
+            if (info != null) {
+                apiCaller.callDeleteApi(
+                        configLoader.apiUserId, info.getFilename(), info.getOcrServiceType());
+
+                if (info.getUrlData() != null) {
+                    String errDir = Paths.get(configLoader.resultFilePath, "오류", subPath)
+                            .toString()
+                            .replace(File.separatorChar, '/');
+                    apiCaller.callbackApi(info, errDir, 666, "DocuAnalyzer Error");
                 }
             }
-        } else {
-            log.warn("폴더가 존재하지 않거나 디렉토리가 아닙니다.");
+        } catch (Exception e) {
+            log.error("DELETE/CALLBACK 실패", e);
         }
+
+        // localDir 정리 (파일만 삭제)
+        if (localDir.exists()) {
+            File[] arr = localDir.listFiles(File::isFile);
+            if (arr != null) {
+                for (File f : arr) {
+                    if (!f.delete()) log.warn("DELETE FAIL: {}", f.getName());
+                }
+            }
+        }
+    }
+
+    private Resolution resolveOriginal(File file) {
+        String name = file.getName();
+        String ext = FileExtensionUtil.getExtension(name).toLowerCase();
+        String base = stripExt(name);
+
+        // PDF → JPG: xxx-pageN.jpg
+        if (name.matches("(?i).+-page\\d+\\.jpg$")) {
+            String original = name.replaceAll("(?i)-page\\d+\\.jpg$", ".pdf");
+            return new Resolution(original, List.of(file));
+        }
+
+        // JPG 원본
+        if (ext.equals("jpg")) {
+            return new Resolution(name, List.of(file));
+        }
+
+        // DA 확장자 (docx/pptx/xlsx/hwp 등)
+        if (FileExtensionUtil.DA_SUPPORTED_EXT.contains(ext)) {
+            List<File> list = new ArrayList<>();
+            File zip = new File(configLoader.resultFilePath, base + "_result.zip");
+            File dat = new File(configLoader.resultFilePath, base + "_result.dat");
+
+            if (zip.exists()) list.add(zip);
+            if (dat.exists()) list.add(dat);
+            return new Resolution(name, list);
+        }
+
+        // 그 외 → 그냥 원본 파일
+        return new Resolution(name, List.of(file));
+    }
+
+    private static class Resolution {
+        final String originalName;  // API용 원본 파일명
+        final List<File> toMove;    // 에러 디렉토리로 이동할 파일들
+
+        Resolution(String originalName, List<File> toMove) {
+            this.originalName = originalName;
+            this.toMove = toMove;
+        }
+    }
+
+    private static String stripExt(String name) {
+        int idx = name.lastIndexOf('.');
+        return idx > 0 ? name.substring(0, idx) : name;
     }
 }

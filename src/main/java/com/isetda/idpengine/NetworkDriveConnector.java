@@ -20,7 +20,7 @@ public class NetworkDriveConnector {
 
         // 설정 값 검증
         if (drivePath.isEmpty() || driveUNCPath.isEmpty() || driveUsername.isEmpty() || drivePassword.isEmpty()) {
-            log.error("네트워크 드라이브 설정 값이 누락되었습니다. 연결을 시도하지 않습니다.");
+            log.info("네트워크 드라이브 설정 값이 누락되었습니다. 연결을 시도하지 않습니다.");
             return false;
         }
 
