@@ -19,6 +19,7 @@ import java.util.*;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -1380,17 +1381,33 @@ public class ExcelService {
         }
     }
 
-    public void moveFiles(String resultFilePath, Map<String, Map<String, String>> resultByVersion, String version, String subVersion, String subPath, boolean officeExtensionFlag) throws InterruptedException, UnirestException {
+    public void moveFiles(String resultFilePath, Map<String, Map<String, String>> resultByVersion, String version, String subVersion, String subPath) throws InterruptedException, UnirestException {
         IOService ioService = new IOService();
         APICaller apiCaller = new APICaller();
 
         File folder = Paths.get(resultFilePath).toFile();
+
+//        Set<String> allowedOriginals =
+//                (resultByVersion != null)
+//                        ? resultByVersion.keySet().stream()
+//                        .map(k -> k.replaceFirst("-page\\d+$", "")) // "…-pageN" 제거
+//                        .collect(Collectors.toCollection(LinkedHashSet::new))
+//                        : Collections.emptySet();
+//        log.debug("[std] allowedOriginals: {}", allowedOriginals);
+
         File[] listOfFiles = folder.listFiles((dir, name) -> name.endsWith(".dat"));
 
         if (listOfFiles != null) {
             for (File file : listOfFiles) {
                 String fileName = file.getName();
                 String baseName = fileName.replace("_result.dat", ""); // 파일 이름에서 확장자 제거
+                //String origName = baseName.replaceFirst("-page\\d+$", "");
+
+                // 다른 배치 스킵
+//                if (!allowedOriginals.contains(origName)) {
+//                    log.debug("[std] skip other batch originalName: {}", origName);
+//                    continue;
+//                }
 
                 if (resultByVersion != null) {
                     Map<String, String> valueList = resultByVersion.get(baseName);
@@ -1428,7 +1445,7 @@ public class ExcelService {
                                         Path targetPath = targetDir.resolve(relatedFile.getName());
                                         try {
                                             Files.move(relatedFile.toPath(), targetPath, StandardCopyOption.REPLACE_EXISTING);
-                                            log.info("Moved file : '{}' to '{}'", relatedFile.getName(), targetPath);
+                                            log.debug("Moved file : '{}' to '{}'", relatedFile.getName(), targetPath);
                                         } catch (IOException e) {
                                             log.warn("'{}' File move failed : {}", relatedFile.getName(), e);
                                         }
@@ -1454,7 +1471,7 @@ public class ExcelService {
                                             Path targetPath = targetDir.resolve(pdfFile.getName());
                                             try {
                                                 Files.copy(pdfFile.toPath(), targetPath);
-                                                log.info("Moved PDF file : '{}' to '{}'", pdfFile.getName(), targetPath);
+                                                log.debug("Moved PDF file : '{}' to '{}'", pdfFile.getName(), targetPath);
 
                                                 // 복사 성공 후 원본 파일 삭제
                                                 Files.delete(pdfFile.toPath());
@@ -1472,72 +1489,6 @@ public class ExcelService {
                                     }
                                 }
                             } else {
-                                if (officeExtensionFlag) {
-                                    String originalName = baseName.replaceFirst("-page\\d+$", "");
-                                    log.debug("officeExtension File Move - originalName: {}", originalName);
-
-                                    File[] toMove = folder.listFiles((dir, name) -> {
-                                        File f = new File(dir, name);
-                                        return f.isFile() && name.contains(originalName); // 디렉터리 제외, 부분 문자열 매칭
-                                    });
-
-                                    if (toMove == null || toMove.length == 0) {
-                                        log.warn("No files found containing '{}'", originalName);
-                                    } else {
-                                        log.info("Found {} files to move (contains '{}')", toMove.length, originalName);
-                                        for (File src : toMove) {
-                                            Path targetPath = targetDir.resolve(src.getName());
-                                            try {
-                                                Files.move(src.toPath(), targetPath, StandardCopyOption.REPLACE_EXISTING);
-                                                log.info("Moved '{}' → '{}'", src.getName(), targetPath);
-                                            } catch (IOException e) {
-                                                log.warn("Move failed: '{}' → '{}': {}", src.getAbsolutePath(), targetPath, e.getMessage());
-                                            }
-                                        }
-
-                                        // 소스 경로 원본 파일 삭제
-                                        File imageDir = new File(configLoader.imageFolderPath);
-
-                                        File[] files = imageDir.listFiles(f ->
-                                                f.isFile() &&
-                                                        f.getName().contains(originalName) &&  // 파일명에 originalName 포함
-                                                        FileExtensionUtil.DA_SUPPORTED_EXT.contains(
-                                                                FileExtensionUtil.getExtension(f.getName()) // 확장자 확인
-                                                        )
-                                        );
-
-                                        if (files != null) {
-                                            for (File f : files) {
-                                                try {
-                                                    Files.delete(f.toPath());
-                                                    log.info("Deleted source file: {}", f.getName());
-                                                } catch (Exception e) {
-                                                    log.warn("Failed to delete: {}", f.getName());
-                                                }
-                                            }
-                                        }
-                                    }
-
-                                    File[] zipFilesInTarget = targetDir.toFile().listFiles((dir, name) ->
-                                            name.toLowerCase().endsWith(".zip") && name.contains(originalName));
-                                    if (zipFilesInTarget != null && zipFilesInTarget.length > 0) {
-                                        for (File zip : zipFilesInTarget) {
-                                            log.debug("[officeMode] Extract PNG from ZIP: {}", zip.getAbsolutePath());
-                                            try {
-                                                extractPNGFromZIP(zip, targetDir.toFile());
-                                                // 필요 시 직접 삭제:
-                                                // Files.deleteIfExists(zip.toPath());
-                                            } catch (Exception ex) {
-                                                log.warn("[officeMode] ZIP extract failed: '{}': {}", zip.getAbsolutePath(), ex.getMessage());
-                                            }
-                                        }
-                                    } else {
-                                        log.debug("[officeMode] No ZIP found in target dir for '{}'", originalName);
-                                    }
-
-                                    return;
-                                }
-
                                 String[] expectedSuffixes = {
                                         ".jpg",
                                         ".png",
@@ -1556,7 +1507,7 @@ public class ExcelService {
                                         Path targetPath = targetDir.resolve(expectedFileName);
                                         try {
                                             Files.move(sourceFile.toPath(), targetPath, StandardCopyOption.REPLACE_EXISTING);
-                                            log.info("Moved file : '{}' to '{}'", expectedFileName, targetPath);
+                                            log.debug("Moved file : '{}' to '{}'", expectedFileName, targetPath);
                                         } catch (IOException e) {
                                             log.info("'{}' File move failed : {}", expectedFileName, e);
                                         }
@@ -1587,7 +1538,7 @@ public class ExcelService {
                                         Path targetPath = targetDir.resolve(resultFile.getName());
                                         try {
                                             Files.move(resultFile.toPath(), targetPath, StandardCopyOption.REPLACE_EXISTING);
-                                            log.info("Moved result(CSV/HTML) file : '{}' to '{}'", resultFile.getName(), targetPath);
+                                            log.debug("Moved result(CSV/HTML) file : '{}' to '{}'", resultFile.getName(), targetPath);
                                         } catch (IOException e) {
                                             log.warn("Result(CSV/HTML) file move failed : '{}', {}", resultFile.getName(), e.getMessage());
                                         }
@@ -1604,7 +1555,13 @@ public class ExcelService {
                                     zipFilePath = Paths.get(folder.getAbsolutePath(), subPath, zipFileName).toFile();
                                 }
                                 log.debug("zipFileName: {}, zipFilePath: {}, targetDir: {}", zipFileName, zipFilePath, targetDir.toFile());
-                                extractPNGFromZIP(zipFilePath, targetDir.toFile());
+
+                                if (zipFilePath.exists() && zipFilePath.isFile()) {
+                                    log.debug("ZIP file found. Extracting PNG… -> {}", zipFilePath.getAbsolutePath());
+                                    extractPNGFromZIP(zipFilePath, targetDir.toFile());
+                                } else {
+                                    log.warn("ZIP file not found: {}", zipFilePath.getAbsolutePath());
+                                }
 
                                 // PDF 및 전체 결과 TXT 파일 이동 처리
                                 try {
@@ -1626,7 +1583,7 @@ public class ExcelService {
 
                                             try {
                                                 Files.move(pdfFile.toPath(), targetPath, StandardCopyOption.REPLACE_EXISTING);
-                                                log.info("Moved PDF file : '{}' to '{}'", pdfFile.getName(), targetPath);
+                                                log.debug("Moved PDF file : '{}' to '{}'", pdfFile.getName(), targetPath);
 
                                                 // 복사 성공 후 원본 파일 삭제
                                                 //Files.delete(pdfFile.toPath());
@@ -1652,7 +1609,7 @@ public class ExcelService {
 
                                             try {
                                                 Files.move(txtFile.toPath(), targetPath, StandardCopyOption.REPLACE_EXISTING);
-                                                log.info("Moved TXT file : '{}' to '{}'", txtFile.getName(), targetPath);
+                                                log.debug("Moved TXT file : '{}' to '{}'", txtFile.getName(), targetPath);
                                             } catch (IOException e) {
                                                 log.warn("'{}' TXT file move failed : {}", txtFile.getName(), e);
                                             }
@@ -1669,7 +1626,7 @@ public class ExcelService {
 
                                                 try {
                                                     Files.move(mdFile.toPath(), targetPath, StandardCopyOption.REPLACE_EXISTING);
-                                                    log.info("Moved MD file : '{}' to '{}'", mdFile.getName(), targetPath);
+                                                    log.debug("Moved MD file : '{}' to '{}'", mdFile.getName(), targetPath);
                                                 } catch (IOException e) {
                                                     log.warn("'{}' MD file move failed : {}", mdFile.getName(), e);
                                                 }
@@ -1730,6 +1687,177 @@ public class ExcelService {
                     }
                 }
             }
+        }
+    }
+
+
+    // 오피스 확장자(hwp 등) 전용: .dat/.zip이 늦게 생성되어도 이번 배치 키 기반으로 안전하게 처리
+    public void moveFilesForOffice(String resultFilePath,
+                                   Map<String, Map<String, String>> resultByVersion,
+                                   String version,
+                                   String subVersion,
+                                   String subPath) throws InterruptedException {
+
+        File folder = Paths.get(resultFilePath).toFile();
+
+        // 이번 배치에서 생성된 baseName 집합
+        Set<String> baseNames = (resultByVersion != null) ? resultByVersion.keySet() : Collections.emptySet();
+        if (baseNames.isEmpty()) {
+            log.warn("[officeExt] resultByVersion is empty. Nothing to move.");
+            return;
+        }
+
+        // 같은 originalName을 여러 page에서 중복 처리하지 않도록 방지
+        Set<String> processedOriginals = new HashSet<>();
+
+        for (String baseName : baseNames) {
+            // baseName 예: "25123108_TEST_02-page1" → "25123108_TEST_02"
+            String originalName = baseName.replaceFirst("-page\\d+$", "");
+            if (!processedOriginals.add(originalName)) {
+                log.debug("[officeExt] already processed originalName: {}", originalName);
+                continue;
+            }
+
+            // 분류 값(value) 결정: originalName으로 우선 찾고, 없으면 baseName으로 찾기
+            Map<String, String> valueList =
+                    (resultByVersion.get(originalName) != null)
+                            ? resultByVersion.get(originalName)
+                            : resultByVersion.get(baseName);
+
+            String value = null;
+            if (valueList != null) {
+                value = valueList.get(version);
+                if (value != null && value.contains("미분류")) {
+                    value = valueList.get(subVersion);
+                }
+            }
+
+            // 대상 폴더 결정 및 생성
+            Path targetDir = computeTargetDir(resultFilePath, value, subPath);
+            ensureDir(targetDir);
+
+            // 이번 배치 파일만 선별: originalName + "_result..." 또는 originalName + "-page..."
+            File[] toMove = folder.listFiles((dir, name) -> {
+                File f = new File(dir, name);
+                if (!f.isFile()) return false;
+
+                boolean belongsToCurrentBatch =
+                        name.startsWith(originalName + "_result") ||
+                                name.startsWith(originalName + "-page");
+
+                return belongsToCurrentBatch;
+            });
+
+            moveFilesIntoTarget(toMove, targetDir);
+            extractZipIfExists(targetDir, originalName);
+            moveOfficeOriginalIfExists(originalName, targetDir);
+            deleteSourceOriginalIfMatch(originalName); // 원본(hwp 등) 삭제
+        }
+    }
+
+    private Path computeTargetDir(String resultFilePath, String value, String subPath) {
+        if (configLoader.createClassifiedFolder) {
+            String group = (value != null && !value.isBlank()) ? value : "미분류";
+            return Paths.get(resultFilePath, group, subPath);
+        } else {
+            return Paths.get(resultFilePath, subPath);
+        }
+    }
+
+    private void ensureDir(Path dir) {
+        try {
+            Files.createDirectories(dir);
+        } catch (IOException e) {
+            log.warn("Failed to create dir '{}': {}", dir, e.getMessage());
+        }
+    }
+
+    private void moveFilesIntoTarget(File[] toMove, Path targetDir) {
+        if (toMove == null || toMove.length == 0) {
+            log.debug("No files to move into '{}'", targetDir);
+            return;
+        }
+        log.info("Found {} files to move into '{}'", toMove.length, targetDir);
+        for (File src : toMove) {
+            Path targetPath = targetDir.resolve(src.getName());
+            try {
+                Files.move(src.toPath(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+                log.debug("Moved '{}' → '{}'", src.getName(), targetPath);
+            } catch (IOException e) {
+                log.warn("Move failed: '{}' → '{}': {}", src.getAbsolutePath(), targetPath, e.getMessage());
+            }
+        }
+    }
+
+    private void extractZipIfExists(Path targetDir, String originalName) {
+        File[] zipFilesInTarget = targetDir.toFile().listFiles((dir, name) ->
+                name.toLowerCase().endsWith(".zip") && name.startsWith(originalName + "_result"));
+
+        if (zipFilesInTarget != null && zipFilesInTarget.length > 0) {
+            for (File zip : zipFilesInTarget) {
+                log.info("[officeExt] Extract PNG from ZIP: {}", zip.getAbsolutePath());
+                try {
+                    extractPNGFromZIP(zip, targetDir.toFile());
+                    // 필요 시 ZIP 삭제:
+                    // Files.deleteIfExists(zip.toPath());
+                } catch (Exception ex) {
+                    log.warn("[officeExt] ZIP extract failed: '{}': {}", zip.getAbsolutePath(), ex.getMessage());
+                }
+            }
+        } else {
+            log.debug("[officeExt] No ZIP found in target dir for '{}'", originalName);
+        }
+    }
+
+    // 이미지 폴더(configLoader.imageFolderPath)에서 원본 파일(예: 25123108_TEST_02.hwp)을 찾아 삭제
+    private void deleteSourceOriginalIfMatch(String originalName) {
+        File imageDir = new File(configLoader.imageFolderPath);
+
+        File[] files = imageDir.listFiles(f ->
+                f.isFile() &&
+                        // originalName + "." + ext 형태만 일치
+                        f.getName().startsWith(originalName + ".") &&
+                        FileExtensionUtil.DA_SUPPORTED_EXT.contains(FileExtensionUtil.getExtension(f.getName()))
+        );
+
+        if (files != null) {
+            for (File f : files) {
+                try {
+                    Files.delete(f.toPath());
+                    log.info("Deleted source file: {}", f.getName());
+                } catch (Exception e) {
+                    log.warn("Failed to delete: {}", f.getName());
+                }
+            }
+        }
+    }
+
+
+    private void moveOfficeOriginalIfExists(String originalName, Path targetDir) {
+        // resultFilePath에서 먼저 찾기 → 없으면 imageFolderPath에서 찾기
+        File src = null;
+
+        for (String ext : FileExtensionUtil.DA_SUPPORTED_EXT) {
+            File cand = Paths.get(configLoader.resultFilePath, originalName + "." + ext).toFile();
+            if (cand.exists()) { src = cand; break; }
+        }
+        if (src == null) {
+            for (String ext : FileExtensionUtil.DA_SUPPORTED_EXT) {
+                File cand = Paths.get(configLoader.imageFolderPath, originalName + "." + ext).toFile();
+                if (cand.exists()) { src = cand; break; }
+            }
+        }
+        if (src == null) {
+            log.debug("[officeExt] original not found in result/image folder: {}", originalName);
+            return;
+        }
+
+        Path targetPath = targetDir.resolve(src.getName());
+        try {
+            Files.move(src.toPath(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+            log.debug("[officeExt] Moved original file : '{}' → '{}'", src.getAbsolutePath(), targetPath);
+        } catch (IOException e) {
+            log.warn("[officeExt] Original move failed: '{}' → '{}': {}", src.getAbsolutePath(), targetPath, e.getMessage());
         }
     }
 

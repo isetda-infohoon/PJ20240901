@@ -264,7 +264,7 @@ public class DocumentService {
 //        }
 
         if (configLoader.createFolders) {
-            excelService.moveFiles(configLoader.resultFilePath, resultByVersion, configLoader.classificationCriteria, configLoader.subClassificationCriteria, subPath, false);
+            excelService.moveFiles(configLoader.resultFilePath, resultByVersion, configLoader.classificationCriteria, configLoader.subClassificationCriteria, subPath);
         }
 
         // api 사용 시 update 진행
@@ -395,8 +395,14 @@ public class DocumentService {
         System.out.println();
 
         if (configLoader.createFolders) {
-            excelService.moveFiles(configLoader.resultFilePath, resultByVersion, configLoader.classificationCriteria, configLoader.subClassificationCriteria, subPath, officeExtensionFlag);
-
+            if (!officeExtensionFlag) {
+                excelService.moveFiles(configLoader.resultFilePath, resultByVersion,
+                        configLoader.classificationCriteria, configLoader.subClassificationCriteria,
+                        subPath);
+            } else {
+                excelService.moveFilesForOffice(configLoader.resultFilePath, resultByVersion,
+                        configLoader.classificationCriteria, configLoader.subClassificationCriteria, subPath);
+            }
         }
 
         // api 사용 시 update 진행
