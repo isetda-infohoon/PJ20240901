@@ -164,9 +164,11 @@ public class DocuAnalyzerService {
         }
 
         // PDF 파일 제외
-        if (file.getName().toLowerCase().endsWith(".pdf")) {
-            log.debug("Skipping PDF file: {}", file.getName());
-            return;
+        if (configLoader.usePdfExtractImage) {
+            if (file.getName().toLowerCase().endsWith(".pdf")) {
+                log.debug("Skipping PDF file: {}", file.getName());
+                return;
+            }
         }
 
         OkHttpClient client = new OkHttpClient.Builder()

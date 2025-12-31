@@ -1069,7 +1069,7 @@ public class IDPEngineController {
                         try {
                             String ext = FileExtensionUtil.getExtension(file.getName());
 
-                            if (file.getName().toLowerCase().endsWith(".pdf")) {
+                            if (configLoader.usePdfExtractImage && file.getName().toLowerCase().endsWith(".pdf")) {
                                 // PDF 처리
 //                                IOService.copyFiles(file);
 //                                int maxPage = getPdfPageCount(configLoader.imageFolderPath + File.separator + fileInfo.getFilename());
@@ -1247,37 +1247,39 @@ public class IDPEngineController {
                         a++;
 
                         // 1page의 분류 결과가 없는 경우 해당 파일의 분류 종료
-                        if (file.getName().matches(".*-page1\\.jpg$")) {
-                            try {
-                                FileInfo firstPagefileInfo = null;
-                                firstPagefileInfo = apiCaller.getFileByNameAndStatus(configLoader.apiUserId, subPath + file.getName(), "CS");
+                        if (configLoader.usePdfExtractImage) {
+                            if (file.getName().matches(".*-page1\\.jpg$")) {
+                                try {
+                                    FileInfo firstPagefileInfo = null;
+                                    firstPagefileInfo = apiCaller.getFileByNameAndStatus(configLoader.apiUserId, subPath + file.getName(), "CS");
 
-                                if (firstPagefileInfo.getFilename() == null || firstPagefileInfo.getFilename().isEmpty()) {
-                                    firstPagefileInfo = apiCaller.getFileByNameAndStatus(configLoader.apiUserId, subPath + file.getName(), "CF");
-                                }
-                                if (firstPagefileInfo.getClassificationStatus() == null || firstPagefileInfo.getClassificationStatus().isEmpty()) {
-                                    log.info("Skipping remaining pages for {} due to null classificationStatus", subPath + file.getName());
+                                    if (firstPagefileInfo.getFilename() == null || firstPagefileInfo.getFilename().isEmpty()) {
+                                        firstPagefileInfo = apiCaller.getFileByNameAndStatus(configLoader.apiUserId, subPath + file.getName(), "CF");
+                                    }
+                                    if (firstPagefileInfo.getClassificationStatus() == null || firstPagefileInfo.getClassificationStatus().isEmpty()) {
+                                        log.info("Skipping remaining pages for {} due to null classificationStatus", subPath + file.getName());
 
-                                    File targetDir = new File(configResultFilePath);
-                                    String originalFileName = file.getName();
-                                    String baseName = originalFileName.replace("-page1.jpg", "");
+                                        File targetDir = new File(configResultFilePath);
+                                        String originalFileName = file.getName();
+                                        String baseName = originalFileName.replace("-page1.jpg", "");
 
-                                    File[] filesToDelete = targetDir.listFiles(f -> f.isFile() && f.getName().contains(baseName));
+                                        File[] filesToDelete = targetDir.listFiles(f -> f.isFile() && f.getName().contains(baseName));
 
-                                    if (filesToDelete != null) {
-                                        for (File f : filesToDelete) {
-                                            boolean deleted = f.delete();
-                                            if (deleted) {
-                                                log.info("Deleted file: {}", f.getAbsolutePath());
-                                            } else {
-                                                log.warn("Failed to delete file: {}", f.getAbsolutePath());
+                                        if (filesToDelete != null) {
+                                            for (File f : filesToDelete) {
+                                                boolean deleted = f.delete();
+                                                if (deleted) {
+                                                    log.info("Deleted file: {}", f.getAbsolutePath());
+                                                } else {
+                                                    log.warn("Failed to delete file: {}", f.getAbsolutePath());
+                                                }
                                             }
                                         }
+                                        break; // 현재 pendingFiles 루프의 다음 fileInfo로 넘어감
                                     }
-                                    break; // 현재 pendingFiles 루프의 다음 fileInfo로 넘어감
+                                } catch (UnirestException e) {
+                                    log.warn("api 조회 error");
                                 }
-                            } catch (UnirestException e) {
-                                log.warn("api 조회 error");
                             }
                         }
                     }

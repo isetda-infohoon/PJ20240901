@@ -4,6 +4,7 @@ import java.util.Set;
 
 public class FileExtensionUtil {
     public static final Set<String> DA_SUPPORTED_EXT = Set.of(
+            "pdf",
             // Word
             "doc","dot","dotx","docx","docm","dotm",
             // PPT

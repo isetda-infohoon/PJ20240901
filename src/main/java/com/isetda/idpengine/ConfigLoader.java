@@ -93,6 +93,8 @@ public class ConfigLoader {
     public boolean csvFileDownload;
     public boolean htmlFileDownload;
 
+    public boolean usePdfExtractImage;
+
     private String configFilePath = "Config.xml";
     private static final String backupFilePath = "Config_backup.xml";
     //jar파일 만들 때 상대경로 config 파일 빼놓기 위한 경로
@@ -515,6 +517,13 @@ public class ConfigLoader {
             } else {
                 log.error("The useMdFileCreation tag does not exist in Config.xml. Application will terminate.");
                 throw new RuntimeException("Missing required configuration: useMdFileCreation");
+            }
+
+            if (root.getElementsByTagName("usePdfExtractImage").getLength() > 0) {
+                usePdfExtractImage = Boolean.parseBoolean(root.getElementsByTagName("usePdfExtractImage").item(0).getTextContent().trim());
+            } else {
+                log.error("The usePdfExtractImage tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: usePdfExtractImage");
             }
 
             Files.copy(configFile.toPath(), new File(backupFilePath).toPath(), StandardCopyOption.REPLACE_EXISTING);

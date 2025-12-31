@@ -131,7 +131,9 @@ public class IOService {
                 float heightPt = pdPage.getMediaBox().getHeight();
 
                 // DPI 계산 (최대 크기에 맞추기)
-                int dpi = (int) Math.min(MAX_WIDTH / (widthPt / 72), MAX_HEIGHT / (heightPt / 72));
+                //int dpi = (int) Math.min(MAX_WIDTH / (widthPt / 72), MAX_HEIGHT / (heightPt / 72));
+                int dpi = (int) Math.min(MAX_WIDTH / (widthPt / 72f), MAX_HEIGHT / (heightPt / 72f));
+                dpi = Math.max(72, Math.min(dpi, 300)); // 예: 최소 72, 최대 300
 
                 BufferedImage bim = pdfRenderer.renderImageWithDPI(page, dpi, ImageType.RGB);
 
@@ -458,25 +460,39 @@ public class IOService {
             String lowerName = fileName.toLowerCase();
             String ext = FileExtensionUtil.getExtension(fileName);
 
-            if (lowerName.endsWith(".pdf")) {
-                List<File> extractedImages = extractImagesFromPDF(file.getAbsolutePath());
-                resultFiles.addAll(extractedImages);
+            if (configLoader.usePdfExtractImage) {
+                if (lowerName.endsWith(".pdf")) {
+                    List<File> extractedImages = extractImagesFromPDF(file.getAbsolutePath());
+                    resultFiles.addAll(extractedImages);
 
-                copyFiles(file);
-                int maxPage = getPdfPageCount(file.getAbsolutePath());
-                apiCaller.callDivisionApi(configLoader.apiUserId, maxPage, fileName, unitFileInfo.getOcrServiceType());
+                    copyFiles(file);
+                    int maxPage = getPdfPageCount(file.getAbsolutePath());
+                    apiCaller.callDivisionApi(configLoader.apiUserId, maxPage, fileName, unitFileInfo.getOcrServiceType());
 
-                log.debug("PDF에서 추출된 이미지 {}개 추가됨: {}", extractedImages.size(), fileName);
-            } else if (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg") || lowerName.endsWith(".png")) {
-                resultFiles.add(file);
-                ioService.copyFiles(file);
-            } else if (configLoader.ocrServiceType.equalsIgnoreCase("da") && FileExtensionUtil.DA_SUPPORTED_EXT.contains(ext)) {
-                //TODO: da 서비스에서 처리해야 할 Office/HWP 파일 처리
-                resultFiles.add(file);
-                ioService.copyFiles(file);
+                    log.debug("PDF에서 추출된 이미지 {}개 추가됨: {}", extractedImages.size(), fileName);
+                } else if (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg") || lowerName.endsWith(".png")) {
+                    resultFiles.add(file);
+                    ioService.copyFiles(file);
+                } else if (configLoader.ocrServiceType.equalsIgnoreCase("da") && FileExtensionUtil.DA_SUPPORTED_EXT.contains(ext)) {
+                    //TODO: da 서비스에서 처리해야 할 Office/HWP 파일 처리
+                    resultFiles.add(file);
+                    ioService.copyFiles(file);
+                } else {
+                    log.warn("지원하지 않는 파일 형식: {}", fileName);
+                }
             } else {
-                log.warn("지원하지 않는 파일 형식: {}", fileName);
+                if (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg") || lowerName.endsWith(".png")) {
+                    resultFiles.add(file);
+                    ioService.copyFiles(file);
+                } else if (configLoader.ocrServiceType.equalsIgnoreCase("da") && FileExtensionUtil.DA_SUPPORTED_EXT.contains(ext)) {
+                    //TODO: da 서비스에서 처리해야 할 Office/HWP 파일 처리
+                    resultFiles.add(file);
+                    ioService.copyFiles(file);
+                } else {
+                    log.warn("지원하지 않는 파일 형식: {}", fileName);
+                }
             }
+
         } catch (Exception e) {
             log.warn("API 조회 실패: {}", e.getMessage(), e);
 

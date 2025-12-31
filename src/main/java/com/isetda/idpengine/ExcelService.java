@@ -1287,36 +1287,38 @@ public class ExcelService {
             }
 
             // pdf인 경우 (멀티 페이지) md 파일 저장
-            boolean masterExists = masterFile.exists();
+            if (configLoader.usePdfExtractImage) {
+                boolean masterExists = masterFile.exists();
 
-            try (
-                    BufferedReader reader = new BufferedReader(new FileReader(pageFile));
-                    BufferedWriter writer = new BufferedWriter(new FileWriter(masterFile, true)) // 이어쓰기
-            ) {
-                String firstLine = reader.readLine();
+                try (
+                        BufferedReader reader = new BufferedReader(new FileReader(pageFile));
+                        BufferedWriter writer = new BufferedWriter(new FileWriter(masterFile, true)) // 이어쓰기
+                ) {
+                    String firstLine = reader.readLine();
 
-                if (firstLine != null) {
-                    if (!masterExists) {
-                        writer.write("");
-                    } else {
+                    if (firstLine != null) {
+                        if (!masterExists) {
+                            writer.write("");
+                        } else {
+                            writer.newLine();
+                            //writer.write("-----------------------------------------------------");
+                            //writer.newLine();
+                            writer.newLine();
+                            //writer.write("[다음 페이지] ");
+                        }
+                        writer.write(firstLine);
                         writer.newLine();
-                        //writer.write("-----------------------------------------------------");
-                        //writer.newLine();
-                        writer.newLine();
-                        //writer.write("[다음 페이지] ");
                     }
-                    writer.write(firstLine);
-                    writer.newLine();
-                }
 
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    writer.write(line);
-                    writer.newLine();
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        writer.write(line);
+                        writer.newLine();
+                    }
+                    log.info("Appended page result to master result file: {}", masterFileName);
+                } catch (IOException e) {
+                    log.warn("Failed to append page result. {}", e.getMessage());
                 }
-                log.info("Appended page result to master result file: {}", masterFileName);
-            } catch (IOException e) {
-                log.warn("Failed to append page result. {}", e.getMessage());
             }
         }
     }
@@ -1385,8 +1387,6 @@ public class ExcelService {
         IOService ioService = new IOService();
         APICaller apiCaller = new APICaller();
 
-        File folder = Paths.get(resultFilePath).toFile();
-
 //        Set<String> allowedOriginals =
 //                (resultByVersion != null)
 //                        ? resultByVersion.keySet().stream()
@@ -1395,15 +1395,16 @@ public class ExcelService {
 //                        : Collections.emptySet();
 //        log.debug("[std] allowedOriginals: {}", allowedOriginals);
 
+        File folder = Paths.get(resultFilePath).toFile();
         File[] listOfFiles = folder.listFiles((dir, name) -> name.endsWith(".dat"));
 
-        if (listOfFiles != null) {
+        if (listOfFiles != null || listOfFiles.length != 0) {
             for (File file : listOfFiles) {
                 String fileName = file.getName();
                 String baseName = fileName.replace("_result.dat", ""); // 파일 이름에서 확장자 제거
-                //String origName = baseName.replaceFirst("-page\\d+$", "");
-
-                // 다른 배치 스킵
+//                String origName = baseName.replaceFirst("-page\\d+$", "");
+//
+//                // 다른 배치 스킵
 //                if (!allowedOriginals.contains(origName)) {
 //                    log.debug("[std] skip other batch originalName: {}", origName);
 //                    continue;
