@@ -88,6 +88,8 @@ public class ConfigLoader {
     public boolean useUrlEncoding;
     public boolean useCallbackUpdate;
     public boolean useMdFileCreation;
+    public boolean useSourceDeletion;
+    public String resultFileNamingRule;
 
     public boolean excelFileDownload;
     public boolean csvFileDownload;
@@ -524,6 +526,20 @@ public class ConfigLoader {
             } else {
                 log.error("The usePdfExtractImage tag does not exist in Config.xml. Application will terminate.");
                 throw new RuntimeException("Missing required configuration: usePdfExtractImage");
+            }
+
+            if (root.getElementsByTagName("useSourceDeletion").getLength() > 0) {
+                useSourceDeletion = Boolean.parseBoolean(root.getElementsByTagName("useSourceDeletion").item(0).getTextContent().trim());
+            } else {
+                log.error("The useSourceDeletion tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: useSourceDeletion");
+            }
+
+            if (root.getElementsByTagName("resultFileNamingRule").getLength() > 0) {
+                resultFileNamingRule = root.getElementsByTagName("resultFileNamingRule").item(0).getTextContent().trim();
+            } else {
+                log.error("The resultFileNamingRule tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: resultFileNamingRule");
             }
 
             Files.copy(configFile.toPath(), new File(backupFilePath).toPath(), StandardCopyOption.REPLACE_EXISTING);

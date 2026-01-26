@@ -1045,6 +1045,7 @@ public class IDPEngineController {
                 String configResultFilePath = configLoader.resultFilePath;
                 resultFilePath = ioService.fullResultPath;
                 configLoader.resultFilePath = resultFilePath;
+
                 String subPath = ioService.subPath;
                 documentService.subPath = subPath;
 
@@ -1056,6 +1057,12 @@ public class IDPEngineController {
                         fileInfo = apiCaller.getFileByName(configLoader.apiUserId, subPath + file.getName());
                     } catch (UnirestException e) {
                         throw new RuntimeException(e);
+                    }
+
+                    if (fileInfo.getTaskName().equals("DEFAULT")) {
+                        documentService.taskName = "";
+                    } else {
+                        documentService.taskName = fileInfo.getTaskName();
                     }
 
                     if (fileInfo != null && fileInfo.getFilename() != null) {

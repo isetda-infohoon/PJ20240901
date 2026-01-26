@@ -285,6 +285,7 @@ public class IOService {
                 doc.save(outputPath);
 
                 badImgToPDF = extractImagesFromPDF(outputPath).getFirst();
+                //badImgToPDF = (extractImagesFromPDF(outputPath) != null && !extractImagesFromPDF(outputPath).isEmpty()) ? extractImagesFromPDF(outputPath).get(0) : null;
                 log.debug("Converted : {}",imageFile.getName());
             } catch (IOException e) {
                 log.warn("Error converting: {}",imageFile.getName());
@@ -340,7 +341,7 @@ public class IOService {
 
                     copyFiles(file);
                     int maxPage = getPdfPageCount(file.getAbsolutePath());
-                    apiCaller.callDivisionApi(configLoader.apiUserId, maxPage, fileName, fileInfo.getOcrServiceType());
+                    apiCaller.callDivisionApi(configLoader.apiUserId, maxPage, fileName, fileInfo.getOcrServiceType(), fileInfo.getTaskName());
 
                     log.trace("PDF에서 추출된 이미지 {}개 추가됨: {}", extractedImages.size(), fileName);
                 } else if (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg") || lowerName.endsWith(".png")) {
@@ -467,7 +468,7 @@ public class IOService {
 
                     copyFiles(file);
                     int maxPage = getPdfPageCount(file.getAbsolutePath());
-                    apiCaller.callDivisionApi(configLoader.apiUserId, maxPage, fileName, unitFileInfo.getOcrServiceType());
+                    apiCaller.callDivisionApi(configLoader.apiUserId, maxPage, fileName, unitFileInfo.getOcrServiceType(), unitFileInfo.getTaskName());
 
                     log.debug("PDF에서 추출된 이미지 {}개 추가됨: {}", extractedImages.size(), fileName);
                 } else if (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg") || lowerName.endsWith(".png")) {

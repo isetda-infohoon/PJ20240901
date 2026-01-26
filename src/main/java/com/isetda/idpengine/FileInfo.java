@@ -5,6 +5,7 @@ public class FileInfo {
     private String userId;
     private int pageNum;
     private String ocrServiceType;
+    private String groupUID;
     private String language;
     private String lClassification;
     private String mClassification;
@@ -17,6 +18,7 @@ public class FileInfo {
     private String requestId;
     private String receiveData;
     private String urlData;
+    private String taskName;
 
     public FileInfo() {}
 
@@ -24,6 +26,7 @@ public class FileInfo {
     public String getUserId() {return userId;}
     public int getPageNum() {return pageNum;}
     public String getOcrServiceType() {return ocrServiceType;}
+    public String getGroupUID() {return groupUID;}
     public String getLanguage() {return language;}
     public String getLClassification() {return lClassification;}
     public String getMClassification() {return mClassification;}
@@ -36,6 +39,7 @@ public class FileInfo {
     public String getRequestId() {return requestId;}
     public String getReceiveData() {return receiveData;}
     public String getUrlData() {return urlData;}
+    public String getTaskName() {return taskName; }
 
     public void setFilename(String filename) {
         this.filename = filename;
@@ -52,6 +56,8 @@ public class FileInfo {
     public void setOcrServiceType(String ocrServiceType) {
         this.ocrServiceType = ocrServiceType;
     }
+
+    public void setGroupUID(String groupUID) { this.groupUID = groupUID; }
 
     public void setLanguage(String language) {
         this.language = language;
@@ -99,5 +105,9 @@ public class FileInfo {
 
     public void setUrlData(String urlData) {
         this.urlData = urlData;
+    }
+
+    public void setTaskName(String taskName) {
+        this.taskName = taskName;
     }
 }

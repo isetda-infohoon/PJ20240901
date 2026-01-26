@@ -60,15 +60,17 @@ public class APICaller {
                     fileInfo.setUserId(data.optString("userId"));
                     fileInfo.setPageNum(data.optInt("pageNum"));
                     fileInfo.setOcrServiceType(data.optString("ocrServiceType"));
+                    fileInfo.setGroupUID(data.optString("grouP_UID"));
                     fileInfo.setLanguage(data.optString("language"));
                     fileInfo.setLClassification(data.optString("lClassification"));
                     fileInfo.setMClassification(data.optString("mClassification"));
                     fileInfo.setSClassification(data.optString("sClassification"));
                     fileInfo.setClassificationStatus(data.optString("classificationStatus"));
                     fileInfo.setJobType(data.optString("jobType"));
-                    fileInfo.setRequestId("requestId");
-                    fileInfo.setReceiveData("receiveData");
-                    fileInfo.setUrlData("urlData");
+                    fileInfo.setRequestId(data.optString("requestId"));
+                    fileInfo.setReceiveData(data.optString("receiveData"));
+                    fileInfo.setUrlData(data.optString("urlData"));
+                    fileInfo.setTaskName(data.optString("taskName"));
 
                     fileList.add(fileInfo);
                 }
@@ -127,6 +129,7 @@ public class APICaller {
                     fileInfo.setUserId(data.optString("userId"));
                     fileInfo.setPageNum(data.optInt("pageNum"));
                     fileInfo.setOcrServiceType(data.optString("ocrServiceType"));
+                    fileInfo.setGroupUID(data.optString("grouP_UID"));
                     fileInfo.setLanguage(data.optString("language"));
                     fileInfo.setLClassification(data.optString("lClassification"));
                     fileInfo.setMClassification(data.optString("mClassification"));
@@ -139,6 +142,7 @@ public class APICaller {
                     fileInfo.setRequestId(data.optString("requestId"));
                     fileInfo.setReceiveData(data.optString("receiveData"));
                     fileInfo.setUrlData(data.optString("urlData"));
+                    fileInfo.setTaskName(data.optString("taskName"));
                 }
             }
         } else {
@@ -194,6 +198,7 @@ public class APICaller {
                     fileInfo.setUserId(data.optString("userId"));
                     fileInfo.setPageNum(data.optInt("pageNum"));
                     fileInfo.setOcrServiceType(data.optString("ocrServiceType"));
+                    fileInfo.setGroupUID(data.optString("grouP_UID"));
                     fileInfo.setLanguage(data.optString("language"));
                     fileInfo.setLClassification(data.optString("lClassification"));
                     fileInfo.setMClassification(data.optString("mClassification"));
@@ -206,6 +211,7 @@ public class APICaller {
                     fileInfo.setRequestId(data.optString("requestId"));
                     fileInfo.setReceiveData(data.optString("receiveData"));
                     fileInfo.setUrlData(data.optString("urlData"));
+                    fileInfo.setTaskName(data.optString("taskName"));
                 }
             }
         } else {
@@ -261,6 +267,7 @@ public class APICaller {
                     fileInfo.setUserId(data.optString("userId"));
                     fileInfo.setPageNum(data.optInt("pageNum"));
                     fileInfo.setOcrServiceType(data.optString("ocrServiceType"));
+                    fileInfo.setGroupUID(data.optString("grouP_UID"));
                     fileInfo.setLanguage(data.optString("language"));
                     fileInfo.setLClassification(data.optString("lClassification"));
                     fileInfo.setMClassification(data.optString("mClassification"));
@@ -273,6 +280,7 @@ public class APICaller {
                     fileInfo.setRequestId(data.optString("requestId"));
                     fileInfo.setReceiveData(data.optString("receiveData"));
                     fileInfo.setUrlData(data.optString("urlData"));
+                    fileInfo.setTaskName(data.optString("taskName"));
                 }
             }
         } else {
@@ -328,6 +336,7 @@ public class APICaller {
                     fileInfo.setUserId(data.optString("userId"));
                     fileInfo.setPageNum(data.optInt("pageNum"));
                     fileInfo.setOcrServiceType(data.optString("ocrServiceType"));
+                    fileInfo.setGroupUID(data.optString("grouP_UID"));
                     fileInfo.setLanguage(data.optString("language"));
                     fileInfo.setLClassification(data.optString("lClassification"));
                     fileInfo.setMClassification(data.optString("mClassification"));
@@ -339,6 +348,7 @@ public class APICaller {
                     fileInfo.setRequestId(data.optString("requestId"));
                     fileInfo.setReceiveData(data.optString("receiveData"));
                     fileInfo.setUrlData(data.optString("urlData"));
+                    fileInfo.setTaskName(data.optString("taskName"));
                 }
             }
         } else {
@@ -388,6 +398,7 @@ public class APICaller {
                     fileInfo.setUserId(data.optString("userId"));
                     fileInfo.setPageNum(data.optInt("pageNum"));
                     fileInfo.setOcrServiceType(data.optString("ocrServiceType"));
+                    fileInfo.setGroupUID(data.optString("grouP_UID"));
                     fileInfo.setLanguage(data.optString("language"));
                     fileInfo.setLClassification(data.optString("lClassification"));
                     fileInfo.setMClassification(data.optString("mClassification"));
@@ -396,6 +407,7 @@ public class APICaller {
                     fileInfo.setJobType(data.optString("jobType"));
                     fileInfo.setClassificationStartDateTime(data.optString("classificationStartDateTime"));
                     fileInfo.setClassificationEndDateTime(data.optString("classificationEndDateTime"));
+                    fileInfo.setTaskName(data.optString("taskName"));
 
                     fileList.add(fileInfo);
                 }
@@ -447,6 +459,7 @@ public class APICaller {
                         fileInfo.setUserId(data.optString("userId"));
                         fileInfo.setPageNum(data.optInt("pageNum"));
                         fileInfo.setOcrServiceType(data.optString("ocrServiceType"));
+                        fileInfo.setGroupUID(data.optString("grouP_UID"));
                         fileInfo.setLanguage(data.optString("language"));
                         fileInfo.setLClassification(data.optString("lClassification"));
                         fileInfo.setMClassification(data.optString("mClassification"));
@@ -456,6 +469,7 @@ public class APICaller {
                         fileInfo.setClassificationStartDateTime(data.optString("classificationStartDateTime"));
                         fileInfo.setClassificationEndDateTime(data.optString("classificationEndDateTime"));
                         fileInfo.setCreateDateTime(data.optString("createDateTime"));
+                        fileInfo.setTaskName(data.optString("taskName"));
 
                         fileList.add(fileInfo);
                     }
@@ -531,6 +545,7 @@ public class APICaller {
                     fileInfo.setUserId(data.optString("userId"));
                     fileInfo.setPageNum(data.optInt("pageNum"));
                     fileInfo.setOcrServiceType(data.optString("ocrServiceType"));
+                    fileInfo.setGroupUID(data.optString("grouP_UID"));
                     fileInfo.setLanguage(data.optString("language"));
                     fileInfo.setLClassification(data.optString("lClassification"));
                     fileInfo.setMClassification(data.optString("mClassification"));
@@ -539,6 +554,7 @@ public class APICaller {
                     fileInfo.setJobType(data.optString("jobType"));
                     fileInfo.setClassificationStartDateTime(data.optString("classificationStartDateTime"));
                     fileInfo.setClassificationEndDateTime(data.optString("classificationEndDateTime"));
+                    fileInfo.setTaskName(data.optString("taskName"));
 
                     fileList.add(fileInfo);
                 }
@@ -550,7 +566,7 @@ public class APICaller {
         return fileList;
     }
 
-    public void callDivisionApi(String userId, int maxPage, String fileName, String ocrServiceType) throws UnirestException {
+    public void callDivisionApi(String userId, int maxPage, String fileName, String ocrServiceType, String taskName) throws UnirestException {
         String defaultUrl = configLoader.apiURL;
         Unirest.setTimeouts(0, 0);
 
@@ -560,6 +576,7 @@ public class APICaller {
                 .queryString("FILENAME", fileName)
                 .queryString("MAX_PAGE", maxPage)
                 .queryString("OCR_SERVICE_TYPE", ocrServiceType)
+                .queryString("TASKNAME", taskName)
                 .body("").asString();
 
         if (response.getStatus() == 200) {

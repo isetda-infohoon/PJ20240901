@@ -37,6 +37,7 @@ public class DocumentService {
     String textSaveFilePath;
     String datasetSavePath;
     String subPath = "";
+    String taskName = "";
 
     String classificationStartDateTime;
 
@@ -264,7 +265,7 @@ public class DocumentService {
 //        }
 
         if (configLoader.createFolders) {
-            excelService.moveFiles(configLoader.resultFilePath, resultByVersion, configLoader.classificationCriteria, configLoader.subClassificationCriteria, subPath);
+            excelService.moveFiles(configLoader.resultFilePath, resultByVersion, configLoader.classificationCriteria, configLoader.subClassificationCriteria, subPath, taskName);
         }
 
         // api 사용 시 update 진행
@@ -303,7 +304,7 @@ public class DocumentService {
                     }
                     String[] values = value.split(Pattern.quote(File.separator));
                     try {
-                        excelService.jsonDataUpdateWithUnitFile(subPath + fileName, values);
+                        excelService.jsonDataUpdateWithUnitFile(taskName, subPath + fileName, values);
                         log.info("Update completed");
                     } catch (Exception e) {
                         log.warn("Update api failed. {}", e.getMessage());
@@ -398,10 +399,10 @@ public class DocumentService {
             if (!officeExtensionFlag) {
                 excelService.moveFiles(configLoader.resultFilePath, resultByVersion,
                         configLoader.classificationCriteria, configLoader.subClassificationCriteria,
-                        subPath);
+                        subPath, taskName);
             } else {
                 excelService.moveFilesForOffice(configLoader.resultFilePath, resultByVersion,
-                        configLoader.classificationCriteria, configLoader.subClassificationCriteria, subPath);
+                        configLoader.classificationCriteria, configLoader.subClassificationCriteria, subPath, taskName);
             }
         }
 
@@ -416,7 +417,7 @@ public class DocumentService {
                     }
                     String[] values = value.split(Pattern.quote(File.separator));
                     try {
-                        excelService.jsonDataUpdateWithUnitFile(subPath + fileName, values);
+                        excelService.jsonDataUpdateWithUnitFile(taskName, subPath + fileName, values);
                         log.info("Update completed");
                     } catch (Exception e) {
                         log.warn("Update api failed. {}", e.getMessage());
