@@ -1578,7 +1578,6 @@ public class IDPEngineController {
                     log.error("Failed to move file: {}", file.getName());
                 }
             }
-
         }
     }
 

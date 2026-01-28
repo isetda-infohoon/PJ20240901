@@ -1810,10 +1810,10 @@ public class ExcelService {
 
             for (String ext : FileExtensionUtil.DA_SUPPORTED_EXT) {
                 try {
-                    fileInfo = apiCaller.getFileByName(configLoader.apiUserId, subPath + baseName + "." + ext);
+                    fileInfo = apiCaller.getFileByName(configLoader.apiUserId, subPath + originalName + "." + ext);
                     if (fileInfo != null && fileInfo.getFilename() != null) {
                         officeExt = ext;
-                        log.info("officeExt: " + officeExt);
+                        log.debug("officeExt: " + officeExt);
                         break; // 성공했으면 반복 종료
                     }
                 } catch (Exception e) {
