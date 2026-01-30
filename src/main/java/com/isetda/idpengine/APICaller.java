@@ -100,6 +100,8 @@ public class APICaller {
 
         //log.trace("getFileWithStatus call");
 
+        filename = toWindowsPath(filename);
+
         String apiUrl = defaultUrl + "/doc/process/status";
         HttpResponse<String> response = Unirest.get(apiUrl)
                 .queryString("USERID", userId)
@@ -167,6 +169,8 @@ public class APICaller {
         FileInfo fileInfo = new FileInfo();
 
         //log.trace("getFileWithStatus call");
+
+        filename = toWindowsPath(filename);
 
         String apiUrl = defaultUrl + "/doc/process/status";
         HttpResponse<String> response = Unirest.get(apiUrl)
@@ -238,6 +242,8 @@ public class APICaller {
 
         //log.trace("getFileWithStatus call");
 
+        filename = toWindowsPath(filename);
+
         String apiUrl = defaultUrl + "/doc/process/status";
         HttpResponse<String> response = Unirest.get(apiUrl)
                 .queryString("USERID", userId)
@@ -307,6 +313,8 @@ public class APICaller {
         FileInfo fileInfo = new FileInfo();
 
         //log.trace("getFileWithStatus Call");
+
+        filename = toWindowsPath(filename);
 
         String apiUrl = defaultUrl + "/doc/process/status";
         HttpResponse<String> response = Unirest.get(apiUrl)
@@ -570,6 +578,8 @@ public class APICaller {
         String defaultUrl = configLoader.apiURL;
         Unirest.setTimeouts(0, 0);
 
+        fileName = toWindowsPath(fileName);
+
         String apiUrl = defaultUrl + "/doc/page/division";
         HttpResponse<String> response = Unirest.post(apiUrl)
                 .queryString("USERID", userId)
@@ -592,6 +602,9 @@ public class APICaller {
         String defaultUrl = configLoader.apiURL;
         Unirest.setTimeouts(0, 0);
 
+        String filename = jsonBody.optString("fileName");
+        jsonBody.put("fileName", toWindowsPath(filename));
+
         String apiUrl = defaultUrl + "/doc/update";
         HttpResponse<String> response = Unirest.post(apiUrl)
                 .header("Content-Type", "application/json")
@@ -611,6 +624,8 @@ public class APICaller {
     public void callDeleteApi(String userId, String fileName, String ocrServiceType) throws UnirestException {
         String defaultUrl = configLoader.apiURL;
         Unirest.setTimeouts(0, 0);
+
+        fileName = toWindowsPath(fileName);
 
         String apiUrl = defaultUrl + "/doc/delete";
         HttpResponse<String> response = Unirest.delete(apiUrl)
@@ -634,6 +649,8 @@ public class APICaller {
         Unirest.setTimeouts(0, 0);
 
         HttpResponse<String> response;
+
+        imagePath = toWindowsPath(imagePath);
 
         if (configLoader.useUrlEncoding) {
             response = Unirest.post(defaultUrl)
@@ -659,5 +676,17 @@ public class APICaller {
             log.warn("CALLBACK API 호출 실패: " + response.getStatus() + " - " + response.getStatusText());
             log.info("CALLBACK API 응답 내용: {}", response.getBody());
         }
+    }
+
+    private String toWindowsPath(String path) {
+        if (path == null) return null;
+
+        // 이미 윈도우 경로이면 그대로
+        if (path.contains("\\")) {
+            return path;
+        }
+
+        // 리눅스 경로(/) → 윈도우 경로(\) 변환
+        return path.replace("/", "\\");
     }
 }

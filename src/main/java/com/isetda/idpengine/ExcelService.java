@@ -38,6 +38,10 @@ public class ExcelService {
     public String fileName;
     public String classificationStartDateTime;
 
+    private static final Set<String> IMG_AND_PDF = Set.of(
+            "jpg","jpeg","png","gif","bmp","webp","tif","tiff","pdf"
+    );
+
     // 폴더에서 JSON 파일 가져오기
     public File[] getFilteredJsonFiles() {
         APICaller apiCaller = new APICaller();
@@ -798,7 +802,6 @@ public class ExcelService {
         } else {
             apiTaskName = taskName;
         }
-        log.info("taskName: " + apiTaskName);
 
         for (String ext : FileExtensionUtil.DA_SUPPORTED_EXT) {
             fileInfo = apiCaller.getFileByName(userId, name2 + "." + ext);
@@ -807,7 +810,7 @@ public class ExcelService {
                 if (configLoader.usePdfExtractImage && officeExt.equals("pdf")) {
                     officeExt = null;
                 }
-                log.info("officeExt: " + officeExt);
+                log.debug("officeExt: " + officeExt);
                 break; // 성공했으면 반복 종료
             }
         }
@@ -817,7 +820,7 @@ public class ExcelService {
                 fileInfo = apiCaller.getFileByName(userId, name + ext);
                 if (fileInfo != null && fileInfo.getFilename() != null) {
                     imageExt = ext;
-                    log.info("imageExt: " + imageExt);
+                    log.debug("imageExt: " + imageExt);
                     break; // 성공했으면 반복 종료
                 }
             }
@@ -853,10 +856,21 @@ public class ExcelService {
             } else {
                 jsonBody.put("classificationStatus", "CS"); // 정상분류: CS
             }
-            jsonBody.put("ocrResultFileName", defaultName + "_result.dat");
-            jsonBody.put("classificationResultFileName", defaultName + "_result.txt");
+
+            if (fileInfo.getOcrServiceType().equals("da")) {
+                jsonBody.put("extractionResultFileName", fileInfo.getGroupUID().substring(0,8) + configLoader.resultFileNamingRule + defaultName + "_result.dat");
+            } else {
+                jsonBody.put("ocrResultFileName", fileInfo.getGroupUID().substring(0,8) + configLoader.resultFileNamingRule + defaultName + "_result.dat");
+            }
+            //jsonBody.put("ocrResultFileName", defaultName + "_result.dat");
+            jsonBody.put("classificationResultFileName", fileInfo.getGroupUID().substring(0,8) + configLoader.resultFileNamingRule + defaultName + "_result.txt");
             jsonBody.put("classificationStartDateTime", classificationStartDateTime);
             jsonBody.put("classificationEndDateTime", endDateTime);
+            if (configLoader.useMdFileCreation) {
+                jsonBody.put("extractionStartDateTime", classificationStartDateTime);
+                jsonBody.put("extractionEndDateTime", endDateTime);
+                jsonBody.put("extractionStatus", "ES");
+            }
             jsonBody.put("taskName", apiTaskName);
 
             apiCaller.callUpdateApi(jsonBody);
@@ -923,9 +937,17 @@ public class ExcelService {
                 pdfJsonBody.put("lClassification", resultFileInfo.getLClassification());
                 pdfJsonBody.put("mClassification", resultFileInfo.getMClassification());
                 pdfJsonBody.put("classificationStatus", resultFileInfo.getClassificationStatus());
-                pdfJsonBody.put("classificationResultFileName", fileNameOnly + "_result.txt");
+                pdfJsonBody.put("classificationResultFileName", resultFileInfo.getGroupUID().substring(0,8) + configLoader.resultFileNamingRule + fileNameOnly + "_result.txt");
+                if (resultFileInfo.getOcrServiceType().equals("da") && configLoader.useMdFileCreation) {
+                    pdfJsonBody.put("extractionResultFileName", resultFileInfo.getGroupUID().substring(0,8) + configLoader.resultFileNamingRule + fileNameOnly + "_result.md");
+                }
                 pdfJsonBody.put("classificationStartDateTime", resultFileInfo.getClassificationStartDateTime());
                 pdfJsonBody.put("classificationEndDateTime", endDateTime);
+                if (configLoader.useMdFileCreation) {
+                    pdfJsonBody.put("extractionStartDateTime", resultFileInfo.getClassificationStartDateTime());
+                    pdfJsonBody.put("extractionEndDateTime", endDateTime);
+                    pdfJsonBody.put("extractionStatus", "ES");
+                }
                 pdfJsonBody.put("taskName", apiTaskName);
 
                 apiCaller.callUpdateApi(pdfJsonBody);
@@ -1010,10 +1032,18 @@ public class ExcelService {
                 jsonBody.put("classificationStatus", "CS"); // 정상분류: CS
             }
 
-            jsonBody.put("ocrResultFileName", defaultName + "_result.dat");
-            jsonBody.put("classificationResultFileName", defaultName + "_result.txt");
+            jsonBody.put("ocrResultFileName", fileInfo.getGroupUID().substring(0,8) + configLoader.resultFileNamingRule + defaultName + "_result.dat");
+            jsonBody.put("classificationResultFileName", fileInfo.getGroupUID().substring(0,8) + configLoader.resultFileNamingRule + defaultName + "_result.txt");
+            if (fileInfo.getOcrServiceType().equals("da") && configLoader.useMdFileCreation) {
+                jsonBody.put("extractionResultFileName", fileInfo.getGroupUID().substring(0,8) + configLoader.resultFileNamingRule + defaultName + "_result.md");
+            }
             jsonBody.put("classificationStartDateTime", classificationStartDateTime);
             jsonBody.put("classificationEndDateTime", getCurrentTime());
+            if (configLoader.useMdFileCreation) {
+                jsonBody.put("extractionStartDateTime", classificationStartDateTime);
+                jsonBody.put("extractionEndDateTime", getCurrentTime());
+                jsonBody.put("extractionStatus", "ES");
+            }
             jsonBody.put("taskName", apiTaskName);
 
             apiCaller.callUpdateApi(jsonBody);
@@ -1059,9 +1089,17 @@ public class ExcelService {
 
             String defaultName2 = new File(name2).getName();
 
-            jsonBody.put("classificationResultFileName", defaultName2 + "_result.txt");
+            jsonBody.put("classificationResultFileName", fileInfo.getGroupUID().substring(0,8) + configLoader.resultFileNamingRule + defaultName2 + "_result.txt");
+            if (fileInfo.getOcrServiceType().equals("da") && configLoader.useMdFileCreation) {
+                jsonBody.put("extractionResultFileName", fileInfo.getGroupUID().substring(0,8) + configLoader.resultFileNamingRule + defaultName2 + "_result.md");
+            }
             jsonBody.put("classificationStartDateTime", classificationStartDateTime);
             jsonBody.put("classificationEndDateTime", getCurrentTime());
+            if (configLoader.useMdFileCreation) {
+                jsonBody.put("extractionStartDateTime", classificationStartDateTime);
+                jsonBody.put("extractionEndDateTime", getCurrentTime());
+                jsonBody.put("extractionStatus", "ES");
+            }
             jsonBody.put("taskName", apiTaskName);
 
             apiCaller.callUpdateApi(jsonBody);
@@ -1422,7 +1460,7 @@ public class ExcelService {
             for (File file : listOfFiles) {
                 String fileName = file.getName();
                 String baseName = fileName.replace("_result.dat", ""); // 파일 이름에서 확장자 제거
-//                String origName = baseName.replaceFirst("-page\\d+$", "");
+                String origName = baseName.replaceFirst("-page\\d+$", "");
 //
 //                // 다른 배치 스킵
 //                if (!allowedOriginals.contains(origName)) {
@@ -1510,6 +1548,44 @@ public class ExcelService {
                                     }
                                 }
                             } else {
+                                String groupUID = null;
+                                FileInfo currentFileInfo = null;
+                                String origExt = null;
+                                try {
+                                    String[] imgExt = {
+                                            ".jpg",
+                                            ".png",
+                                            ".jpeg",
+                                            ".pdf"
+                                    };
+
+                                    for (String ext : imgExt) {
+                                        String imgFileName = origName + ext;
+                                        Path src = Paths.get(folder.getAbsolutePath(), imgFileName);
+
+                                        if (Files.exists(src)) {
+                                            origExt = ext;
+                                            break;
+                                        }
+                                    }
+
+                                    // 현재 파일의 원본 파일 정보
+                                    currentFileInfo = apiCaller.getFileByName(configLoader.apiUserId, subPath + origName + origExt);
+
+                                    if (currentFileInfo != null) {
+                                        String uid = currentFileInfo.getGroupUID();
+                                        if (uid != null && uid.length() >= 8) {
+                                            groupUID = uid.substring(0, 8);
+                                        } else {
+                                            log.info("groupUID must be at least 8 characters: {}", uid);
+                                        }
+                                    } else {
+                                        log.info("fileInfo 조회 실패로 groupUID를 가져올 수 없음 ({}).", subPath + origName + origExt);
+                                    }
+                                } catch (Exception e) {
+                                    log.warn("groupUID 조회 중 예외: {}", e.getMessage());
+                                }
+
                                 String[] expectedSuffixes = {
                                         ".jpg",
                                         ".png",
@@ -1522,13 +1598,12 @@ public class ExcelService {
 
                                 for (String suffix : expectedSuffixes) {
                                     String expectedFileName = baseName + suffix;
-                                    File sourceFile = Paths.get(folder.getAbsolutePath(), expectedFileName).toFile();
+                                    Path src = Paths.get(folder.getAbsolutePath(), expectedFileName);
 
-                                    if (sourceFile.exists()) {
-                                        Path targetPath = targetDir.resolve(expectedFileName);
+                                    if (Files.exists(src)) {
                                         try {
-                                            Files.move(sourceFile.toPath(), targetPath, StandardCopyOption.REPLACE_EXISTING);
-                                            log.debug("Moved file : '{}' to '{}'", expectedFileName, targetPath);
+                                            Path moved = moveWithConditionalRename(src, targetDir, groupUID, configLoader.resultFileNamingRule, IMG_AND_PDF);
+                                            log.debug("Moved file : '{}' to '{}'", expectedFileName, moved);
                                         } catch (IOException e) {
                                             log.info("'{}' File move failed : {}", expectedFileName, e);
                                         }
@@ -1536,6 +1611,9 @@ public class ExcelService {
                                         log.debug("File not found, skipping: {}", expectedFileName);
                                     }
                                 }
+
+                                // 현재 파일의 이미지 파일 정보
+                                FileInfo fileInfo = apiCaller.getFileByName(configLoader.apiUserId, subPath + baseName + ".jpg");
 
                                 // CSV 파일들 (_result.csv, _result_2.csv, _result_3.csv 등) 이동 처리
                                 File[] resultFiles = folder.listFiles((dir, name) -> {
@@ -1556,10 +1634,9 @@ public class ExcelService {
 
                                 if (resultFiles != null) {
                                     for (File resultFile : resultFiles) {
-                                        Path targetPath = targetDir.resolve(resultFile.getName());
                                         try {
-                                            Files.move(resultFile.toPath(), targetPath, StandardCopyOption.REPLACE_EXISTING);
-                                            log.debug("Moved result(CSV/HTML) file : '{}' to '{}'", resultFile.getName(), targetPath);
+                                            Path moved = moveWithConditionalRename(resultFile.toPath(), targetDir, groupUID, configLoader.resultFileNamingRule, IMG_AND_PDF);
+                                            log.debug("Moved result(CSV/HTML) file : '{}' to '{}'", resultFile.getName(), moved);
                                         } catch (IOException e) {
                                             log.warn("Result(CSV/HTML) file move failed : '{}', {}", resultFile.getName(), e.getMessage());
                                         }
@@ -1581,13 +1658,6 @@ public class ExcelService {
                                     log.debug("ZIP file found. Extracting PNG… -> {}", zipFilePath.getAbsolutePath());
 
                                     String originalName = baseName.replaceAll("-page\\d+$", "");
-                                    FileInfo fileInfo = apiCaller.getFileByName(configLoader.apiUserId, subPath + baseName + ".jpg");
-                                    String uid = fileInfo.getGroupUID();
-                                    if (uid == null || uid.length() < 8) {
-                                        throw new IllegalArgumentException("groupUID must be at least 8 characters: " + uid);
-                                    }
-                                    String groupUID = uid.substring(0, 8);
-
                                     extractPNGFromZIP(zipFilePath, targetDir.toFile(), groupUID);
                                 } else {
                                     log.warn("ZIP file not found: {}", zipFilePath.getAbsolutePath());
@@ -1597,7 +1667,6 @@ public class ExcelService {
                                 try {
                                     String originalName = baseName.replaceAll("-page\\d+$", "");
                                     int maxPage = ioService.getPdfPageCount(configLoader.resultFilePath + File.separator + originalName + ".pdf");
-                                    FileInfo fileInfo = apiCaller.getFileByName(configLoader.apiUserId, subPath + baseName + ".jpg");
 
                                     if (fileInfo == null) {
                                         log.info("fileInfo 조회 불가로 PDF 이동을 위한 마지막 페이지 이동 여부 체크 불가");
@@ -1637,11 +1706,9 @@ public class ExcelService {
 
                                         // 전체 결과 TXT 이동
                                         if (txtFile.exists()) {
-                                            Path targetPath = targetDir.resolve(txtFile.getName());
-
                                             try {
-                                                Files.move(txtFile.toPath(), targetPath, StandardCopyOption.REPLACE_EXISTING);
-                                                log.debug("Moved TXT file : '{}' to '{}'", txtFile.getName(), targetPath);
+                                                Path moved = moveWithConditionalRename(txtFile.toPath(), targetDir, groupUID, configLoader.resultFileNamingRule, IMG_AND_PDF);
+                                                log.debug("Moved TXT file : '{}' to '{}'", txtFile.getName(), moved);
                                             } catch (IOException e) {
                                                 log.warn("'{}' TXT file move failed : {}", txtFile.getName(), e);
                                             }
@@ -1662,13 +1729,6 @@ public class ExcelService {
                                                     log.debug("Moved MD file : '{}' to '{}'", mdFile.getName(), targetPath);
 
                                                     // md 파일 내용 수정 (이미지 파일 태그의 이미지 파일명에 groupUID 추가)
-                                                    String uid = fileInfo.getGroupUID();
-                                                    if (uid == null || uid.length() < 8) {
-                                                        throw new IllegalArgumentException("groupUID must be at least 8 characters: " + uid);
-                                                    }
-
-                                                    String groupUID = uid.substring(0, 8);
-
                                                     String original = Files.readString(targetPath, StandardCharsets.UTF_8);
                                                     String replaced = original.replace("](", "](" + groupUID + configLoader.resultFileNamingRule);
                                                     Files.writeString(targetPath, replaced, StandardCharsets.UTF_8);
@@ -1829,7 +1889,7 @@ public class ExcelService {
 
             String groupUID = uid.substring(0, 8);
 
-            moveFilesIntoTarget(toMove, targetDir);
+            moveFilesIntoTarget(toMove, targetDir, groupUID);
             extractZipIfExists(targetDir, originalName, groupUID);
             moveOfficeOriginalIfExists(originalName, targetDir);
             if (configLoader.useSourceDeletion) {
@@ -1887,19 +1947,18 @@ public class ExcelService {
         }
     }
 
-    private void moveFilesIntoTarget(File[] toMove, Path targetDir) {
+    private void moveFilesIntoTarget(File[] toMove, Path targetDir, String groupUID) {
         if (toMove == null || toMove.length == 0) {
             log.debug("No files to move into '{}'", targetDir);
             return;
         }
         log.info("Found {} files to move into '{}'", toMove.length, targetDir);
         for (File src : toMove) {
-            Path targetPath = targetDir.resolve(src.getName());
             try {
-                Files.move(src.toPath(), targetPath, StandardCopyOption.REPLACE_EXISTING);
-                log.debug("Moved '{}' → '{}'", src.getName(), targetPath);
+                Path moved = moveWithConditionalRename(src.toPath(), targetDir, groupUID, configLoader.resultFileNamingRule, FileExtensionUtil.DA_SUPPORTED_EXT);
+                log.debug("Moved '{}' → '{}'", src.getName(), moved);
             } catch (IOException e) {
-                log.warn("Move failed: '{}' → '{}': {}", src.getAbsolutePath(), targetPath, e.getMessage());
+                log.warn("Move failed: '{}' → '{}': {}", src.getAbsolutePath(), targetDir, e.getMessage());
             }
         }
     }
@@ -2006,6 +2065,32 @@ public class ExcelService {
 
         // ZIP 삭제
         zipFile.delete();
+    }
+
+    // 결과 파일 (txt, dat) 이동 후 "groupUID + 기존파일명" 으로 파일명 수정 (이미지, pdf 파일 제외)
+    private Path moveWithConditionalRename(Path sourcePath,
+                                           Path targetDir,
+                                           String groupUID,
+                                           String namingRule,
+                                           Set<String> excludeExtsLower) throws IOException {
+        // namingRule 예: configLoader.resultFileNamingRule == "@@"
+        String originalName = sourcePath.getFileName().toString();
+        String lowerName = originalName.toLowerCase(Locale.ROOT);
+
+        boolean isZip = lowerName.endsWith(".zip");
+        boolean isMD = lowerName.endsWith(".md");
+        String ext = FileExtensionUtil.getExtension(originalName);
+
+        // 이미지, PDF는 제외. 그 외는 groupUID가 있을 때만 수정
+        String finalName;
+        if (groupUID != null && !groupUID.isBlank() && !isZip && !isMD && !excludeExtsLower.contains(ext)) {
+            finalName = groupUID + namingRule + originalName;
+        } else {
+            finalName = originalName;
+        }
+
+        Path targetPath = targetDir.resolve(finalName);
+        return Files.move(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
     }
 
     public void deleteFileList() {

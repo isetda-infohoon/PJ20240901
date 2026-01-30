@@ -87,9 +87,9 @@ public class DocumentService {
             String jsonFilePath = curFile.getPath();
 
             fileName = curFile.getName().substring(0, curFile.getName().lastIndexOf("."));
-            saveFilePath = configLoader.resultFilePath + "\\" + fileName + ".xlsx";
-            textSaveFilePath = configLoader.resultFilePath + "\\" + fileName + ".txt";
-            datasetSavePath = configLoader.resultFilePath + "\\" + fileName + "filtered_result2.xlsx";
+            saveFilePath = configLoader.resultFilePath + File.separator + fileName + ".xlsx";
+            textSaveFilePath = configLoader.resultFilePath + File.separator + fileName + ".txt";
+            datasetSavePath = configLoader.resultFilePath + File.separator + fileName + "filtered_result2.xlsx";
 
             imgFileName = fileName.replace("_result","");
 
@@ -330,9 +330,9 @@ public class DocumentService {
             String jsonFilePath = curFile.getPath();
 
             fileName = curFile.getName().substring(0, curFile.getName().lastIndexOf("."));
-            saveFilePath = configLoader.resultFilePath + "\\" + fileName + ".xlsx";
-            textSaveFilePath = configLoader.resultFilePath + "\\" + fileName + ".txt";
-            datasetSavePath = configLoader.resultFilePath + "\\" + fileName + "filtered_result2.xlsx";
+            saveFilePath = configLoader.resultFilePath + File.separator + fileName + ".xlsx";
+            textSaveFilePath = configLoader.resultFilePath + File.separator + fileName + ".txt";
+            datasetSavePath = configLoader.resultFilePath + File.separator + fileName + "filtered_result2.xlsx";
 
             imgFileName = fileName.replace("_result","");
 
