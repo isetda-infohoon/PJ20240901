@@ -800,19 +800,41 @@ public class IDPEngineController {
                 btn2.setDisable(true);
                 byte[] jsonToByte = null;
 
-                String jsonFilePath = configLoader.jsonFilePath;
-                String RullFilePath = "";
+//                String jsonFilePath = configLoader.ruleFilePath;
+//                String RullFilePath = "";
+//
+//                if (Objects.equals(countryName, "")) {
+//                    RullFilePath = configLoader.ruleFilePath;
+//                } else {
+//                    RullFilePath = new StringBuilder(jsonFilePath).insert(jsonFilePath.indexOf('.'), "_" + countryName).toString();
+//                }
 
-                if (Objects.equals(countryName, "")) {
-                    RullFilePath = configLoader.jsonFilePath;
+                String jsonFilePath = configLoader.ruleFilePath;
+                String folderPath = configLoader.ruleFolderPath;
+                String ruleFileName;
+                String ruleFilePath = "";
+
+                if (countryName == null || countryName.trim().isEmpty()) {
+                    ruleFileName = jsonFilePath;
                 } else {
-                    RullFilePath = new StringBuilder(jsonFilePath).insert(jsonFilePath.indexOf('.'), "_" + countryName).toString();
+                    int dot = jsonFilePath.lastIndexOf('.');
+                    if (dot == -1) {
+                        ruleFileName = jsonFilePath + "_" + countryName;
+                    } else {
+                        ruleFileName = new StringBuilder(jsonFilePath).insert(dot, "_" + countryName).toString();
+                    }
+                }
+
+                if (folderPath != null && !folderPath.trim().isEmpty()) {
+                    ruleFilePath = folderPath + java.io.File.separator + ruleFileName;
+                } else {
+                    ruleFilePath = ruleFileName;
                 }
 
                 // 결과 출력
-                System.out.println("결과: " + RullFilePath);
+                System.out.println("결과: " + ruleFilePath);
                 try {
-                    jsonToByte = Files.readAllBytes(Paths.get(RullFilePath));
+                    jsonToByte = Files.readAllBytes(Paths.get(ruleFilePath));
                 } catch (IOException e) {
                     errorLabel.setText("all success");
                     throw new RuntimeException(e);
@@ -851,8 +873,22 @@ public class IDPEngineController {
 
                     for (String countryName : countryNames) {
                         System.out.println("Current country name : " + countryName);
-                        String jsonFilePath = configLoader.jsonFilePath;
-                        String ruleFilePath = new StringBuilder(jsonFilePath).insert(jsonFilePath.indexOf('.'), "_" + countryName).toString();
+                        String jsonFilePath = configLoader.ruleFilePath;
+
+                        // 확장자 앞에 countryName 추가
+                        int dot = jsonFilePath.lastIndexOf('.');
+                        String ruleFileName = (dot == -1)
+                                ? jsonFilePath + "_" + countryName
+                                : jsonFilePath.substring(0, dot) + "_" + countryName + jsonFilePath.substring(dot);
+
+                        String folderPath = configLoader.ruleFolderPath;  // 새로 추가한 config 값
+
+                        String ruleFilePath;
+                        if (folderPath != null && !folderPath.trim().isEmpty()) {
+                            ruleFilePath = folderPath + File.separator + ruleFileName;
+                        } else {
+                            ruleFilePath = ruleFileName;   // 기존 방식 → 작업디렉토리 기준
+                        }
 
                         // 현재 국가 코드에 해당하는 파일 정보들을 조회
 //                        List<FileInfo> filesForCountry = uploadFileList.stream()
@@ -1344,8 +1380,25 @@ public class IDPEngineController {
 //                n++;
 //                log.info("({}) unitFileInfo NAME : {}, LANGUAGE : {}", n, unitFileInfo.getFilename(), unitFileInfo.getLanguage());
 //                System.out.println("Current country name : " + countryName);
-            String jsonFilePath = configLoader.jsonFilePath;
-            String ruleFilePath = new StringBuilder(jsonFilePath).insert(jsonFilePath.indexOf('.'), "_" + countryName).toString();
+            String jsonFilePath = configLoader.ruleFilePath;
+
+            // 확장자 앞에 countryName 추가
+            int dot = jsonFilePath.lastIndexOf('.');
+            String ruleFileName = (dot == -1)
+                    ? jsonFilePath + "_" + countryName
+                    : jsonFilePath.substring(0, dot) + "_" + countryName + jsonFilePath.substring(dot);
+
+            String folderPath = configLoader.ruleFolderPath;  // 새로 추가한 config 값
+
+            String ruleFilePath;
+            if (folderPath != null && !folderPath.trim().isEmpty()) {
+                ruleFilePath = folderPath + File.separator + ruleFileName;
+            } else {
+                ruleFilePath = ruleFileName;   // 기존 방식 → 작업디렉토리 기준
+            }
+
+            log.info("({}) unitFileInfo NAME : {}, LANGUAGE : {}", n, unitFileInfo.getFilename(), unitFileInfo.getLanguage());
+            log.info("RULE FILE PATH : " + ruleFilePath);
 
             // 현재 국가 코드에 해당하는 파일 정보들을 조회
 //                        List<FileInfo> filesForCountry = uploadFileList.stream()
@@ -1422,6 +1475,7 @@ public class IDPEngineController {
                         })
                         .collect(Collectors.toList());
             }
+            log.trace("office extension flag: {}", officeExtensionFlag);
 
             if (matchedFiles.isEmpty()) {
                 log.warn("해당 페이지에 대한 .dat 파일이 없어 분류를 건너뜁니다: {}", imageBaseName);

@@ -1565,12 +1565,16 @@ public class ExcelService {
 
                                         if (Files.exists(src)) {
                                             origExt = ext;
+                                            log.debug("original Ext: " + origExt);
                                             break;
                                         }
                                     }
 
                                     // 현재 파일의 원본 파일 정보
                                     currentFileInfo = apiCaller.getFileByName(configLoader.apiUserId, subPath + origName + origExt);
+
+                                    log.trace("filename: {}", subPath + origName + origExt);
+                                    log.trace("file info: {}", currentFileInfo.getFilename());
 
                                     if (currentFileInfo != null) {
                                         String uid = currentFileInfo.getGroupUID();
@@ -1817,29 +1821,62 @@ public class ExcelService {
         APICaller apiCaller = new APICaller();
         File folder = Paths.get(resultFilePath).toFile();
 
-        // 이번 배치에서 생성된 baseName 집합
-        Set<String> baseNames = (resultByVersion != null) ? resultByVersion.keySet() : Collections.emptySet();
-        if (baseNames.isEmpty()) {
-            log.warn("[officeExt] resultByVersion is empty. Nothing to move.");
+        File[] datFiles = folder.listFiles((dir, name) -> name.endsWith("_result.dat"));
+        if (datFiles == null || datFiles.length == 0) {
+            log.warn("[officeExt] No _result.dat files found under: {}", resultFilePath);
             return;
         }
+
+        Map<String, List<String>> baseNamesByOriginal = new LinkedHashMap<>();
+        for (File dat : datFiles) {
+            String fileName = dat.getName();                       // "...-page1_result.dat"
+            String baseName = fileName.replace("_result.dat", ""); // "...-page1"
+            String originalName = baseName.replaceFirst("-page\\d+$", ""); // "..."
+
+            baseNamesByOriginal
+                    .computeIfAbsent(originalName, k -> new ArrayList<>())
+                    .add(baseName);
+        }
+
+//        // 이번 배치에서 생성된 baseName 집합
+//        Set<String> baseNames = (resultByVersion != null) ? resultByVersion.keySet() : Collections.emptySet();
+//        if (baseNames.isEmpty()) {
+//            log.warn("[officeExt] resultByVersion is empty. Nothing to move.");
+//            return;
+//        }
 
         // 같은 originalName을 여러 page에서 중복 처리하지 않도록 방지
         Set<String> processedOriginals = new HashSet<>();
 
-        for (String baseName : baseNames) {
-            // baseName 예: "25123108_TEST_02-page1" → "25123108_TEST_02"
-            String originalName = baseName.replaceFirst("-page\\d+$", "");
-            if (!processedOriginals.add(originalName)) {
-                log.debug("[officeExt] already processed originalName: {}", originalName);
-                continue;
-            }
+//        for (String baseName : baseNames) {
+//            // baseName 예: "25123108_TEST_02-page1" → "25123108_TEST_02"
+//            String originalName = baseName.replaceFirst("-page\\d+$", "");
+//            if (!processedOriginals.add(originalName)) {
+//                log.debug("[officeExt] already processed originalName: {}", originalName);
+//                continue;
+//            }
+
+        for (Map.Entry<String, List<String>> entry : baseNamesByOriginal.entrySet()) {
+            String originalName = entry.getKey();
+            List<String> baseNames = entry.getValue(); // page1, page2, ...
+
 
             // 분류 값(value) 결정: originalName으로 우선 찾고, 없으면 baseName으로 찾기
-            Map<String, String> valueList =
-                    (resultByVersion.get(originalName) != null)
-                            ? resultByVersion.get(originalName)
-                            : resultByVersion.get(baseName);
+//            Map<String, String> valueList =
+//                    (resultByVersion.get(originalName) != null)
+//                            ? resultByVersion.get(originalName)
+//                            : resultByVersion.get(baseName);
+
+            Map<String, String> valueList = null;
+            if (resultByVersion != null) {
+                valueList = resultByVersion.get(originalName);
+                if (valueList == null) {
+                    for (String bn : baseNames) {
+                        valueList = resultByVersion.get(bn);
+                        if (valueList != null) break;
+                    }
+                }
+            }
 
             String value = null;
             if (valueList != null) {
@@ -1865,12 +1902,18 @@ public class ExcelService {
                 return belongsToCurrentBatch;
             });
 
+            if (toMove == null || toMove.length == 0) {
+                log.warn("[officeExt] No files to move for originalName={}", originalName);
+                continue;
+            }
+
             String officeExt = null;
             FileInfo fileInfo = null;
 
             for (String ext : FileExtensionUtil.DA_SUPPORTED_EXT) {
                 try {
                     fileInfo = apiCaller.getFileByName(configLoader.apiUserId, subPath + originalName + "." + ext);
+
                     if (fileInfo != null && fileInfo.getFilename() != null) {
                         officeExt = ext;
                         log.debug("officeExt: " + officeExt);
@@ -1881,10 +1924,13 @@ public class ExcelService {
                 }
             }
 
+            log.trace("filename: {}", subPath + originalName + "." + officeExt);
+            log.trace("file info: {}", fileInfo.getFilename());
+
             // md 파일 내용 수정 (이미지 파일 태그의 이미지 파일명에 groupUID 추가)
             String uid = fileInfo.getGroupUID();
             if (uid == null || uid.length() < 8) {
-                throw new IllegalArgumentException("groupUID must be at least 8 characters: " + uid);
+                throw new IllegalArgumentException("[officeExt] groupUID must be at least 8 characters: " + uid);
             }
 
             String groupUID = uid.substring(0, 8);

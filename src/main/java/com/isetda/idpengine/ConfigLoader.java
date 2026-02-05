@@ -36,7 +36,8 @@ public class ConfigLoader {
     public String docuAnalyzerApiKey;
     public String docuAnalyzerUrl;
     public String excelFilePath;
-    public String jsonFilePath;
+    public String ruleFilePath;
+    public String ruleFolderPath;
     List<FolderMapping> folderMappings = new ArrayList<>();
     public List<String> imageFolderPaths = new ArrayList<>();
     public String imageFolderPath;
@@ -207,11 +208,18 @@ public class ConfigLoader {
                 throw new RuntimeException("Missing required configuration: docuAnalyzerUrl");
             }
 
-            if (root.getElementsByTagName("jsonFilePath").getLength() > 0) {
-                jsonFilePath = root.getElementsByTagName("jsonFilePath").item(0).getTextContent().trim();
+            if (root.getElementsByTagName("ruleFilePath").getLength() > 0) {
+                ruleFilePath = root.getElementsByTagName("ruleFilePath").item(0).getTextContent().trim();
             } else {
-                log.error("The jsonFilePath tag does not exist in Config.xml. Application will terminate.");
-                throw new RuntimeException("Missing required configuration: jsonFilePath");
+                log.error("The ruleFilePath tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: ruleFilePath");
+            }
+
+            if (root.getElementsByTagName("ruleFolderPath").getLength() > 0) {
+                ruleFolderPath = root.getElementsByTagName("ruleFolderPath").item(0).getTextContent().trim();
+            } else {
+                log.error("The ruleFolderPath tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: ruleFolderPath");
             }
 
             if (apiUsageFlag) {
