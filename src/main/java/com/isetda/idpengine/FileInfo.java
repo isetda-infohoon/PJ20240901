@@ -4,7 +4,7 @@ public class FileInfo {
     private String filename;
     private String userId;
     private int pageNum;
-    private String ocrServiceType;
+    private String serviceType;
     private String groupUID;
     private String language;
     private String lClassification;
@@ -25,7 +25,7 @@ public class FileInfo {
     public String getFilename() {return filename;}
     public String getUserId() {return userId;}
     public int getPageNum() {return pageNum;}
-    public String getOcrServiceType() {return ocrServiceType;}
+    public String getServiceType() {return serviceType;}
     public String getGroupUID() {return groupUID;}
     public String getLanguage() {return language;}
     public String getLClassification() {return lClassification;}
@@ -53,8 +53,8 @@ public class FileInfo {
         this.pageNum = pageNum;
     }
 
-    public void setOcrServiceType(String ocrServiceType) {
-        this.ocrServiceType = ocrServiceType;
+    public void setServiceType(String serviceType) {
+        this.serviceType = serviceType;
     }
 
     public void setGroupUID(String groupUID) { this.groupUID = groupUID; }

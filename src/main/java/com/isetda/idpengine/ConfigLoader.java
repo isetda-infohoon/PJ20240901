@@ -82,7 +82,7 @@ public class ConfigLoader {
     public int apiCycle;
     public String apiURL;
     public String apiUserId;
-    public String ocrServiceType;
+    public String serviceType;
     public boolean classifyByFirstPage;
     public boolean useUnclassifiedAsCS;
     public boolean createClassifiedFolder;
@@ -459,11 +459,11 @@ public class ConfigLoader {
                 throw new RuntimeException("Missing required configuration: apiUserId");
             }
 
-            if (root.getElementsByTagName("ocrServiceType").getLength() > 0) {
-                ocrServiceType = root.getElementsByTagName("ocrServiceType").item(0).getTextContent().trim();
+            if (root.getElementsByTagName("serviceType").getLength() > 0) {
+                serviceType = root.getElementsByTagName("serviceType").item(0).getTextContent().trim();
             } else {
-                log.error("The ocrServiceType tag does not exist in Config.xml. Application will terminate.");
-                throw new RuntimeException("Missing required configuration: ocrServiceType");
+                log.error("The serviceType tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: serviceType");
             }
 
             if (root.getElementsByTagName("classifyByFirstPage").getLength() > 0) {

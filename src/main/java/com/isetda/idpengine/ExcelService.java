@@ -19,7 +19,6 @@ import java.util.*;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -626,7 +625,7 @@ public class ExcelService {
             jsonBody.put("fileName", fileInfo.getFilename());
             jsonBody.put("pageNum", fileInfo.getPageNum());
             jsonBody.put("userId", userId);
-            jsonBody.put("ocrServiceType", fileInfo.getOcrServiceType());
+            jsonBody.put("serviceType", fileInfo.getServiceType());
             jsonBody.put("language", fileInfo.getLanguage());
             jsonBody.put("lClassification", getCountryName(fileInfo.getLanguage()));
             jsonBody.put("mClassification", values[2]);
@@ -635,7 +634,7 @@ public class ExcelService {
             } else {
                 jsonBody.put("classificationStatus", "CS"); // 정상분류: CS
             }
-            jsonBody.put("ocrResultFileName", name + "_result.dat");
+            jsonBody.put("visionResultFileName", name + "_result.dat");
             jsonBody.put("classificationResultFileName", name + "_result.txt");
             jsonBody.put("classificationStartDateTime", classificationStartDateTime);
             jsonBody.put("classificationEndDateTime", endDateTime);
@@ -653,7 +652,7 @@ public class ExcelService {
 //
 //                System.out.println("userid : " + resultFileInfo.getUserId());
 //                System.out.println("fileName : " + resultFileInfo.getFilename());
-//                System.out.println("ocrServiceType : " + resultFileInfo.getOcrServiceType());
+//                System.out.println("serviceType : " + resultFileInfo.getServiceType());
 //                System.out.println("language : " + resultFileInfo.getLanguage());
 //                System.out.println("lClassification : " + resultFileInfo.getLClassification());
 //                System.out.println("mClassification : " + resultFileInfo.getMClassification());
@@ -666,7 +665,7 @@ public class ExcelService {
 //                pdfJsonBody.put("fileName", basename + ".pdf");
 //                pdfJsonBody.put("pageNum", 0);
 //                pdfJsonBody.put("userId", userId);
-//                pdfJsonBody.put("ocrServiceType", resultFileInfo.getOcrServiceType());
+//                pdfJsonBody.put("serviceType", resultFileInfo.getServiceType());
 //                pdfJsonBody.put("language", resultFileInfo.getLanguage());
 //                pdfJsonBody.put("lClassification", resultFileInfo.getLClassification());
 //                pdfJsonBody.put("mClassification", resultFileInfo.getMClassification());
@@ -695,7 +694,7 @@ public class ExcelService {
                     pdfJsonBody.put("fileName", basename + ".pdf");
                     pdfJsonBody.put("pageNum", 0);
                     pdfJsonBody.put("userId", userId);
-                    pdfJsonBody.put("ocrServiceType", resultFileInfo.getOcrServiceType());
+                    pdfJsonBody.put("serviceType", resultFileInfo.getServiceType());
                     pdfJsonBody.put("language", resultFileInfo.getLanguage());
                     pdfJsonBody.put("lClassification", resultFileInfo.getLClassification());
                     pdfJsonBody.put("mClassification", resultFileInfo.getMClassification());
@@ -718,7 +717,7 @@ public class ExcelService {
             jsonBody.put("fileName", fileInfo.getFilename());
             jsonBody.put("pageNum", 0);
             jsonBody.put("userId", userId);
-            jsonBody.put("ocrServiceType", fileInfo.getOcrServiceType());
+            jsonBody.put("serviceType", fileInfo.getServiceType());
             jsonBody.put("language", fileInfo.getLanguage());
             jsonBody.put("lClassification", getCountryName(fileInfo.getLanguage()));
             jsonBody.put("mClassification", values[2]);
@@ -729,7 +728,7 @@ public class ExcelService {
                 jsonBody.put("classificationStatus", "CS"); // 정상분류: CS
             }
 
-            jsonBody.put("ocrResultFileName", name + "_result.dat");
+            jsonBody.put("visionResultFileName", name + "_result.dat");
             jsonBody.put("classificationResultFileName", name + "_result.txt");
             jsonBody.put("classificationStartDateTime", classificationStartDateTime);
             jsonBody.put("classificationEndDateTime", getCurrentTime());
@@ -746,7 +745,7 @@ public class ExcelService {
 //            pdfJsonBody.put("fileName", basename + ".pdf");
 //            pdfJsonBody.put("pageNum", 0);
 //            pdfJsonBody.put("userId", userId);
-//            pdfJsonBody.put("ocrServiceType", fileInfo.getOcrServiceType());
+//            pdfJsonBody.put("serviceType", fileInfo.getServiceType());
 //            pdfJsonBody.put("language", fileInfo.getLanguage());
 //            pdfJsonBody.put("lClassification", getCountryName(fileInfo.getLanguage()));
 //            pdfJsonBody.put("mClassification", values[2]);
@@ -765,7 +764,7 @@ public class ExcelService {
 //        jsonBody.put("fileName", fileInfo.getFilename());
 //        jsonBody.put("pageNum", fileInfo.getPageNum());
 //        jsonBody.put("userId", userId);
-//        jsonBody.put("ocrServiceType", fileInfo.getOcrServiceType());
+//        jsonBody.put("serviceType", fileInfo.getServiceType());
 //        jsonBody.put("language", fileInfo.getLanguage());
 //        jsonBody.put("lClassification", getCountryName(fileInfo.getLanguage()));
 //        jsonBody.put("mClassification", values[2]);
@@ -843,7 +842,7 @@ public class ExcelService {
             jsonBody.put("fileName", fileInfo.getFilename());
             jsonBody.put("pageNum", fileInfo.getPageNum());
             jsonBody.put("userId", userId);
-            jsonBody.put("ocrServiceType", fileInfo.getOcrServiceType());
+            jsonBody.put("serviceType", fileInfo.getServiceType());
             jsonBody.put("language", fileInfo.getLanguage());
             jsonBody.put("lClassification", getCountryName(fileInfo.getLanguage()));
             jsonBody.put("mClassification", values[2]);
@@ -857,12 +856,12 @@ public class ExcelService {
                 jsonBody.put("classificationStatus", "CS"); // 정상분류: CS
             }
 
-            if (fileInfo.getOcrServiceType().equals("da")) {
+            if (fileInfo.getServiceType().equals("da")) {
                 jsonBody.put("extractionResultFileName", fileInfo.getGroupUID().substring(0,8) + configLoader.resultFileNamingRule + defaultName + "_result.dat");
             } else {
-                jsonBody.put("ocrResultFileName", fileInfo.getGroupUID().substring(0,8) + configLoader.resultFileNamingRule + defaultName + "_result.dat");
+                jsonBody.put("visionResultFileName", fileInfo.getGroupUID().substring(0,8) + configLoader.resultFileNamingRule + defaultName + "_result.dat");
             }
-            //jsonBody.put("ocrResultFileName", defaultName + "_result.dat");
+            //jsonBody.put("visionResultFileName", defaultName + "_result.dat");
             jsonBody.put("classificationResultFileName", fileInfo.getGroupUID().substring(0,8) + configLoader.resultFileNamingRule + defaultName + "_result.txt");
             jsonBody.put("classificationStartDateTime", classificationStartDateTime);
             jsonBody.put("classificationEndDateTime", endDateTime);
@@ -911,7 +910,7 @@ public class ExcelService {
 //
 //                log.info("userid : " + resultFileInfo.getUserId());
 //                log.info("fileName : " + resultFileInfo.getFilename());
-//                log.info("ocrServiceType : " + resultFileInfo.getOcrServiceType());
+//                log.info("serviceType : " + resultFileInfo.getServiceType());
 //                log.info("language : " + resultFileInfo.getLanguage());
 //                log.info("lClassification : " + resultFileInfo.getLClassification());
 //                log.info("mClassification : " + resultFileInfo.getMClassification());
@@ -932,13 +931,13 @@ public class ExcelService {
                 pdfJsonBody.put("fileName", basename + ".pdf");
                 pdfJsonBody.put("pageNum", 0);
                 pdfJsonBody.put("userId", userId);
-                pdfJsonBody.put("ocrServiceType", resultFileInfo.getOcrServiceType());
+                pdfJsonBody.put("serviceType", resultFileInfo.getServiceType());
                 pdfJsonBody.put("language", resultFileInfo.getLanguage());
                 pdfJsonBody.put("lClassification", resultFileInfo.getLClassification());
                 pdfJsonBody.put("mClassification", resultFileInfo.getMClassification());
                 pdfJsonBody.put("classificationStatus", resultFileInfo.getClassificationStatus());
                 pdfJsonBody.put("classificationResultFileName", resultFileInfo.getGroupUID().substring(0,8) + configLoader.resultFileNamingRule + fileNameOnly + "_result.txt");
-                if (resultFileInfo.getOcrServiceType().equals("da") && configLoader.useMdFileCreation) {
+                if (resultFileInfo.getServiceType().equals("da") && configLoader.useMdFileCreation) {
                     pdfJsonBody.put("extractionResultFileName", resultFileInfo.getGroupUID().substring(0,8) + configLoader.resultFileNamingRule + fileNameOnly + "_result.md");
                 }
                 pdfJsonBody.put("classificationStartDateTime", resultFileInfo.getClassificationStartDateTime());
@@ -957,7 +956,7 @@ public class ExcelService {
                     originalFileInfo = apiCaller.getFileByNameAndPageNumAndStatusNotNull(userId, basename + ".pdf", "CF", 0);
                 }
 
-                if (configLoader.useCallbackUpdate && configLoader.ocrServiceType.contains("da")) {
+                if (configLoader.useCallbackUpdate && configLoader.serviceType.contains("da")) {
                     apiCaller.callbackApi(originalFileInfo, pdfResultPath.getPath(), 200, "완료");
                 }
             }
@@ -980,7 +979,7 @@ public class ExcelService {
 //                    pdfJsonBody.put("fileName", basename + ".pdf");
 //                    pdfJsonBody.put("pageNum", 0);
 //                    pdfJsonBody.put("userId", userId);
-//                    pdfJsonBody.put("ocrServiceType", resultFileInfo.getOcrServiceType());
+//                    pdfJsonBody.put("serviceType", resultFileInfo.getServiceType());
 //                    pdfJsonBody.put("language", resultFileInfo.getLanguage());
 //                    pdfJsonBody.put("lClassification", resultFileInfo.getLClassification());
 //                    pdfJsonBody.put("mClassification", resultFileInfo.getMClassification());
@@ -1017,7 +1016,7 @@ public class ExcelService {
             jsonBody.put("fileName", fileInfo.getFilename());
             jsonBody.put("pageNum", 0);
             jsonBody.put("userId", userId);
-            jsonBody.put("ocrServiceType", fileInfo.getOcrServiceType());
+            jsonBody.put("serviceType", fileInfo.getServiceType());
             jsonBody.put("language", fileInfo.getLanguage());
             jsonBody.put("lClassification", getCountryName(fileInfo.getLanguage()));
             jsonBody.put("mClassification", values[2]);
@@ -1032,9 +1031,9 @@ public class ExcelService {
                 jsonBody.put("classificationStatus", "CS"); // 정상분류: CS
             }
 
-            jsonBody.put("ocrResultFileName", fileInfo.getGroupUID().substring(0,8) + configLoader.resultFileNamingRule + defaultName + "_result.dat");
+            jsonBody.put("visionResultFileName", fileInfo.getGroupUID().substring(0,8) + configLoader.resultFileNamingRule + defaultName + "_result.dat");
             jsonBody.put("classificationResultFileName", fileInfo.getGroupUID().substring(0,8) + configLoader.resultFileNamingRule + defaultName + "_result.txt");
-            if (fileInfo.getOcrServiceType().equals("da") && configLoader.useMdFileCreation) {
+            if (fileInfo.getServiceType().equals("da") && configLoader.useMdFileCreation) {
                 jsonBody.put("extractionResultFileName", fileInfo.getGroupUID().substring(0,8) + configLoader.resultFileNamingRule + defaultName + "_result.md");
             }
             jsonBody.put("classificationStartDateTime", classificationStartDateTime);
@@ -1047,7 +1046,7 @@ public class ExcelService {
             jsonBody.put("taskName", apiTaskName);
 
             apiCaller.callUpdateApi(jsonBody);
-            if (configLoader.useCallbackUpdate && configLoader.ocrServiceType.contains("da")) {
+            if (configLoader.useCallbackUpdate && configLoader.serviceType.contains("da")) {
                 apiCaller.callbackApi(fileInfo, imgResultPath.getPath(), 200, "완료");
             }
         }
@@ -1072,7 +1071,7 @@ public class ExcelService {
             jsonBody.put("fileName", fileInfo.getFilename());
             jsonBody.put("pageNum", 0);
             jsonBody.put("userId", userId);
-            jsonBody.put("ocrServiceType", fileInfo.getOcrServiceType());
+            jsonBody.put("serviceType", fileInfo.getServiceType());
             jsonBody.put("language", fileInfo.getLanguage());
             jsonBody.put("lClassification", getCountryName(fileInfo.getLanguage()));
             jsonBody.put("mClassification", values[2]);
@@ -1090,7 +1089,7 @@ public class ExcelService {
             String defaultName2 = new File(name2).getName();
 
             jsonBody.put("classificationResultFileName", fileInfo.getGroupUID().substring(0,8) + configLoader.resultFileNamingRule + defaultName2 + "_result.txt");
-            if (fileInfo.getOcrServiceType().equals("da") && configLoader.useMdFileCreation) {
+            if (fileInfo.getServiceType().equals("da") && configLoader.useMdFileCreation) {
                 jsonBody.put("extractionResultFileName", fileInfo.getGroupUID().substring(0,8) + configLoader.resultFileNamingRule + defaultName2 + "_result.md");
             }
             jsonBody.put("classificationStartDateTime", classificationStartDateTime);
@@ -1103,7 +1102,7 @@ public class ExcelService {
             jsonBody.put("taskName", apiTaskName);
 
             apiCaller.callUpdateApi(jsonBody);
-            if (configLoader.useCallbackUpdate && configLoader.ocrServiceType.contains("da")) {
+            if (configLoader.useCallbackUpdate && configLoader.serviceType.contains("da")) {
                 apiCaller.callbackApi(fileInfo, officeResultPath.getPath(), 200, "완료");
             }
         }
@@ -1147,7 +1146,7 @@ public class ExcelService {
                     String[] values = value.split(Pattern.quote(File.separator));
 
                     try (BufferedWriter writer = new BufferedWriter(new FileWriter(textSaveFilePath, true))) {
-                        if (configLoader.ocrServiceType.equals("google")) {
+                        if (configLoader.serviceType.equals("google")) {
                             writer.write("[결과]\n");
                             writer.write("국가: " + values[0] + "\n");
                             writer.write("언어: " + values[1] + "\n");
@@ -1160,7 +1159,7 @@ public class ExcelService {
                             }
 
                             log.info("Text final results completed. (Google OCR)");
-                        } else if (configLoader.ocrServiceType.equals("synap")) {
+                        } else if (configLoader.serviceType.equals("synap")) {
                             writer.write("[결과]\n");
                             writer.write("대분류: " + "\n");
                             writer.write("언어: " + values[1] + "\n");

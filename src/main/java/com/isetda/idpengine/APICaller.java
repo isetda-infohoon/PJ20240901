@@ -8,9 +8,6 @@ import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.io.File;
-import java.nio.file.Paths;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
@@ -34,7 +31,7 @@ public class APICaller {
         HttpResponse<String> response = Unirest.get(apiUrl)
                 .queryString("USERID", userId)
                 .queryString("FILENAME", "")
-                .queryString("OCR_SERVICE_TYPE", "")
+                .queryString("SERVICE_TYPE", "")
                 .queryString("CLASSIFICATION_STATUS", "")
                 .queryString("REQUEST_START_DATE", "")
                 .queryString("REQUEST_END_DATE", "")
@@ -59,7 +56,7 @@ public class APICaller {
                     fileInfo.setFilename(data.optString("fileName"));
                     fileInfo.setUserId(data.optString("userId"));
                     fileInfo.setPageNum(data.optInt("pageNum"));
-                    fileInfo.setOcrServiceType(data.optString("ocrServiceType"));
+                    fileInfo.setServiceType(data.optString("serviceType"));
                     fileInfo.setGroupUID(data.optString("grouP_UID"));
                     fileInfo.setLanguage(data.optString("language"));
                     fileInfo.setLClassification(data.optString("lClassification"));
@@ -83,7 +80,7 @@ public class APICaller {
 //            System.out.println(file.getFilename());
 //            System.out.println(file.getUserId());
 //            System.out.println(file.getPageNum());
-//            System.out.println(file.getOcrServiceType());
+//            System.out.println(file.getServiceType());
 //            System.out.println(file.getLanguage());
 //            System.out.println(file.getLClassification());
 //            System.out.println(file.getMClassification());
@@ -106,7 +103,7 @@ public class APICaller {
         HttpResponse<String> response = Unirest.get(apiUrl)
                 .queryString("USERID", userId)
                 .queryString("FILENAME", filename)
-                .queryString("OCR_SERVICE_TYPE", "")
+                .queryString("SERVICE_TYPE", "")
                 .queryString("CLASSIFICATION_STATUS", "")
                 .queryString("REQUEST_START_DATE", "")
                 .queryString("REQUEST_END_DATE", "")
@@ -130,7 +127,7 @@ public class APICaller {
                     fileInfo.setFilename(data.optString("fileName"));
                     fileInfo.setUserId(data.optString("userId"));
                     fileInfo.setPageNum(data.optInt("pageNum"));
-                    fileInfo.setOcrServiceType(data.optString("ocrServiceType"));
+                    fileInfo.setServiceType(data.optString("serviceType"));
                     fileInfo.setGroupUID(data.optString("grouP_UID"));
                     fileInfo.setLanguage(data.optString("language"));
                     fileInfo.setLClassification(data.optString("lClassification"));
@@ -154,7 +151,7 @@ public class APICaller {
 //        System.out.println(fileInfo.getFilename());
 //        System.out.println(fileInfo.getUserId());
 //        System.out.println(fileInfo.getPageNum());
-//        System.out.println(fileInfo.getOcrServiceType());
+//        System.out.println(fileInfo.getserviceType());
 //        System.out.println(fileInfo.getLanguage());
 //        System.out.println(fileInfo.getLClassification());
 //        System.out.println(fileInfo.getMClassification());
@@ -176,7 +173,7 @@ public class APICaller {
         HttpResponse<String> response = Unirest.get(apiUrl)
                 .queryString("USERID", userId)
                 .queryString("FILENAME", filename)
-                .queryString("OCR_SERVICE_TYPE", "")
+                .queryString("SERVICE_TYPE", "")
                 .queryString("CLASSIFICATION_STATUS", "")
                 .queryString("REQUEST_START_DATE", "")
                 .queryString("REQUEST_END_DATE", "")
@@ -201,7 +198,7 @@ public class APICaller {
                     fileInfo.setFilename(data.optString("fileName"));
                     fileInfo.setUserId(data.optString("userId"));
                     fileInfo.setPageNum(data.optInt("pageNum"));
-                    fileInfo.setOcrServiceType(data.optString("ocrServiceType"));
+                    fileInfo.setServiceType(data.optString("serviceType"));
                     fileInfo.setGroupUID(data.optString("grouP_UID"));
                     fileInfo.setLanguage(data.optString("language"));
                     fileInfo.setLClassification(data.optString("lClassification"));
@@ -225,7 +222,7 @@ public class APICaller {
 //        System.out.println(fileInfo.getFilename());
 //        System.out.println(fileInfo.getUserId());
 //        System.out.println(fileInfo.getPageNum());
-//        System.out.println(fileInfo.getOcrServiceType());
+//        System.out.println(fileInfo.getServiceType());
 //        System.out.println(fileInfo.getLanguage());
 //        System.out.println(fileInfo.getLClassification());
 //        System.out.println(fileInfo.getMClassification());
@@ -248,7 +245,7 @@ public class APICaller {
         HttpResponse<String> response = Unirest.get(apiUrl)
                 .queryString("USERID", userId)
                 .queryString("FILENAME", filename)
-                .queryString("OCR_SERVICE_TYPE", "")
+                .queryString("SERVICE_TYPE", "")
                 .queryString("CLASSIFICATION_STATUS", status)
                 .queryString("REQUEST_START_DATE", "")
                 .queryString("REQUEST_END_DATE", "")
@@ -272,7 +269,7 @@ public class APICaller {
                     fileInfo.setFilename(data.optString("fileName"));
                     fileInfo.setUserId(data.optString("userId"));
                     fileInfo.setPageNum(data.optInt("pageNum"));
-                    fileInfo.setOcrServiceType(data.optString("ocrServiceType"));
+                    fileInfo.setServiceType(data.optString("serviceType"));
                     fileInfo.setGroupUID(data.optString("grouP_UID"));
                     fileInfo.setLanguage(data.optString("language"));
                     fileInfo.setLClassification(data.optString("lClassification"));
@@ -296,7 +293,7 @@ public class APICaller {
 //        System.out.println(fileInfo.getFilename());
 //        System.out.println(fileInfo.getUserId());
 //        System.out.println(fileInfo.getPageNum());
-//        System.out.println(fileInfo.getOcrServiceType());
+//        System.out.println(fileInfo.getServiceType());
 //        System.out.println(fileInfo.getLanguage());
 //        System.out.println(fileInfo.getLClassification());
 //        System.out.println(fileInfo.getMClassification());
@@ -320,7 +317,7 @@ public class APICaller {
         HttpResponse<String> response = Unirest.get(apiUrl)
                 .queryString("USERID", userId)
                 .queryString("FILENAME", filename)
-                .queryString("OCR_SERVICE_TYPE", "")
+                .queryString("SERVICE_TYPE", "")
                 .queryString("CLASSIFICATION_STATUS", status)
                 .queryString("REQUEST_START_DATE", "")
                 .queryString("REQUEST_END_DATE", "")
@@ -343,7 +340,7 @@ public class APICaller {
                     fileInfo.setFilename(data.optString("fileName"));
                     fileInfo.setUserId(data.optString("userId"));
                     fileInfo.setPageNum(data.optInt("pageNum"));
-                    fileInfo.setOcrServiceType(data.optString("ocrServiceType"));
+                    fileInfo.setServiceType(data.optString("serviceType"));
                     fileInfo.setGroupUID(data.optString("grouP_UID"));
                     fileInfo.setLanguage(data.optString("language"));
                     fileInfo.setLClassification(data.optString("lClassification"));
@@ -377,7 +374,7 @@ public class APICaller {
         HttpResponse<String> response = Unirest.get(apiUrl)
                 .queryString("USERID", userId)
                 .queryString("FILENAME", "")
-                .queryString("OCR_SERVICE_TYPE", "")
+                .queryString("SERVICE_TYPE", "")
                 .queryString("CLASSIFICATION_STATUS", status)
                 .queryString("REQUEST_START_DATE", "")
                 .queryString("REQUEST_END_DATE", "")
@@ -405,7 +402,7 @@ public class APICaller {
                     fileInfo.setFilename(data.optString("fileName"));
                     fileInfo.setUserId(data.optString("userId"));
                     fileInfo.setPageNum(data.optInt("pageNum"));
-                    fileInfo.setOcrServiceType(data.optString("ocrServiceType"));
+                    fileInfo.setServiceType(data.optString("serviceType"));
                     fileInfo.setGroupUID(data.optString("grouP_UID"));
                     fileInfo.setLanguage(data.optString("language"));
                     fileInfo.setLClassification(data.optString("lClassification"));
@@ -428,7 +425,7 @@ public class APICaller {
     }
 
     // 가장 처음 파일 조회
-    public List<FileInfo> getAllFilesWithCase(String userId, String ocrServiceType, String status, int pageNum, String formattedDate) throws UnirestException{
+    public List<FileInfo> getAllFilesWithCase(String userId, String serviceType, String status, int pageNum, String formattedDate) throws UnirestException{
         String defaultUrl = configLoader.apiURL;
 
         List<FileInfo> fileList = new ArrayList<>();
@@ -440,7 +437,7 @@ public class APICaller {
             HttpResponse<String> response = Unirest.get(apiUrl)
                     .queryString("USERID", userId)
                     .queryString("FILENAME", "")
-                    .queryString("OCR_SERVICE_TYPE", ocrServiceType)
+                    .queryString("SERVICE_TYPE", serviceType)
                     .queryString("CLASSIFICATION_STATUS", status)
                     .queryString("REQUEST_START_DATE", "")
                     .queryString("REQUEST_END_DATE", "")
@@ -466,7 +463,7 @@ public class APICaller {
                         fileInfo.setFilename(data.optString("fileName"));
                         fileInfo.setUserId(data.optString("userId"));
                         fileInfo.setPageNum(data.optInt("pageNum"));
-                        fileInfo.setOcrServiceType(data.optString("ocrServiceType"));
+                        fileInfo.setServiceType(data.optString("serviceType"));
                         fileInfo.setGroupUID(data.optString("grouP_UID"));
                         fileInfo.setLanguage(data.optString("language"));
                         fileInfo.setLClassification(data.optString("lClassification"));
@@ -527,7 +524,7 @@ public class APICaller {
         HttpResponse<String> response = Unirest.get(apiUrl)
                 .queryString("USERID", userId)
                 .queryString("FILENAME", "")
-                .queryString("OCR_SERVICE_TYPE", "")
+                .queryString("SERVICE_TYPE", "")
                 .queryString("CLASSIFICATION_STATUS", status)
                 .queryString("REQUEST_START_DATE", "")
                 .queryString("REQUEST_END_DATE", "")
@@ -552,7 +549,7 @@ public class APICaller {
                     fileInfo.setFilename(data.optString("fileName"));
                     fileInfo.setUserId(data.optString("userId"));
                     fileInfo.setPageNum(data.optInt("pageNum"));
-                    fileInfo.setOcrServiceType(data.optString("ocrServiceType"));
+                    fileInfo.setServiceType(data.optString("serviceType"));
                     fileInfo.setGroupUID(data.optString("grouP_UID"));
                     fileInfo.setLanguage(data.optString("language"));
                     fileInfo.setLClassification(data.optString("lClassification"));
@@ -574,7 +571,7 @@ public class APICaller {
         return fileList;
     }
 
-    public void callDivisionApi(String userId, int maxPage, String fileName, String ocrServiceType, String taskName) throws UnirestException {
+    public void callDivisionApi(String userId, int maxPage, String fileName, String serviceType, String taskName) throws UnirestException {
         String defaultUrl = configLoader.apiURL;
         Unirest.setTimeouts(0, 0);
 
@@ -585,7 +582,7 @@ public class APICaller {
                 .queryString("USERID", userId)
                 .queryString("FILENAME", fileName)
                 .queryString("MAX_PAGE", maxPage)
-                .queryString("OCR_SERVICE_TYPE", ocrServiceType)
+                .queryString("SERVICE_TYPE", serviceType)
                 .queryString("TASKNAME", taskName)
                 .body("").asString();
 
@@ -621,7 +618,7 @@ public class APICaller {
         }
     }
 
-    public void callDeleteApi(String userId, String fileName, String ocrServiceType) throws UnirestException {
+    public void callDeleteApi(String userId, String fileName, String serviceType) throws UnirestException {
         String defaultUrl = configLoader.apiURL;
         Unirest.setTimeouts(0, 0);
 
@@ -631,7 +628,7 @@ public class APICaller {
         HttpResponse<String> response = Unirest.delete(apiUrl)
                 .queryString("USERID", userId)
                 .queryString("FILENAME", fileName)
-                .queryString("OCR_SERVICE_TYPE", ocrServiceType)
+                .queryString("SERVICE_TYPE", serviceType)
                 .body("").asString();
 
         if (response.getStatus() == 200) {

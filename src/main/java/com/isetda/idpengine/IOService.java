@@ -167,7 +167,7 @@ public class IOService {
             try {
                 FileInfo fileInfo = apiCaller.getFileByName(configLoader.apiUserId, apiFileName);
                 String message = "File Error";
-                apiCaller.callDeleteApi(configLoader.apiUserId, fileInfo.getFilename(), fileInfo.getOcrServiceType());
+                apiCaller.callDeleteApi(configLoader.apiUserId, fileInfo.getFilename(), fileInfo.getServiceType());
                 if (fileInfo.getUrlData() != null) {
                     String errorDir = Paths.get(configLoader.resultFilePath, "오류", subPath).toString();
                     apiCaller.callbackApi(fileInfo, errorDir, 666, message);
@@ -307,7 +307,7 @@ public class IOService {
 
         try {
             // 처리 단위가 api 리스트 전체일 때
-            List<FileInfo> fileInfos = apiCaller.getAllFilesWithCase(configLoader.apiUserId, configLoader.ocrServiceType, "", 0, formattedDate);
+            List<FileInfo> fileInfos = apiCaller.getAllFilesWithCase(configLoader.apiUserId, configLoader.serviceType, "", 0, formattedDate);
             // 시간순 정렬
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS");
             fileInfos.sort(
@@ -341,7 +341,7 @@ public class IOService {
 
                     copyFiles(file);
                     int maxPage = getPdfPageCount(file.getAbsolutePath());
-                    apiCaller.callDivisionApi(configLoader.apiUserId, maxPage, fileName, fileInfo.getOcrServiceType(), fileInfo.getTaskName());
+                    apiCaller.callDivisionApi(configLoader.apiUserId, maxPage, fileName, fileInfo.getServiceType(), fileInfo.getTaskName());
 
                     log.trace("PDF에서 추출된 이미지 {}개 추가됨: {}", extractedImages.size(), fileName);
                 } else if (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg") || lowerName.endsWith(".png")) {
@@ -468,13 +468,13 @@ public class IOService {
 
                     copyFiles(file);
                     int maxPage = getPdfPageCount(file.getAbsolutePath());
-                    apiCaller.callDivisionApi(configLoader.apiUserId, maxPage, fileName, unitFileInfo.getOcrServiceType(), unitFileInfo.getTaskName());
+                    apiCaller.callDivisionApi(configLoader.apiUserId, maxPage, fileName, unitFileInfo.getServiceType(), unitFileInfo.getTaskName());
 
                     log.debug("PDF에서 추출된 이미지 {}개 추가됨: {}", extractedImages.size(), fileName);
                 } else if (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg") || lowerName.endsWith(".png")) {
                     resultFiles.add(file);
                     ioService.copyFiles(file);
-                } else if (configLoader.ocrServiceType.equalsIgnoreCase("da") && FileExtensionUtil.DA_SUPPORTED_EXT.contains(ext)) {
+                } else if (configLoader.serviceType.equalsIgnoreCase("da") && FileExtensionUtil.DA_SUPPORTED_EXT.contains(ext)) {
                     //TODO: da 서비스에서 처리해야 할 Office/HWP 파일 처리
                     resultFiles.add(file);
                     ioService.copyFiles(file);
@@ -485,7 +485,7 @@ public class IOService {
                 if (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg") || lowerName.endsWith(".png")) {
                     resultFiles.add(file);
                     ioService.copyFiles(file);
-                } else if (configLoader.ocrServiceType.equalsIgnoreCase("da") && FileExtensionUtil.DA_SUPPORTED_EXT.contains(ext)) {
+                } else if (configLoader.serviceType.equalsIgnoreCase("da") && FileExtensionUtil.DA_SUPPORTED_EXT.contains(ext)) {
                     //TODO: da 서비스에서 처리해야 할 Office/HWP 파일 처리
                     resultFiles.add(file);
                     ioService.copyFiles(file);

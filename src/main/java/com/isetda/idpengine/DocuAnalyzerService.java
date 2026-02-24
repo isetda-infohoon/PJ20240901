@@ -1,10 +1,8 @@
 package com.isetda.idpengine;
 
-import com.mashape.unirest.http.exceptions.UnirestException;
 import okhttp3.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.*;
@@ -425,7 +423,7 @@ public class DocuAnalyzerService {
 
             if (info != null) {
                 apiCaller.callDeleteApi(
-                        configLoader.apiUserId, info.getFilename(), info.getOcrServiceType());
+                        configLoader.apiUserId, info.getFilename(), info.getServiceType());
 
                 if (info.getUrlData() != null) {
                     String errDir = Paths.get(configLoader.resultFilePath, "오류", subPath)

@@ -4,9 +4,7 @@ import com.mashape.unirest.http.exceptions.UnirestException;
 import okhttp3.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.checkerframework.checker.units.qual.A;
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
@@ -15,8 +13,6 @@ import java.io.FileWriter;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -231,7 +227,7 @@ public class SynapService {
             FileInfo fileInfo = apiCaller.getFileByNameAndPageNum(configLoader.apiUserId, apiFileName,0);
             log.info(fileInfo.getFilename());
             String message = "Synap OCR Error";
-            apiCaller.callDeleteApi(configLoader.apiUserId, fileInfo.getFilename(), fileInfo.getOcrServiceType());
+            apiCaller.callDeleteApi(configLoader.apiUserId, fileInfo.getFilename(), fileInfo.getServiceType());
             if (fileInfo.getUrlData() != null) {
                 String errorDir = Paths.get(configLoader.resultFilePath, "오류", subPath).toString();
                 apiCaller.callbackApi(fileInfo, errorDir, 666, message);

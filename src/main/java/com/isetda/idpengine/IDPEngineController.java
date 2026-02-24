@@ -137,7 +137,7 @@ public class IDPEngineController {
         String formattedDate = today.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
 
         //List<FileInfo> pendingFiles = apiCaller.getFileWithStatus(configLoader.apiUserId);
-        List<FileInfo> pendingFiles = apiCaller.getAllFilesWithCase(configLoader.apiUserId, configLoader.ocrServiceType, "", 0, formattedDate);
+        List<FileInfo> pendingFiles = apiCaller.getAllFilesWithCase(configLoader.apiUserId, configLoader.serviceType, "", 0, formattedDate);
 
         // 시간순 정렬
 //        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS");
@@ -443,7 +443,7 @@ public class IDPEngineController {
                                 String countryName = fileInfo.getLanguage();
                                 log.info("{} COUNTRY NAME : {}", fileInfo.getFilename(), countryName);
 
-                                if (fileInfo.getOcrServiceType() == null) {
+                                if (fileInfo.getServiceType() == null) {
                                     //fileInfo.setOcrServiceType(configLoader.ocrServiceType);
                                 }
 
@@ -535,9 +535,9 @@ public class IDPEngineController {
                                         }
                                         //추가 버전 20250117
                                     } else if (!allowedCountries.contains(countryName)) {
-                                        if (fileInfo.getOcrServiceType().contains("google")) {
+                                        if (fileInfo.getServiceType().contains("google")) {
                                             googleService.FullTextOCR(file);
-                                        } else if (fileInfo.getOcrServiceType().contains("synap")) {
+                                        } else if (fileInfo.getServiceType().contains("synap")) {
                                             String subPath = "";
                                             synapService.synapOCR(file, subPath);
                                         } else {
@@ -556,9 +556,9 @@ public class IDPEngineController {
                                         }
                                     } else {
                                         // 국가 리스트 포함
-                                        if (fileInfo.getOcrServiceType().contains("google")) {
+                                        if (fileInfo.getServiceType().contains("google")) {
                                             googleService.uploadAndOCR(file);
-                                        } else if (fileInfo.getOcrServiceType().contains("synap")) {
+                                        } else if (fileInfo.getServiceType().contains("synap")) {
                                             String subPath = "";
                                             synapService.synapOCR(file, subPath);
                                         } else {
@@ -1105,7 +1105,7 @@ public class IDPEngineController {
                         String countryName = fileInfo.getLanguage();
                         log.debug("{} COUNTRY NAME : {}", fileInfo.getFilename(), countryName);
 
-                        if (fileInfo.getOcrServiceType() == null) {
+                        if (fileInfo.getServiceType() == null) {
                             //fileInfo.setOcrServiceType(configLoader.ocrServiceType);
                         }
 
@@ -1199,11 +1199,11 @@ public class IDPEngineController {
                                 }
                                 //추가 버전 20250117
                             } else if (!allowedCountries.contains(countryName)) {
-                                if (fileInfo.getOcrServiceType().contains("google")) {
+                                if (fileInfo.getServiceType().contains("google")) {
                                     googleService.FullTextOCR(file);
-                                } else if (fileInfo.getOcrServiceType().contains("synap")) {
+                                } else if (fileInfo.getServiceType().contains("synap")) {
                                     synapService.synapOCR(file, subPath);
-                                } else if (fileInfo.getOcrServiceType().contains("da")) {
+                                } else if (fileInfo.getServiceType().contains("da")) {
                                     if (FileExtensionUtil.DA_SUPPORTED_EXT.contains(ext)) {
                                         docuAnalyzerService.docuAnalyzerForExtendedFormats(file, subPath);
                                     } else {
@@ -1225,9 +1225,9 @@ public class IDPEngineController {
                                 }
                             } else {
                                 // 국가 리스트 포함
-                                if (fileInfo.getOcrServiceType().contains("google")) {
+                                if (fileInfo.getServiceType().contains("google")) {
                                     googleService.uploadAndOCR(file);
-                                } else if (fileInfo.getOcrServiceType().contains("synap")) {
+                                } else if (fileInfo.getServiceType().contains("synap")) {
                                     synapService.synapOCR(file, subPath);
 
                                     try {
@@ -1235,7 +1235,7 @@ public class IDPEngineController {
                                     } catch (Exception e) {
                                         log.error("Error executing onButton2API", e);
                                     }
-                                } else if (fileInfo.getOcrServiceType().contains("da")) {
+                                } else if (fileInfo.getServiceType().contains("da")) {
                                     if (FileExtensionUtil.DA_SUPPORTED_EXT.contains(ext)) {
                                         docuAnalyzerService.docuAnalyzerForExtendedFormats(file, subPath);
                                     } else {
@@ -1503,7 +1503,7 @@ public class IDPEngineController {
 //                        }
 
             try {
-                if (fileInfo.getOcrServiceType().contains("da")) {
+                if (fileInfo.getServiceType().contains("da")) {
                     classificationDocumentWithDa(officeExtensionFlag);
                 } else {
                     classificationDocument();

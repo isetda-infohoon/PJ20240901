@@ -7,8 +7,6 @@ import org.apache.logging.log4j.Logger;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -386,7 +384,7 @@ public class DocumentService {
                     excelService.appendPageResultToMaster(fileName);
                 }
 
-                if (configLoader.ocrServiceType.contains("da")) {
+                if (configLoader.serviceType.contains("da")) {
                     excelService.appendMdResultToMaster(fileName, officeExtensionFlag);
                 }
             }
