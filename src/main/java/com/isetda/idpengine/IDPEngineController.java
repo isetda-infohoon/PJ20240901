@@ -7,13 +7,13 @@ import javafx.scene.control.*;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
+import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.file.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -193,7 +193,7 @@ public class IDPEngineController {
 
     //분리된 이미지 저장 변수
     private File[] imageAndPdfFiles;
-    private List<File> imageAndPdfFilesWithAPI;
+    private List<FileWithLookupName> imageAndPdfFilesWithAPI;
     public ProgressBar progressBar;
 
     public void onButton1Click() throws IOException {
@@ -428,7 +428,8 @@ public class IDPEngineController {
 //                }
                 try {
                     if (imageAndPdfFilesWithAPI != null || !imageAndPdfFilesWithAPI.isEmpty()) {
-                        for (File file : imageAndPdfFilesWithAPI) {
+                        for (FileWithLookupName item : imageAndPdfFilesWithAPI) {
+                            File file = item.file;
                             log.info("{} Start processing files: {}", a, file.getName());
 
                             FileInfo fileInfo;
@@ -1085,12 +1086,13 @@ public class IDPEngineController {
                 String subPath = ioService.subPath;
                 documentService.subPath = subPath;
 
-                for (File file : imageAndPdfFilesWithAPI) {
+                for (FileWithLookupName item : imageAndPdfFilesWithAPI) {
+                    File file = item.file;
                     log.info("{} Start processing files: {}", a, subPath + file.getName());
 
                     FileInfo fileInfo;
                     try {
-                        fileInfo = apiCaller.getFileByName(configLoader.apiUserId, subPath + file.getName());
+                        fileInfo = apiCaller.getFileByName(configLoader.apiUserId, subPath + item.apiLookupName);
                     } catch (UnirestException e) {
                         throw new RuntimeException(e);
                     }
@@ -1102,6 +1104,8 @@ public class IDPEngineController {
                     }
 
                     if (fileInfo != null && fileInfo.getFilename() != null) {
+                        //TODO: fileinfo.getServiceType = ai.vision 일 경우 분기
+
                         String countryName = fileInfo.getLanguage();
                         log.debug("{} COUNTRY NAME : {}", fileInfo.getFilename(), countryName);
 
@@ -1247,6 +1251,24 @@ public class IDPEngineController {
                                     } catch (Exception e) {
                                         log.error("Error executing onButton2API", e);
                                     }
+                                } else if (fileInfo.getServiceType().contains("ai.vision")) {
+                                    if (FileExtensionUtil.AIVISION_SUPPORTED_EXT.contains(ext)) {
+                                        if (fileInfo.getVisionStatus().equalsIgnoreCase("VS")) {
+                                            log.debug("visionStatus is VS");
+                                            // TODO: 파일명_groupUID 폴더 전체 복사, 원본 파일명에서 groupUID 제거
+                                            // TODO: page별 md 결과 기존 파일명 -> ~.dat로 변경
+                                            copyAndRenameVisionResult(fileInfo);
+
+                                            try {
+                                                onButton2API(fileInfo);
+                                            } catch (Exception e) {
+                                                log.error("Error executing onButton2API", e);
+                                            }
+                                        } else {
+                                            log.info("AI.VISION processing is not complete.");
+                                            break;
+                                        }
+                                    }
                                 } else {
                                     // OCR SERVICE TYPE이 GOOGLE, SYNAP에 해당되지 않는 경우
                                     log.info("The file operation is skipped because there is no matching OCR Service Type.");
@@ -1290,7 +1312,7 @@ public class IDPEngineController {
                         a++;
 
                         // 1page의 분류 결과가 없는 경우 해당 파일의 분류 종료
-                        if (configLoader.usePdfExtractImage) {
+                        if (!fileInfo.getServiceType().equalsIgnoreCase("ai.vision") && configLoader.usePdfExtractImage) {
                             if (file.getName().matches(".*-page1\\.jpg$")) {
                                 try {
                                     FileInfo firstPagefileInfo = null;
@@ -1366,8 +1388,13 @@ public class IDPEngineController {
 
             //for (String countryName : countryNames) {
 
-
-            File resultDir = new File(configLoader.resultFilePath);
+            File resultDir;
+            if (fileInfo.getServiceType().equalsIgnoreCase("ai.vision")) {
+                int idx = fileInfo.getFilename().lastIndexOf('.');
+                resultDir = new File(configLoader.resultFilePath, fileInfo.getFilename().substring(0, idx) + "_" + fileInfo.getGroupUID());
+            } else {
+                resultDir = new File(configLoader.resultFilePath);
+            }
             File[] datFiles = resultDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".dat"));
 
             if (datFiles == null || datFiles.length == 0) {
@@ -1459,7 +1486,16 @@ public class IDPEngineController {
             boolean officeExtensionFlag = false;
 
             String ext = FileExtensionUtil.getExtension(justFileName);
-            if (FileExtensionUtil.DA_SUPPORTED_EXT.contains(ext)) {
+            if (fileInfo.getServiceType().equalsIgnoreCase("da") && FileExtensionUtil.DA_SUPPORTED_EXT.contains(ext)) {
+                matchedFiles = Arrays.stream(datFiles)
+                        .filter(datFile -> {
+                            String datBaseName = datFile.getName().replaceAll("_result\\.dat$", "");
+                            return datBaseName.equals(imageBaseName + "-page1");
+                        })
+                        .collect(Collectors.toList());
+                officeExtensionFlag = true;
+            } else if (fileInfo.getServiceType().equalsIgnoreCase("ai.vision") && FileExtensionUtil.AIVISION_SUPPORTED_EXT.contains(ext)) {
+                // TODO 250226 기준: 임시로 AI.VISION 사용하는 경우 page1의 분류만 진행하도록 작업해 둠 **추후 수정 필요 (각 페이지 별 분류가 필요한지 확인 필요)
                 matchedFiles = Arrays.stream(datFiles)
                         .filter(datFile -> {
                             String datBaseName = datFile.getName().replaceAll("_result\\.dat$", "");
@@ -1505,6 +1541,8 @@ public class IDPEngineController {
             try {
                 if (fileInfo.getServiceType().contains("da")) {
                     classificationDocumentWithDa(officeExtensionFlag);
+                } else if (fileInfo.getServiceType().contains("ai.vision")) {
+                    classificationDocumentWithVision(officeExtensionFlag, fileInfo);
                 } else {
                     classificationDocument();
                 }
@@ -1608,6 +1646,14 @@ public class IDPEngineController {
         documentService.createFinalResultFileWithDa(officeExtensionFlag);
     }
 
+    public void classificationDocumentWithVision(boolean officeExtensionFlag, FileInfo fileInfo) throws Exception {
+        configLoader.resultFilePath = resultFilePath;
+        excelService.configLoader = configLoader;
+        documentService.configLoader = configLoader;
+
+        documentService.createFinalResultFileWithVision(officeExtensionFlag, fileInfo);
+    }
+
     public void movefilefulltext(String outputpath) {
         File uncategorizedDir = new File(outputpath + "/미분류");
         File sourceDir = new File(outputpath);
@@ -1633,6 +1679,251 @@ public class IDPEngineController {
                 }
             }
         }
+    }
+
+    public void copyAndRenameVisionResult(FileInfo fileInfo) throws Exception {
+        String originalFileName = buildNameForAiVision(fileInfo.getFilename(), fileInfo.getGroupUID()); // 파일명_groupUID.pdf
+        int idx = originalFileName.lastIndexOf('.');
+        String folderName = (idx > 0) ? originalFileName.substring(0, idx) : originalFileName; // 파일명_groupUID
+
+        Path source = Paths.get(configLoader.imageFolderPath, folderName);
+        Path target = Paths.get(configLoader.resultFilePath, folderName);
+        log.info("source path: {}, target path: {}", source, target);
+
+        // 소스 폴더 확인
+        if (!Files.exists(source)) {
+            log.warn("Source folder not found: " + source);
+            throw new NoSuchFileException("Source folder not found: " + source);
+        }
+
+        Files.createDirectories(target.getParent());
+
+        // 타깃 폴더가 이미 있으면 완전히 삭제 (병합 방지)
+        if (Files.exists(target)) {
+            FileUtils.deleteDirectory(target.toFile());
+        }
+
+        // 원본 폴더 전체 복사 (원본은 그대로 유지)
+        FileUtils.copyDirectory(source.toFile(), target.toFile());
+
+        // 복사 한 폴더 내 파일 이름 변경 (원본 파일 및 MD 결과 파일)
+        renameVisionFiles(fileInfo, target);
+    }
+
+    // 원본 파일, MD 파일 이름 변경 (파일명 내 groupUID 제거, .md -> _result.dat 변경)
+    private void renameVisionFiles(FileInfo fileInfo, Path targetDir) throws IOException {
+        String original = fileInfo.getFilename();              // 예: 파일명.pdf
+        String base = original.substring(0, original.lastIndexOf("."));  // 파일명
+        String groupUid = fileInfo.getGroupUID();
+        log.debug("[renameVisionFiles] 시작 - targetDir='{}', original='{}', base='{}', groupUid='{}'", targetDir, original, base, groupUid);
+
+        // 원본 파일명의 "_gorupUID" 제거
+        String originalFileName = buildNameForAiVision(original, groupUid); // 예: "파일명_ABC123.pdf"
+        Path targetFile = targetDir.resolve(originalFileName);
+        Path renamedFile = targetDir.resolve(original);
+        if (Files.exists(targetFile)) {
+            Files.move(targetFile, renamedFile, StandardCopyOption.REPLACE_EXISTING);
+            log.debug("[renameVisionFiles] 원본 파일명 리네임: '{}' -> '{}'", targetFile.getFileName(), renamedFile.getFileName());
+        } else {
+            log.debug("[renameVisionFiles] 원본 대상 파일이 없음(스킵): '{}'", targetFile.getFileName());
+        }
+
+        // 페이지 MD: "파일명_groupUID-page<숫자>.md" -> "파일명-page<숫자>_result.dat"
+        //String mdGlob = base + "_" + groupUid + "*.md";    // 대상 패턴: "base_groupUID.md", "base_groupUID-page{N}.md"
+        Pattern pagePattern = Pattern.compile(
+                Pattern.quote(base) + "_" + Pattern.quote(groupUid) + "-page(\\d+)\\.md"
+        );
+        // 추가: 이미 _result.md까지 붙은 케이스
+        Pattern pageResultPattern = Pattern.compile(
+                Pattern.quote(base) + "_" + Pattern.quote(groupUid) + "-page(\\d+)_result\\.md"
+        );
+
+        String singleMdName = base + "_" + groupUid + ".md";
+
+        //log.debug("MD 처리: glob='{}', single='{}', pattern='{}', resultPattern='{}'", mdGlob, singleMdName, pagePattern.pattern(), pageResultPattern.pattern());
+
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(targetDir,
+                path -> {
+                    String name = path.getFileName().toString();
+                    // md: "base_groupUID.md" 또는 "base_groupUID-pageN.md" 등을 포함
+                    return name.startsWith(base + "_" + groupUid) && name.endsWith(".md");
+                })) {
+            for (Path mdPath : stream) {
+                String name = mdPath.getFileName().toString();
+
+                // 리네임될 새 .md 파일명 결정
+                String newMdName;
+                Matcher m = pagePattern.matcher(name);
+                Matcher mr = pageResultPattern.matcher(name);
+                if (m.matches()) {
+                    // "base_groupUID-pageN.md" -> "base-pageN_result.md"
+                    String page = m.group(1);
+                    newMdName = base + "-page" + page + "_result.md";
+                } else if (mr.matches()) {
+                    // "base_groupUID-pageN_result.md" -> "base-pageN_result.md"
+                    String page = mr.group(1);
+                    newMdName = base + "-page" + page + "_result.md";
+                } else if (name.equals(singleMdName)) {
+                    // "base_groupUID.md" -> "base_result.md"
+                    newMdName = base + "_result.md";
+                } else {
+                    // 혹시 모를 유사 파일은 스킵
+                    log.debug("[renameVisionFiles][MD] 스킵: '{}'", name);
+                    continue;
+                }
+
+                // md 파일명 변경
+                Path renamedMdPath = mdPath.resolveSibling(newMdName);
+                try {
+                    Files.move(mdPath, renamedMdPath, StandardCopyOption.REPLACE_EXISTING);
+                    log.debug("[renameVisionFiles][MD] 리네임: '{}' -> '{}'", name, newMdName);
+                } catch (Exception e) {
+                    log.warn("[renameVisionFiles][MD] 리네임 실패: '{}' -> '{}', 원인: {}", name, newMdName, e.toString());
+                    continue;
+                }
+
+                // 결과 .md 를 동일 파일명으로 확장자만 .dat로 '복사'
+                String datName = replaceExtension(newMdName, "dat"); // ".md" -> ".dat"
+                Path datPath = renamedMdPath.resolveSibling(datName);
+                try {
+                    Files.copy(renamedMdPath, datPath, StandardCopyOption.REPLACE_EXISTING);
+                    log.debug("[renameVisionFiles][MD] DAT 생성: '{}' (from '{}')", datName, newMdName);
+                } catch (Exception e) {
+                    log.warn("[renameVisionFiles][MD] DAT 생성 실패: '{}' (from '{}'), 원인: {}", datName, newMdName, e.toString());
+                }
+            }
+        }
+
+//        try (DirectoryStream<Path> stream = Files.newDirectoryStream(targetDir, mdGlob)) {
+//            for (Path mdPath : stream) {
+//                String name = mdPath.getFileName().toString();
+//
+//                // 리네임될 새 .md 파일명 결정
+//                String newMdName;
+//                Matcher m = pagePattern.matcher(name);
+//                Matcher mr = pageResultPattern.matcher(name);
+//                if (m.matches()) {
+//                    // "base_groupUID-pageN.md" -> "base-pageN_result.md"
+//                    String page = m.group(1);
+//                    newMdName = base + "-page" + page + "_result.md";
+//                } else if (mr.matches()) {
+//                    // "base_groupUID-pageN_result.md" -> "base-pageN_result.md"
+//                    String page = mr.group(1);
+//                    newMdName = base + "-page" + page + "_result.md";
+//                } else if (name.equals(singleMdName)) {
+//                    // "base_groupUID.md" -> "base_result.md"
+//                    newMdName = base + "_result.md";
+//                } else {
+//                    // 혹시 모를 유사 파일은 스킵
+//                    log.debug("[renameVisionFiles][MD] 스킵: '{}'", name);
+//                    continue;
+//                }
+//
+//                // md 파일명 변경
+//                Path renamedMdPath = mdPath.resolveSibling(newMdName);
+//                try {
+//                    Files.move(mdPath, renamedMdPath, StandardCopyOption.REPLACE_EXISTING);
+//                    log.debug("[renameVisionFiles][MD] 리네임: '{}' -> '{}'", name, newMdName);
+//                } catch (Exception e) {
+//                    log.warn("[renameVisionFiles][MD] 리네임 실패: '{}' -> '{}', 원인: {}", name, newMdName, e.toString());
+//                    continue;
+//                }
+//
+//                // 결과 .md 를 동일 파일명으로 확장자만 .dat로 '복사'
+//                String datName = replaceExtension(newMdName, "dat"); // ".md" -> ".dat"
+//                Path datPath = renamedMdPath.resolveSibling(datName);
+//                try {
+//                    Files.copy(renamedMdPath, datPath, StandardCopyOption.REPLACE_EXISTING);
+//                    log.debug("[renameVisionFiles][MD] DAT 생성: '{}' (from '{}')", datName, newMdName);
+//                } catch (Exception e) {
+//                    log.warn("[renameVisionFiles][MD] DAT 생성 실패: '{}' (from '{}'), 원인: {}", datName, newMdName, e.toString());
+//                }
+//            }
+//        }
+
+        //String jsonGlob = base + "_" + groupUid + "*.json"; // "base_groupUID.json", "base_groupUID-page{N}.json" 등을 포함
+        Pattern jsonPagePattern = Pattern.compile(
+                Pattern.quote(base) + "_" + Pattern.quote(groupUid) + "-page(\\d+)\\.json"
+        );
+        String singleJsonName = base + "_" + groupUid + ".json";
+
+        //log.debug("JSON 처리: glob='{}', single='{}', pagePattern='{}'", jsonGlob, singleJsonName, jsonPagePattern.pattern());
+
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(targetDir,
+            path -> {
+                    String name = path.getFileName().toString();
+                    return name.startsWith(base + "_" + groupUid) && name.endsWith(".json");
+                })) {
+            for (Path jsonPath : stream) {
+                String name = jsonPath.getFileName().toString();
+
+                String newJsonName;
+                Matcher jm = jsonPagePattern.matcher(name);
+                if (jm.matches()) {
+                    // "base_groupUID-pageN.json" -> "base-pageN.json"
+                    String page = jm.group(1);
+                    newJsonName = base + "-page" + page + "_result.json";
+                } else if (name.equals(singleJsonName)) {
+                    // (옵션) "base_groupUID.json" -> "base.json"
+                    newJsonName = base + ".json";
+                } else {
+                    // 대상 외 파일 스킵
+                    log.debug("[renameVisionFiles][JSON] 스킵: '{}'", name);
+                    continue;
+                }
+
+                Path renamedJsonPath = jsonPath.resolveSibling(newJsonName);
+                try {
+                    Files.move(jsonPath, renamedJsonPath, StandardCopyOption.REPLACE_EXISTING);
+                    log.debug("[renameVisionFiles][JSON] 리네임: '{}' -> '{}'", name, newJsonName);
+                } catch (Exception e) {
+                    log.warn("[renameVisionFiles][JSON] 리네임 실패: '{}' -> '{}', 원인: {}", name, newJsonName, e.toString());
+                }
+            }
+        }
+//        try (DirectoryStream<Path> stream = Files.newDirectoryStream(targetDir, jsonGlob)) {
+//            for (Path jsonPath : stream) {
+//                String name = jsonPath.getFileName().toString();
+//
+//                String newJsonName;
+//                Matcher jm = jsonPagePattern.matcher(name);
+//                if (jm.matches()) {
+//                    // "base_groupUID-pageN.json" -> "base-pageN.json"
+//                    String page = jm.group(1);
+//                    newJsonName = base + "-page" + page + "_result.json";
+//                } else if (name.equals(singleJsonName)) {
+//                    // (옵션) "base_groupUID.json" -> "base.json"
+//                    newJsonName = base + ".json";
+//                } else {
+//                    // 대상 외 파일 스킵
+//                    log.debug("[renameVisionFiles][JSON] 스킵: '{}'", name);
+//                    continue;
+//                }
+//
+//                Path renamedJsonPath = jsonPath.resolveSibling(newJsonName);
+//                try {
+//                    Files.move(jsonPath, renamedJsonPath, StandardCopyOption.REPLACE_EXISTING);
+//                    log.debug("[renameVisionFiles][JSON] 리네임: '{}' -> '{}'", name, newJsonName);
+//                } catch (Exception e) {
+//                    log.warn("[renameVisionFiles][JSON] 리네임 실패: '{}' -> '{}', 원인: {}", name, newJsonName, e.toString());
+//                }
+//            }
+//        }
+    }
+
+    // AI.VISION의 결과 파일 이름 생성 (파일명_groupUID.확장자)
+    public String buildNameForAiVision(String filename, String groupUid) {
+        int idx = filename.lastIndexOf('.');
+        return (idx > 0)
+                ? filename.substring(0, idx) + "_" + groupUid + filename.substring(idx)
+                : filename + "_" + groupUid;
+    }
+
+    // 파일명의 확장자 변경
+    private static String replaceExtension(String filename, String newExt) {
+        int idx = filename.lastIndexOf('.');
+        if (idx < 0) return filename + "." + newExt;
+        return filename.substring(0, idx + 1) + newExt;
     }
 
     private int extractPageNum(String filename) {

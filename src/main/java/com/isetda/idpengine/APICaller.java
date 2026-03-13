@@ -68,6 +68,7 @@ public class APICaller {
                     fileInfo.setReceiveData(data.optString("receiveData"));
                     fileInfo.setUrlData(data.optString("urlData"));
                     fileInfo.setTaskName(data.optString("taskName"));
+                    fileInfo.setVisionStatus(data.optString("visionStatus"));
 
                     fileList.add(fileInfo);
                 }
@@ -142,6 +143,7 @@ public class APICaller {
                     fileInfo.setReceiveData(data.optString("receiveData"));
                     fileInfo.setUrlData(data.optString("urlData"));
                     fileInfo.setTaskName(data.optString("taskName"));
+                    fileInfo.setVisionStatus(data.optString("visionStatus"));
                 }
             }
         } else {
@@ -213,6 +215,7 @@ public class APICaller {
                     fileInfo.setReceiveData(data.optString("receiveData"));
                     fileInfo.setUrlData(data.optString("urlData"));
                     fileInfo.setTaskName(data.optString("taskName"));
+                    fileInfo.setVisionStatus(data.optString("visionStatus"));
                 }
             }
         } else {
@@ -284,6 +287,7 @@ public class APICaller {
                     fileInfo.setReceiveData(data.optString("receiveData"));
                     fileInfo.setUrlData(data.optString("urlData"));
                     fileInfo.setTaskName(data.optString("taskName"));
+                    fileInfo.setVisionStatus(data.optString("visionStatus"));
                 }
             }
         } else {
@@ -354,6 +358,7 @@ public class APICaller {
                     fileInfo.setReceiveData(data.optString("receiveData"));
                     fileInfo.setUrlData(data.optString("urlData"));
                     fileInfo.setTaskName(data.optString("taskName"));
+                    fileInfo.setVisionStatus(data.optString("visionStatus"));
                 }
             }
         } else {
@@ -413,6 +418,7 @@ public class APICaller {
                     fileInfo.setClassificationStartDateTime(data.optString("classificationStartDateTime"));
                     fileInfo.setClassificationEndDateTime(data.optString("classificationEndDateTime"));
                     fileInfo.setTaskName(data.optString("taskName"));
+                    fileInfo.setVisionStatus(data.optString("visionStatus"));
 
                     fileList.add(fileInfo);
                 }
@@ -475,6 +481,7 @@ public class APICaller {
                         fileInfo.setClassificationEndDateTime(data.optString("classificationEndDateTime"));
                         fileInfo.setCreateDateTime(data.optString("createDateTime"));
                         fileInfo.setTaskName(data.optString("taskName"));
+                        fileInfo.setVisionStatus(data.optString("visionStatus"));
 
                         fileList.add(fileInfo);
                     }
@@ -560,6 +567,7 @@ public class APICaller {
                     fileInfo.setClassificationStartDateTime(data.optString("classificationStartDateTime"));
                     fileInfo.setClassificationEndDateTime(data.optString("classificationEndDateTime"));
                     fileInfo.setTaskName(data.optString("taskName"));
+                    fileInfo.setVisionStatus(data.optString("visionStatus"));
 
                     fileList.add(fileInfo);
                 }

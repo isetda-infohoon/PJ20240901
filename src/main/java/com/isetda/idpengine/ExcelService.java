@@ -1108,6 +1108,110 @@ public class ExcelService {
         }
     }
 
+    public void jsonDataUpdateWithVision(String taskName, String subpath, String fileName, String groupUid, String[] values) throws UnirestException {
+        log.info("update start: " + subpath + File.separator + fileName);
+
+        String apiTaskName = (taskName == null || taskName.isEmpty()) ? "DEFAULT" : taskName;
+
+        APICaller apiCaller = new APICaller();
+        String userId = configLoader.apiUserId;
+
+        // 원본만 들어오지만 page 접미사 제거는 안전장치로 둠
+        String defaultName = new File(fileName.replace("_result", "").replaceAll("-page\\d+$", "")).getName(); // 디렉토리 제거
+
+        String[] imageExts = {"jpg", "png", "jpeg", "JPG", "PNG", "JPEG"}; // (닷 없음으로 맞춤)
+        FileInfo fileInfo = null;
+        String detectedExt = null; // 확장자(닷 없음)
+
+        for (String ext : FileExtensionUtil.AIVISION_SUPPORTED_EXT) {
+            fileInfo = apiCaller.getFileByName(userId, defaultName + "." + ext);
+            if (fileInfo != null && fileInfo.getFilename() != null) {
+                detectedExt = ext; // 예: "pdf"
+                log.debug("detected office/pdf ext: {}", detectedExt);
+                break;
+            }
+        }
+        if (fileInfo == null || fileInfo.getFilename() == null) {
+            for (String ext : imageExts) {
+                fileInfo = apiCaller.getFileByName(userId, defaultName + "." + ext);
+                if (fileInfo != null && fileInfo.getFilename() != null) {
+                    detectedExt = ext; // 예: "jpg"
+                    log.debug("detected image ext: {}", detectedExt);
+                    break;
+                }
+            }
+        }
+
+        // 파일 메타 없으면 종료
+        if (fileInfo == null || fileInfo.getFilename() == null) {
+            log.warn("파일 정보를 찾지 못했습니다. API 호출 생략: {}", defaultName);
+            return;
+        }
+
+        // 원본만 대상이므로 pageNum == 0 만 의미 있음
+        if (fileInfo.getPageNum() != 0) {
+            log.debug("원본 전용 메서드이므로 pageNum != 0 인 경우 스킵: {}", fileInfo.getPageNum());
+            return;
+        }
+
+        // subpath 정리 (앞, 뒤 경로 구분자 제거)
+        Path base = Paths.get(configLoader.resultFilePath);
+        Path branch = configLoader.createClassifiedFolder
+                ? base.resolve(values[2]).resolve(apiTaskName)
+                : base.resolve(apiTaskName);
+
+        if (subpath != null && !subpath.trim().isEmpty()) {
+            // OS별 구분자 자동 처리
+            String normalizedSubpath = (subpath == null) ? "" : subpath.trim();
+            if (!normalizedSubpath.isEmpty()) {
+                // 양쪽 경로 구분자 제거
+                while (normalizedSubpath.startsWith(File.separator)) normalizedSubpath = normalizedSubpath.substring(1);
+                while (normalizedSubpath.endsWith(File.separator))   normalizedSubpath = normalizedSubpath.substring(0, normalizedSubpath.length()-1);
+            }
+            branch = branch.resolve(normalizedSubpath.trim());
+        }
+
+        String folderName = defaultName + "_" + groupUid;
+        Path resultFolder = branch.resolve(folderName);
+
+        // 폴더 존재 확인
+        if (!Files.exists(resultFolder) || !Files.isDirectory(resultFolder)) {
+            log.debug("결과 폴더가 존재하지 않습니다. resultFolder={}", resultFolder.toString());
+            return;
+        }
+
+        String mClass = values[2];
+        String classificationStatus = (mClass != null && mClass.contains("미분류"))
+                ? (configLoader.useUnclassifiedAsCS ? "CS" : "CF")
+                : "CS";
+
+        String resultTxtName = defaultName + "_result.txt";
+        String resultMdName  = defaultName + "_result.md";
+
+        JSONObject jsonBody = new JSONObject();
+        jsonBody.put("fileName", fileInfo.getFilename());
+        jsonBody.put("pageNum", 0);
+        jsonBody.put("userId", userId);
+        jsonBody.put("serviceType", fileInfo.getServiceType());
+        jsonBody.put("language", fileInfo.getLanguage());
+        jsonBody.put("lClassification", getCountryName(fileInfo.getLanguage()));
+        jsonBody.put("mClassification", mClass);
+        jsonBody.put("classificationStatus", classificationStatus);
+
+        jsonBody.put("classificationResultFileName", resultTxtName);
+        jsonBody.put("visionResultFileName", resultMdName);
+
+
+        jsonBody.put("classificationStartDateTime", classificationStartDateTime);
+        jsonBody.put("classificationEndDateTime", getCurrentTime());
+        jsonBody.put("taskName", apiTaskName);
+
+        // --- API 호출 ---
+        apiCaller.callUpdateApi(jsonBody);
+
+        log.info("Vision update completed. resultFolder={}, fileFound={}", resultFolder.toString(), defaultName + "." + detectedExt);
+    }
+
     public int getProcessedPageCount(String userId, String basename) throws UnirestException {
         APICaller apiCaller = new APICaller();
         int count = 0;
@@ -1185,16 +1289,20 @@ public class ExcelService {
         }
     }
 
-    public void appendPageResultToMaster(String pageFileName) {
+    public void appendPageResultToMaster(String pageFileName, String visionResultFolder) {
+        if (visionResultFolder == null) {
+            visionResultFolder = "";
+        }
+
         // pageFileName 예: "파일명-page1_result"
-        String pageFilePath = configLoader.resultFilePath + File.separator + pageFileName + ".txt";
+        String pageFilePath = configLoader.resultFilePath + File.separator + visionResultFolder + File.separator + pageFileName + ".txt";
 
         // masterFileName 예: "파일명_result"
         String masterFileName = pageFileName.contains("-page")
                 ? pageFileName.substring(0, pageFileName.indexOf("-page")) + "_result"
                 : pageFileName;
 
-        String masterFilePath = configLoader.resultFilePath + File.separator + masterFileName + ".txt";
+        String masterFilePath = configLoader.resultFilePath + File.separator + visionResultFolder + File.separator + masterFileName + ".txt";
 
         File pageFile = new File(pageFilePath);
         File masterFile = new File(masterFilePath);
@@ -1237,16 +1345,16 @@ public class ExcelService {
         }
     }
 
-    public void appendMdResultToMaster(String pageFileName, boolean officeExtensionFlag) {
+    public void appendMdResultToMaster(String pageFileName, boolean officeExtensionFlag, String visionResultFolder) {
         // pageFileName 예: "파일명-page1_result"
-        String pageFilePath = configLoader.resultFilePath + File.separator + pageFileName + ".dat";
+        String pageFilePath = configLoader.resultFilePath + File.separator + visionResultFolder + File.separator + pageFileName + ".dat";
 
         // masterFileName 예: "파일명_result"
         String masterFileName = pageFileName.contains("-page")
                 ? pageFileName.substring(0, pageFileName.indexOf("-page")) + "_result"
                 : pageFileName;
 
-        String masterFilePath = configLoader.resultFilePath + File.separator + masterFileName + ".md";
+        String masterFilePath = configLoader.resultFilePath + File.separator + visionResultFolder + File.separator + masterFileName + ".md";
 
         File pageFile = new File(pageFilePath);
         File masterFile = new File(masterFilePath);
@@ -1258,7 +1366,8 @@ public class ExcelService {
 
         if (configLoader.useMdFileCreation) {
             // .jpg인 경우 (단일 페이지) md 파일 저장
-            if (!pageFileName.contains("-page")) {
+            //TODO: AI.VISION 사용시 단일 처리 막기? (MD 파일 이미 존재)
+            if (visionResultFolder.isEmpty() && !pageFileName.contains("-page")) {
                 try {
                     String content;
                     if (configLoader.encodingCheck) {
@@ -1283,7 +1392,7 @@ public class ExcelService {
             }
 
             if (officeExtensionFlag) {
-                Path resultDir = Paths.get(configLoader.resultFilePath);
+                Path resultDir = Paths.get(configLoader.resultFilePath, visionResultFolder);
                 String baseName = pageFileName.substring(0, pageFileName.indexOf("-page"));
                 // 파일명 정규식: 파일명-pageNN_result.dat
                 Pattern pat = Pattern.compile(Pattern.quote(baseName) + "-page(\\d+)_result\\.dat", Pattern.CASE_INSENSITIVE);
@@ -1974,6 +2083,104 @@ public class ExcelService {
             }
         }
     }
+
+    // AI.VISION 사용 시 결과 폴더 이동
+    public void moveFolder(
+            String resultFilePath,                               // 상위 결과 경로
+            Map<String, Map<String, String>> resultByVersion,    // 분류 결과 맵: 키 = originalName 또는 baseName(page), 값 = {versionKey: value}
+            String version,                                      // 1순위 버전 키
+            String subVersion,                                   // 2순위 버전 키(1순위가 "미분류"일 때)
+            String taskName,                                     // 타깃 디렉터리 산출에 사용
+            String subPath,                                      // (기존 로직 재사용 시 필요할 수 있는 보조 경로; 타깃 경로 계산에 사용 가능)
+            String folderBase                                    // 폴더명: originalName(확장자X)_groupUID (예: 보고서A_ABCDEF12)
+    ) {
+        // 0) 유효성 체크
+        if (folderBase == null || folderBase.isBlank()) {
+            log.warn("[folderMove] folderBase is blank. Skip.");
+            return;
+        }
+        if (resultFilePath == null || resultFilePath.isBlank()) {
+            log.warn("[folderMove] resultFilePath is blank. Skip.");
+            return;
+        }
+
+        // 1) 원본 폴더 경로 구성
+        Path sourceFolder = Paths.get(resultFilePath, folderBase);
+        if (!Files.exists(sourceFolder) || !Files.isDirectory(sourceFolder)) {
+            log.warn("[folderMove] source folder not found or not a directory: {}", sourceFolder);
+            return;
+        }
+
+        // 2) originalName 추출: "original_groupUID" → "original"
+        //    groupUID에 '_'가 포함될 수 있다면, 마지막 '_'를 기준으로 split 하는 것이 안전합니다.
+        String originalName = extractOriginalName(folderBase);
+
+        // 3) 분류값(value) 조회
+        //    - 1순위: originalName
+        //    - 2순위: originalName + "-page1"
+        Map<String, String> valueList = null;
+        if (resultByVersion != null) {
+            valueList = resultByVersion.get(originalName);
+            if (valueList == null) {
+                String page1Key = originalName + "-page1";
+                valueList = resultByVersion.get(page1Key);
+            }
+        }
+
+        String value = null;
+        if (valueList != null) {
+            value = valueList.get(version);
+            if (value != null && value.contains("미분류") && subVersion != null) {
+                String sub = valueList.get(subVersion);
+                if (sub != null && !sub.isBlank()) {
+                    value = sub;
+                }
+            }
+        }
+
+        // 4) value가 없으면 기본 폴더로(Fallback)
+//        if (value == null || value.isBlank()) {
+//            value = "Unclassified"; // 필요시 config로 빼도 됨
+//            log.info("[folderMove] classification value not found. Use fallback='{}'", value);
+//        }
+
+        // 5) 타깃 디렉터리 계산 및 생성
+        Path targetDir = computeTargetDir(resultFilePath, value, taskName, subPath);
+        ensureDir(targetDir);
+
+        // 6) 최종 목적지 폴더 경로: targetDir 아래에 동일한 folderBase 이름으로 이동
+        Path destination = targetDir.resolve(folderBase);
+
+        // 이미 같은 위치에 있다면 스킵
+        if (sourceFolder.normalize().equals(destination.normalize())) {
+            log.info("[folderMove] source equals destination. Skip. ({})", sourceFolder);
+            return;
+        }
+
+        // 7) 이동(폴더 단위)
+        try {
+            Files.createDirectories(destination.getParent()); // 상위 경로 보장
+            // 원자적 이동이 불가능한 파일시스템이면 REPLACE_EXISTING만으로 충분치 않을 수 있습니다.
+            Files.move(sourceFolder, destination, StandardCopyOption.REPLACE_EXISTING);
+            log.info("[folderMove] moved folder '{}' -> '{}'", sourceFolder, destination);
+        } catch (DirectoryNotEmptyException dne) {
+            // 대상 폴더가 이미 존재하고 비어있지 않은 경우 → 병합 이동이 필요하다면 수동 병합 로직 작성
+            log.warn("[folderMove] target directory already exists and not empty: {}. Consider merge logic.", destination);
+        } catch (IOException e) {
+            log.error("[folderMove] folder move failed. src='{}' dst='{}' cause={}", sourceFolder, destination, e.toString());
+        }
+    }
+
+    /**
+     * "original_groupUID" 형태에서 originalName만 뽑는다.
+     * groupUID에 '_'가 포함될 수 있으므로 마지막 '_'를 기준으로 자른다.
+     */
+    private String extractOriginalName(String folderBase) {
+        int last = folderBase.lastIndexOf('_');
+        if (last <= 0) return folderBase; // '_' 없는 경우 전체를 original로 간주
+        return folderBase.substring(0, last);
+    }
+
 
     private Path computeTargetDir(String resultFilePath, String value, String taskName, String subPath) {
         if (configLoader.createClassifiedFolder) {

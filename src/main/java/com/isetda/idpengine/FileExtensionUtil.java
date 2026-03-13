@@ -15,6 +15,10 @@ public class FileExtensionUtil {
             "hwp","hwt","hml","hwpx"
     );
 
+    public static final Set<String> AIVISION_SUPPORTED_EXT = Set.of(
+            "pdf", "hwp"
+    );
+
     public static String getExtension(String filename) {
         if (filename == null) return "";
         int idx = filename.lastIndexOf('.');

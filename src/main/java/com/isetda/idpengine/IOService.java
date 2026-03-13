@@ -399,10 +399,11 @@ public class IOService {
     }
 
     // 처리 단위가 1개 파일일 때
-    public List<File> getFileWithAPIAndExtractedImages(FileInfo unitFileInfo) {
+    public List<FileWithLookupName> getFileWithAPIAndExtractedImages(FileInfo unitFileInfo) {
         APICaller apiCaller = new APICaller();
         IOService ioService = new IOService();
-        List<File> resultFiles = new ArrayList<>();
+        List<File> collectedFiles  = new ArrayList<>();
+        List<FileWithLookupName> result = new ArrayList<>();
 
         //File folder = new File(configLoader.imageFolderPath);
 
@@ -410,27 +411,60 @@ public class IOService {
         String formattedDate = today.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
 
         try {
-            String fileName = unitFileInfo.getFilename();
+            String fileName;     // 전체 파일 이름 (subpath + 파일명_groupUID.확장자)
+            String baseWithUid = null;  // 확장자 빠진 파일 이름 (subpath + 파일명_ groupUID)
+            String extWithDot = null;   // 확장자 (.확장자)
+
+            if (unitFileInfo.getServiceType().equalsIgnoreCase("ai.vision")) {
+                String original = unitFileInfo.getFilename();
+                String fileNameOnly = Paths.get(original).getFileName().toString();
+
+                int idx = fileNameOnly.lastIndexOf('.');
+                String base;
+
+                if (idx > 0 && idx < fileNameOnly.length() - 1) { // 확장자 체크
+                    base = fileNameOnly.substring(0, idx);     // subpath~파일명
+                    extWithDot = fileNameOnly.substring(idx);  // 확장자 (.pdf)
+                } else {
+                    // 확장자 없을 때
+                    base = fileNameOnly;
+                    extWithDot = "";      // 확장자 없음
+                }
+
+                baseWithUid = base + "_" + unitFileInfo.getGroupUID();
+                fileName = baseWithUid + extWithDot;
+            } else {
+                fileName = unitFileInfo.getFilename();
+            }
+
             String normalizedFileName = fileName.replace("/", File.separator).replace("\\", File.separator);
             File file = null;
 
             for (FolderMapping mapping : configLoader.folderMappings) {
-                //File targetFile = new File(mapping.getImageFolderPath(), fileName);
-                File targetFile = Paths.get(mapping.getImageFolderPath(), normalizedFileName).toFile();
+                File targetFile;
+                if (unitFileInfo.getServiceType().equalsIgnoreCase("ai.vision")) {
+                    Path targetDir = Paths.get(mapping.getImageFolderPath(), baseWithUid);
+                    targetFile = targetDir.resolve(baseWithUid + extWithDot).toFile();
+                } else {
+                    targetFile = Paths.get(mapping.getImageFolderPath(), normalizedFileName).toFile();
+                }
+
                 log.trace("파일 탐색 시도 경로: {}", targetFile.getAbsolutePath());
 
                 if (targetFile.exists()) {
                     file = targetFile;
 
-                    // 세부 경로 추출
+                    // 세부 경로 추출 (26.02 기준 ai.vision은 subpath (NAS 경로 기능) 사용 전이기 때문에 제외)
                     String subDirPath = "";
-                    int lastSeparatorIndex = normalizedFileName.lastIndexOf(File.separator);
-                    if (lastSeparatorIndex != -1) {
-                        String rawSubPath = fileName.substring(0, lastSeparatorIndex);
-                        subDirPath = Paths.get(rawSubPath).toString() + File.separator;
+                    if (!unitFileInfo.getServiceType().equalsIgnoreCase("ai.vision")) {
+                        int lastSeparatorIndex = normalizedFileName.lastIndexOf(File.separator);
+                        if (lastSeparatorIndex != -1) {
+                            String rawSubPath = fileName.substring(0, lastSeparatorIndex);
+                            subDirPath = Paths.get(rawSubPath).toString() + File.separator;
+                        }
+//                        int lastSeparatorIndex = normalizedFileName.lastIndexOf(File.separator);
+//                        String subDirPath = (lastSeparatorIndex != -1) ? fileName.substring(0, lastSeparatorIndex) + File.separator : "";
                     }
-//                    int lastSeparatorIndex = normalizedFileName.lastIndexOf(File.separator);
-//                    String subDirPath = (lastSeparatorIndex != -1) ? fileName.substring(0, lastSeparatorIndex) + File.separator : "";
 
                     configLoader.imageFolderPath = mapping.getImageFolderPath() + File.separator + subDirPath;
                     configLoader.resultFilePath = mapping.getResultFilePath();
@@ -453,7 +487,7 @@ public class IOService {
             }
             //File file = new File(configLoader.imageFolderPath, fileName);
 
-            if (!file.exists()) {
+            if (file == null || !file.exists()) {
                 //log.info("file not exist: {}", file.getAbsolutePath());
                 return Collections.emptyList();
             }
@@ -461,10 +495,10 @@ public class IOService {
             String lowerName = fileName.toLowerCase();
             String ext = FileExtensionUtil.getExtension(fileName);
 
-            if (configLoader.usePdfExtractImage) {
+            if (!unitFileInfo.getServiceType().equalsIgnoreCase("ai.vision") && configLoader.usePdfExtractImage) {
                 if (lowerName.endsWith(".pdf")) {
                     List<File> extractedImages = extractImagesFromPDF(file.getAbsolutePath());
-                    resultFiles.addAll(extractedImages);
+                    collectedFiles.addAll(extractedImages);
 
                     copyFiles(file);
                     int maxPage = getPdfPageCount(file.getAbsolutePath());
@@ -472,23 +506,26 @@ public class IOService {
 
                     log.debug("PDF에서 추출된 이미지 {}개 추가됨: {}", extractedImages.size(), fileName);
                 } else if (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg") || lowerName.endsWith(".png")) {
-                    resultFiles.add(file);
+                    collectedFiles.add(file);
                     ioService.copyFiles(file);
                 } else if (configLoader.serviceType.equalsIgnoreCase("da") && FileExtensionUtil.DA_SUPPORTED_EXT.contains(ext)) {
                     //TODO: da 서비스에서 처리해야 할 Office/HWP 파일 처리
-                    resultFiles.add(file);
+                    collectedFiles.add(file);
                     ioService.copyFiles(file);
                 } else {
                     log.warn("지원하지 않는 파일 형식: {}", fileName);
                 }
             } else {
                 if (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg") || lowerName.endsWith(".png")) {
-                    resultFiles.add(file);
+                    collectedFiles.add(file);
                     ioService.copyFiles(file);
                 } else if (configLoader.serviceType.equalsIgnoreCase("da") && FileExtensionUtil.DA_SUPPORTED_EXT.contains(ext)) {
                     //TODO: da 서비스에서 처리해야 할 Office/HWP 파일 처리
-                    resultFiles.add(file);
+                    collectedFiles.add(file);
                     ioService.copyFiles(file);
+                } else if (configLoader.serviceType.equalsIgnoreCase("ai.vision") && FileExtensionUtil.AIVISION_SUPPORTED_EXT.contains(ext)) {
+                    collectedFiles.add(file);
+                    //ioService.copyFiles(file);
                 } else {
                     log.warn("지원하지 않는 파일 형식: {}", fileName);
                 }
@@ -534,7 +571,7 @@ public class IOService {
 //            log.error("폴더를 읽을 수 없습니다: {}", configLoader.imageFolderPath);
 //        }
 
-        resultFiles.sort((f1, f2) -> {
+        collectedFiles.sort((f1, f2) -> {
             int pageNum1 = extractPageNumber(f1.getName());
             int pageNum2 = extractPageNumber(f2.getName());
             return Integer.compare(pageNum1, pageNum2);
@@ -547,7 +584,36 @@ public class IOService {
 //                    file.getName());
 //        }
 
-        return resultFiles;
+        // 'API 조회용 이름'을 계산해 함께 반환
+        for (File f : collectedFiles) {
+            String apiLookupName;
+            if (unitFileInfo.getServiceType().equalsIgnoreCase("ai.vision")) {
+                // ai.vision: DB에는 groupUid 없는 "파일명.확장자"로 저장됨 → _groupUid 제거
+                //apiLookupName = rebuildApiLookupName(f.getName(), unitFileInfo.getGroupUID());
+
+                // ai.vision에는 멀티 파일이 아니라 단일 파일을 반환(usePdfExtractImage 사용 X)하기 때문에 unitFileInfo.getFileName() 바로 사용, *멀티 파일 사용하는 경우 위 주석 풀어서 rebuildApiLookupName 메소드 사용
+                apiLookupName = Paths.get(unitFileInfo.getFilename()).getFileName().toString();
+            } else {
+                apiLookupName = f.getName();
+            }
+            result.add(new FileWithLookupName(f, apiLookupName));
+        }
+
+        return result;
+    }
+
+    // 원본 파일명 추출 (ai.vision 사용 시 groupUID와 합쳐진 파일명일 경우)
+    private static String rebuildApiLookupName(String fileNameWithUid, String groupUid) {
+        int dotIdx = fileNameWithUid.lastIndexOf('.');
+        String base = (dotIdx > 0) ? fileNameWithUid.substring(0, dotIdx) : fileNameWithUid;
+        String extWithDot = (dotIdx > 0 && dotIdx < fileNameWithUid.length())
+                ? fileNameWithUid.substring(dotIdx) : "";
+
+        String suffix = "_" + groupUid;
+        if (base.endsWith(suffix)) {
+            base = base.substring(0, base.length() - suffix.length());
+        }
+        return base + extWithDot;
     }
 
     // 페이지 번호 추출 함수 (정렬)

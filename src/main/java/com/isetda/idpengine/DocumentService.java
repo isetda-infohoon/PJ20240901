@@ -229,7 +229,7 @@ public class DocumentService {
                 excelService.textFinalResult(textSaveFilePath, fileName, finalResultByVersion, configLoader.classificationCriteria, configLoader.subClassificationCriteria, finalCertificateResult);
 
                 if (fileName.contains("-page")) { // '파일명-page?_result'
-                    excelService.appendPageResultToMaster(fileName);
+                    excelService.appendPageResultToMaster(fileName, "");
                 }
             }
 
@@ -381,11 +381,11 @@ public class DocumentService {
                 excelService.textFinalResult(textSaveFilePath, fileName, finalResultByVersion, configLoader.classificationCriteria, configLoader.subClassificationCriteria, finalCertificateResult);
 
                 if (fileName.contains("-page")) { // '파일명-page?_result'
-                    excelService.appendPageResultToMaster(fileName);
+                    excelService.appendPageResultToMaster(fileName, "");
                 }
 
                 if (configLoader.serviceType.contains("da")) {
-                    excelService.appendMdResultToMaster(fileName, officeExtensionFlag);
+                    excelService.appendMdResultToMaster(fileName, officeExtensionFlag, "");
                 }
             }
             cnt++;
@@ -425,6 +425,122 @@ public class DocumentService {
         }
     }
 
+    public void createFinalResultFileWithVision(boolean officeExtensionFlag, FileInfo fileInfo) throws Exception {
+        new IDPEngineController(sharedState).jsonfiles = jsonFiles.length;
+
+        //TODO
+        configLoader.classificationCriteria = "C1";
+        configLoader.subClassificationCriteria = "C1";
+
+        int idx = fileInfo.getFilename().lastIndexOf('.');
+        String visionResultFolder = fileInfo.getFilename().substring(0, idx) + "_" + fileInfo.getGroupUID();
+
+        int cnt = 1;
+        for (File curFile : jsonFiles) {
+            log.debug("{}번째 JSON 파일 작업 시작 : {}", cnt , curFile.getName());
+            // 각 파일 마다 분류 시작 시간 저장
+            excelService.classificationStartDateTime = excelService.getCurrentTime();
+            // 각 파일 JSON Object로 저장
+            String jsonFilePath = curFile.getPath();
+
+            fileName = curFile.getName().substring(0, curFile.getName().lastIndexOf("."));
+            saveFilePath = configLoader.resultFilePath + File.separator + visionResultFolder + File.separator + fileName + ".xlsx";
+            textSaveFilePath = configLoader.resultFilePath + File.separator + visionResultFolder + File.separator + fileName + ".txt";
+            datasetSavePath = configLoader.resultFilePath + File.separator + visionResultFolder + File.separator + fileName + "filtered_result2.xlsx";
+
+            imgFileName = fileName.replace("_result","");
+
+//            JsonService jsonService = new JsonService(jsonFilePath);
+//            wordLocal = jsonService.jsonLocal;
+            byte[] fileContent = FileUtils.readFileToByteArray(new File(jsonFilePath));
+            String rawText;
+
+            if (configLoader.encodingCheck) {
+                rawText = JsonService.aesDecode(fileContent);
+            } else {
+                rawText = new String(fileContent, StandardCharsets.UTF_8);
+            }
+
+            if (rawText == null) {
+                rawText = "";
+            }
+
+            // TODO: 공백, 줄바꿈, 유니코드 공백 제거
+            String allWords = rawText.replaceAll("[\\p{Z}\\s]+", "");
+
+            resultByVersion.put(fileName.replace("_result", ""), new HashMap<>());
+            finalResultByVersion.put(fileName.replace("_result", ""), new HashMap<>());
+
+            if (configLoader.cdAUsageFlag) {
+                classifyDocuments1(jsonData, allWords);
+                postProcessing("A1");
+            }
+
+            if (configLoader.cdBUsageFlag) {
+                classifyDocuments_B1(jsonData, allWords);
+                postProcessing("B1");
+            }
+
+            if (configLoader.cdCUsageFlag) {
+                classifyDocuments_C1(jsonData, allWords);
+                postProcessing("C1");
+            }
+
+            Thread.sleep(200);
+
+            if (configLoader.classifyByFirstPage) {
+                resultProcessing(resultByVersion);
+                resultProcessing(finalResultByVersion);
+            }
+
+            if (configLoader.writeTextResults) {
+                excelService.textFinalResult(textSaveFilePath, fileName, finalResultByVersion, configLoader.classificationCriteria, configLoader.subClassificationCriteria, finalCertificateResult);
+
+                if (fileName.contains("-page")) { // '파일명-page?_result'
+                    excelService.appendPageResultToMaster(fileName, visionResultFolder);
+                }
+
+                excelService.appendMdResultToMaster(fileName, officeExtensionFlag, visionResultFolder);
+            }
+            cnt++;
+        }
+
+        System.out.println();
+
+        if (configLoader.createFolders) {
+//            if (!officeExtensionFlag) {
+//                excelService.moveFiles(configLoader.resultFilePath, resultByVersion,
+//                        configLoader.classificationCriteria, configLoader.subClassificationCriteria,
+//                        subPath, taskName);
+//            } else {
+//                excelService.moveFilesForOffice(configLoader.resultFilePath, resultByVersion,
+//                        configLoader.classificationCriteria, configLoader.subClassificationCriteria, subPath, taskName);
+//            }
+            excelService.moveFolder(configLoader.resultFilePath, resultByVersion,
+                        configLoader.classificationCriteria, configLoader.subClassificationCriteria, subPath, taskName, visionResultFolder);
+        }
+
+        // api 사용 시 update 진행
+        if (configLoader.apiUsageFlag) {
+            Map<String, String> valueList = finalResultByVersion.get(fileName.replace("_result", ""));
+
+            if (valueList != null) {
+                String value = valueList.get(configLoader.classificationCriteria);
+                if (value != null) {
+                    if (value.contains("미분류")) {
+                        value = valueList.get(configLoader.subClassificationCriteria);
+                    }
+                    String[] values = value.split(Pattern.quote(File.separator));
+                    try {
+                        excelService.jsonDataUpdateWithVision(taskName, subPath, fileName, fileInfo.getGroupUID(), values);
+                        log.info("Update completed");
+                    } catch (Exception e) {
+                        log.warn("Update api failed. {}", e.getMessage());
+                    }
+                }
+            }
+        }
+    }
 
     public void postProcessing(String a) throws Exception {
 //        log.info("문서 타입 55 :{}",docType);
@@ -460,6 +576,7 @@ public class DocumentService {
             resultByVersion.get(baseFileName).put(a, resultList.get(2).get(1));
         }
         finalResultByVersion.get(baseFileName).put(a, resultList.get(0).get(1) + File.separator + resultList.get(1).get(1) + File.separator + resultList.get(2).get(1));
+        log.debug("[postProcessing] finalResultByVersion : {}", finalResultByVersion.get(baseFileName));
     }
 
     public void resultProcessing(Map<String, Map<String, String>> result) {

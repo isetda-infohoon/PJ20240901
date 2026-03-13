@@ -19,6 +19,7 @@ public class FileInfo {
     private String receiveData;
     private String urlData;
     private String taskName;
+    private String visionStatus;
 
     public FileInfo() {}
 
@@ -40,6 +41,7 @@ public class FileInfo {
     public String getReceiveData() {return receiveData;}
     public String getUrlData() {return urlData;}
     public String getTaskName() {return taskName; }
+    public String getVisionStatus() {return visionStatus;}
 
     public void setFilename(String filename) {
         this.filename = filename;
@@ -110,4 +112,6 @@ public class FileInfo {
     public void setTaskName(String taskName) {
         this.taskName = taskName;
     }
+
+    public void setVisionStatus(String visionStatus) { this.visionStatus = visionStatus; }
 }
