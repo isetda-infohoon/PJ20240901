@@ -1,5 +1,6 @@
-package com.isetda.idpengine;
+package com.isetda.idpengine.service;
 
+import com.isetda.idpengine.*;
 import com.mashape.unirest.http.exceptions.UnirestException;
 import okhttp3.*;
 import org.apache.logging.log4j.LogManager;
@@ -204,7 +205,7 @@ public class SynapService {
     }
 
     public void deleteErrorFile(File file, File localDir, String subPath) {
-        APICaller apiCaller = new APICaller();
+        IDPService IDPService = new IDPService();
         String originalFileName;
         Pattern pattern = Pattern.compile("(.+)-page\\d+\\.jpg$");
         Matcher matcher = pattern.matcher(file.getName());
@@ -224,13 +225,13 @@ public class SynapService {
         log.info("imageFolderPath: " + imageFolderPath);
         IOService.moveFileToErrorDirectory(imageFolderPath, subPath);
         try {
-            FileInfo fileInfo = apiCaller.getFileByNameAndPageNum(configLoader.apiUserId, apiFileName,0);
+            FileInfo fileInfo = IDPService.getFileByNameAndPageNum(configLoader.apiUserId, apiFileName,0);
             log.info(fileInfo.getFilename());
             String message = "Synap OCR Error";
-            apiCaller.callDeleteApi(configLoader.apiUserId, fileInfo.getFilename(), fileInfo.getServiceType());
+            IDPService.callDeleteApi(configLoader.apiUserId, fileInfo.getFilename(), fileInfo.getServiceType());
             if (fileInfo.getUrlData() != null) {
                 String errorDir = Paths.get(configLoader.resultFilePath, "오류", subPath).toString();
-                apiCaller.callbackApi(fileInfo, errorDir, 666, message);
+                IDPService.callbackApi(fileInfo, errorDir, 666, message);
             } else {
                 log.info("URL DATA IS NULL");
             }

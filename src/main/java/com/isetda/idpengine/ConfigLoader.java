@@ -91,6 +91,7 @@ public class ConfigLoader {
     public boolean useMdFileCreation;
     public boolean useSourceDeletion;
     public String resultFileNamingRule;
+    public int processPeriodDays;
 
     public boolean excelFileDownload;
     public boolean csvFileDownload;
@@ -548,6 +549,13 @@ public class ConfigLoader {
             } else {
                 log.error("The resultFileNamingRule tag does not exist in Config.xml. Application will terminate.");
                 throw new RuntimeException("Missing required configuration: resultFileNamingRule");
+            }
+
+            if (root.getElementsByTagName("processPeriodDays").getLength() > 0) {
+                processPeriodDays = Integer.parseInt(root.getElementsByTagName("processPeriodDays").item(0).getTextContent().trim());
+            } else {
+                log.error("The processPeriodDays tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: processPeriodDays");
             }
 
             Files.copy(configFile.toPath(), new File(backupFilePath).toPath(), StandardCopyOption.REPLACE_EXISTING);

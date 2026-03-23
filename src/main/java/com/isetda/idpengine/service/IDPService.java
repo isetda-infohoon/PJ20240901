@@ -1,5 +1,7 @@
-package com.isetda.idpengine;
+package com.isetda.idpengine.service;
 
+import com.isetda.idpengine.ConfigLoader;
+import com.isetda.idpengine.FileInfo;
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
@@ -17,8 +19,8 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-public class APICaller {
-    private static final Logger log = LogManager.getLogger(APICaller.class);
+public class IDPService {
+    private static final Logger log = LogManager.getLogger(IDPService.class);
     public ConfigLoader configLoader = ConfigLoader.getInstance();
 
     public List<FileInfo> getFileWithStatus(String userId) throws UnirestException {
@@ -506,13 +508,13 @@ public class APICaller {
                 return LocalDateTime.parse(dateTimeStr, formatter);
             }));
 
-            //                    // 정렬 결과 로그 출력
-            //                    log.info("FileList 시간순 정렬 확인");
-            //                    for (FileInfo info : fileList) {
-            //                        log.info("Filename: {}, StartDateTime: {}",
-            //                                info.getFilename(),
-            //                                info.getClassificationStartDateTime());
-            //                    }
+//                                // 정렬 결과 로그 출력
+//                                log.info("FileList 시간순 정렬 확인");
+//                                for (FileInfo info : fileList) {
+//                                    log.info("Filename: {}, StartDateTime: {}",
+//                                            info.getFilename(),
+//                                            info.getClassificationStartDateTime());
+//                                }
             return fileList;
         } catch (UnirestException e) {
             log.warn("API 호출 실패: {}", e.getMessage());

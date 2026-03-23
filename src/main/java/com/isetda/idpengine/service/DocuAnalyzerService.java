@@ -1,5 +1,6 @@
-package com.isetda.idpengine;
+package com.isetda.idpengine.service;
 
+import com.isetda.idpengine.*;
 import okhttp3.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -399,7 +400,7 @@ public class DocuAnalyzerService {
     }
 
     public void deleteErrorFile(File file, File localDir, String subPath) {
-        APICaller apiCaller = new APICaller();
+        IDPService IDPService = new IDPService();
 
         // 원본 확장자 확인
         Resolution res = resolveOriginal(file);
@@ -418,18 +419,18 @@ public class DocuAnalyzerService {
                 .replace(File.separatorChar, '/');
 
         try {
-            FileInfo info = apiCaller.getFileByNameAndPageNum(
+            FileInfo info = IDPService.getFileByNameAndPageNum(
                     configLoader.apiUserId, apiFileName, 0);
 
             if (info != null) {
-                apiCaller.callDeleteApi(
+                IDPService.callDeleteApi(
                         configLoader.apiUserId, info.getFilename(), info.getServiceType());
 
                 if (info.getUrlData() != null) {
                     String errDir = Paths.get(configLoader.resultFilePath, "오류", subPath)
                             .toString()
                             .replace(File.separatorChar, '/');
-                    apiCaller.callbackApi(info, errDir, 666, "DocuAnalyzer Error");
+                    IDPService.callbackApi(info, errDir, 666, "DocuAnalyzer Error");
                 }
             }
         } catch (Exception e) {

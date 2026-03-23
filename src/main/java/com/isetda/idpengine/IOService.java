@@ -1,5 +1,6 @@
 package com.isetda.idpengine;
 
+import com.isetda.idpengine.service.IDPService;
 import com.mashape.unirest.http.exceptions.UnirestException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -162,15 +163,15 @@ public class IOService {
 
             moveFileToErrorDirectory(pdfFile, subPath);
 
-            APICaller apiCaller = new APICaller();
+            IDPService IDPService = new IDPService();
             String apiFileName = Paths.get(subPath, pdfFile.getName()).toString();
             try {
-                FileInfo fileInfo = apiCaller.getFileByName(configLoader.apiUserId, apiFileName);
+                FileInfo fileInfo = IDPService.getFileByName(configLoader.apiUserId, apiFileName);
                 String message = "File Error";
-                apiCaller.callDeleteApi(configLoader.apiUserId, fileInfo.getFilename(), fileInfo.getServiceType());
+                IDPService.callDeleteApi(configLoader.apiUserId, fileInfo.getFilename(), fileInfo.getServiceType());
                 if (fileInfo.getUrlData() != null) {
                     String errorDir = Paths.get(configLoader.resultFilePath, "오류", subPath).toString();
-                    apiCaller.callbackApi(fileInfo, errorDir, 666, message);
+                    IDPService.callbackApi(fileInfo, errorDir, 666, message);
                 } else {
                     log.info("URL DATA IS NULL");
                 }
@@ -297,7 +298,7 @@ public class IOService {
 
     // 처리 단위가 api 리스트 전체일 때
     public List<File> getFilesWithAPIAndExtractedImages() {
-        APICaller apiCaller = new APICaller();
+        IDPService IDPService = new IDPService();
         List<File> resultFiles = new ArrayList<>();
 
         //File folder = new File(configLoader.imageFolderPath);
@@ -307,7 +308,7 @@ public class IOService {
 
         try {
             // 처리 단위가 api 리스트 전체일 때
-            List<FileInfo> fileInfos = apiCaller.getAllFilesWithCase(configLoader.apiUserId, configLoader.serviceType, "", 0, formattedDate);
+            List<FileInfo> fileInfos = IDPService.getAllFilesWithCase(configLoader.apiUserId, configLoader.serviceType, "", 0, formattedDate);
             // 시간순 정렬
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS");
             fileInfos.sort(
@@ -341,7 +342,7 @@ public class IOService {
 
                     copyFiles(file);
                     int maxPage = getPdfPageCount(file.getAbsolutePath());
-                    apiCaller.callDivisionApi(configLoader.apiUserId, maxPage, fileName, fileInfo.getServiceType(), fileInfo.getTaskName());
+                    IDPService.callDivisionApi(configLoader.apiUserId, maxPage, fileName, fileInfo.getServiceType(), fileInfo.getTaskName());
 
                     log.trace("PDF에서 추출된 이미지 {}개 추가됨: {}", extractedImages.size(), fileName);
                 } else if (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg") || lowerName.endsWith(".png")) {
@@ -400,7 +401,7 @@ public class IOService {
 
     // 처리 단위가 1개 파일일 때
     public List<FileWithLookupName> getFileWithAPIAndExtractedImages(FileInfo unitFileInfo) {
-        APICaller apiCaller = new APICaller();
+        IDPService IDPService = new IDPService();
         IOService ioService = new IOService();
         List<File> collectedFiles  = new ArrayList<>();
         List<FileWithLookupName> result = new ArrayList<>();
@@ -431,7 +432,11 @@ public class IOService {
                     extWithDot = "";      // 확장자 없음
                 }
 
-                baseWithUid = base + "_" + unitFileInfo.getGroupUID();
+                if (extWithDot.contains("hwp")) {
+                    baseWithUid = base;
+                } else {
+                    baseWithUid = base + "_" + unitFileInfo.getGroupUID();
+                }
                 fileName = baseWithUid + extWithDot;
             } else {
                 fileName = unitFileInfo.getFilename();
@@ -442,7 +447,7 @@ public class IOService {
 
             for (FolderMapping mapping : configLoader.folderMappings) {
                 File targetFile;
-                if (unitFileInfo.getServiceType().equalsIgnoreCase("ai.vision")) {
+                if (unitFileInfo.getServiceType().equalsIgnoreCase("ai.vision") && !extWithDot.contains("hwp")) {
                     Path targetDir = Paths.get(mapping.getImageFolderPath(), baseWithUid);
                     targetFile = targetDir.resolve(baseWithUid + extWithDot).toFile();
                 } else {
@@ -502,7 +507,7 @@ public class IOService {
 
                     copyFiles(file);
                     int maxPage = getPdfPageCount(file.getAbsolutePath());
-                    apiCaller.callDivisionApi(configLoader.apiUserId, maxPage, fileName, unitFileInfo.getServiceType(), unitFileInfo.getTaskName());
+                    IDPService.callDivisionApi(configLoader.apiUserId, maxPage, fileName, unitFileInfo.getServiceType(), unitFileInfo.getTaskName());
 
                     log.debug("PDF에서 추출된 이미지 {}개 추가됨: {}", extractedImages.size(), fileName);
                 } else if (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg") || lowerName.endsWith(".png")) {

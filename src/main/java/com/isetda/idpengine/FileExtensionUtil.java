@@ -16,7 +16,7 @@ public class FileExtensionUtil {
     );
 
     public static final Set<String> AIVISION_SUPPORTED_EXT = Set.of(
-            "pdf", "hwp"
+            "pdf", "hwp", "hwpx"
     );
 
     public static String getExtension(String filename) {

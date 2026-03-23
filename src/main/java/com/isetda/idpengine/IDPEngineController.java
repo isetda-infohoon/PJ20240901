@@ -1,5 +1,9 @@
 package com.isetda.idpengine;
 
+import com.isetda.idpengine.service.DocuAnalyzerService;
+import com.isetda.idpengine.service.GoogleService;
+import com.isetda.idpengine.service.IDPService;
+import com.isetda.idpengine.service.SynapService;
 import com.mashape.unirest.http.exceptions.UnirestException;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -43,7 +47,7 @@ public class IDPEngineController {
 
     private ExcelService excelService = new ExcelService();
     private DocumentService documentService = new DocumentService();
-    private APICaller apiCaller = new APICaller();
+    private IDPService IDPService = new IDPService();
 
     private Stage stage;
 
@@ -133,11 +137,14 @@ public class IDPEngineController {
             log.trace("connect network drive: false");
         }
 
-        LocalDate today = LocalDate.now();
-        String formattedDate = today.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+//        LocalDate today = LocalDate.now();
+//        String formattedDate = today.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+
+        LocalDate startDate = LocalDate.now().minusDays(configLoader.processPeriodDays);
+        String formattedDate = startDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
 
         //List<FileInfo> pendingFiles = apiCaller.getFileWithStatus(configLoader.apiUserId);
-        List<FileInfo> pendingFiles = apiCaller.getAllFilesWithCase(configLoader.apiUserId, configLoader.serviceType, "", 0, formattedDate);
+        List<FileInfo> pendingFiles = IDPService.getAllFilesWithCase(configLoader.apiUserId, configLoader.serviceType, "", 0, formattedDate);
 
         // 시간순 정렬
 //        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS");
@@ -434,7 +441,7 @@ public class IDPEngineController {
 
                             FileInfo fileInfo;
                             try {
-                                fileInfo = apiCaller.getFileByName(configLoader.apiUserId, file.getName());
+                                fileInfo = IDPService.getFileByName(configLoader.apiUserId, file.getName());
                                 System.out.println("get fileInfo success : " + fileInfo.getFilename());
                             } catch (UnirestException e) {
                                 throw new RuntimeException(e);
@@ -1092,7 +1099,7 @@ public class IDPEngineController {
 
                     FileInfo fileInfo;
                     try {
-                        fileInfo = apiCaller.getFileByName(configLoader.apiUserId, subPath + item.apiLookupName);
+                        fileInfo = IDPService.getFileByName(configLoader.apiUserId, subPath + item.apiLookupName);
                     } catch (UnirestException e) {
                         throw new RuntimeException(e);
                     }
@@ -1253,21 +1260,30 @@ public class IDPEngineController {
                                     }
                                 } else if (fileInfo.getServiceType().contains("ai.vision")) {
                                     if (FileExtensionUtil.AIVISION_SUPPORTED_EXT.contains(ext)) {
-                                        if (fileInfo.getVisionStatus().equalsIgnoreCase("VS")) {
-                                            log.debug("visionStatus is VS");
-                                            // TODO: 파일명_groupUID 폴더 전체 복사, 원본 파일명에서 groupUID 제거
-                                            // TODO: page별 md 결과 기존 파일명 -> ~.dat로 변경
-                                            copyAndRenameVisionResult(fileInfo);
+//                                        if (ext.contains("hwp")) {
+//                                            String sourcePath = file.getPath();
+//                                            String resultPath = configLoader.resultFilePath + File.separator + file.getName();
+//                                            new File(resultPath).mkdirs();
+//
+//                                            HwpToDocxConverter hwpToDocxConverter = new HwpToDocxConverter();
+//                                            hwpToDocxConverter.convert(String.valueOf(sourcePath), configLoader.resultFilePath);
+//                                        } else {
+                                            if (fileInfo.getVisionStatus().equalsIgnoreCase("VS")) {
+                                                log.debug("visionStatus is VS");
+                                                // TODO: 파일명_groupUID 폴더 전체 복사, 원본 파일명에서 groupUID 제거
+                                                // TODO: page별 md 결과 기존 파일명 -> ~.dat로 변경
+                                                copyAndRenameVisionResult(fileInfo);
 
-                                            try {
-                                                onButton2API(fileInfo);
-                                            } catch (Exception e) {
-                                                log.error("Error executing onButton2API", e);
+                                                try {
+                                                    onButton2API(fileInfo);
+                                                } catch (Exception e) {
+                                                    log.error("Error executing onButton2API", e);
+                                                }
+                                            } else {
+                                                log.info("AI.VISION processing is not complete.");
+                                                break;
                                             }
-                                        } else {
-                                            log.info("AI.VISION processing is not complete.");
-                                            break;
-                                        }
+                                        //}
                                     }
                                 } else {
                                     // OCR SERVICE TYPE이 GOOGLE, SYNAP에 해당되지 않는 경우
@@ -1316,10 +1332,10 @@ public class IDPEngineController {
                             if (file.getName().matches(".*-page1\\.jpg$")) {
                                 try {
                                     FileInfo firstPagefileInfo = null;
-                                    firstPagefileInfo = apiCaller.getFileByNameAndStatus(configLoader.apiUserId, subPath + file.getName(), "CS");
+                                    firstPagefileInfo = IDPService.getFileByNameAndStatus(configLoader.apiUserId, subPath + file.getName(), "CS");
 
                                     if (firstPagefileInfo.getFilename() == null || firstPagefileInfo.getFilename().isEmpty()) {
-                                        firstPagefileInfo = apiCaller.getFileByNameAndStatus(configLoader.apiUserId, subPath + file.getName(), "CF");
+                                        firstPagefileInfo = IDPService.getFileByNameAndStatus(configLoader.apiUserId, subPath + file.getName(), "CF");
                                     }
                                     if (firstPagefileInfo.getClassificationStatus() == null || firstPagefileInfo.getClassificationStatus().isEmpty()) {
                                         log.info("Skipping remaining pages for {} due to null classificationStatus", subPath + file.getName());

@@ -3,6 +3,7 @@ package com.isetda.idpengine;
 
 
 
+import com.isetda.idpengine.service.IDPService;
 import com.mashape.unirest.http.exceptions.UnirestException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -43,7 +44,7 @@ public class ExcelService {
 
     // 폴더에서 JSON 파일 가져오기
     public File[] getFilteredJsonFiles() {
-        APICaller apiCaller = new APICaller();
+        IDPService IDPService = new IDPService();
         File folder = new File(configLoader.resultFilePath);
 
         File[] files = folder.listFiles(new FilenameFilter() {
@@ -594,7 +595,7 @@ public class ExcelService {
     public void jsonDataWithUpdate(String fileName, String[] values) throws UnirestException {
         log.debug("update start");
 
-        APICaller apiCaller = new APICaller();
+        IDPService IDPService = new IDPService();
         IOService ioService = new IOService();
         String userId = configLoader.apiUserId;
         String name = fileName.replace("_result", "");
@@ -603,7 +604,7 @@ public class ExcelService {
         String imageExt = null;
 
         for (String ext : extensions) {
-            fileInfo = apiCaller.getFileByName(userId, name + ext);
+            fileInfo = IDPService.getFileByName(userId, name + ext);
             if (fileInfo != null && fileInfo.getFilename() != null) {
                 imageExt = ext;
                 break; // 성공했으면 반복 종료
@@ -639,7 +640,7 @@ public class ExcelService {
             jsonBody.put("classificationStartDateTime", classificationStartDateTime);
             jsonBody.put("classificationEndDateTime", endDateTime);
 
-            apiCaller.callUpdateApi(jsonBody);
+            IDPService.callUpdateApi(jsonBody);
 
             // 마지막 페이지인 경우 원본 PDF 파일 업데이트 진행
 //            if (fileInfo.getPageNum() == maxPage) {
@@ -684,9 +685,9 @@ public class ExcelService {
 
             // 처리된 페이지 수와 PDF의 총 페이지 수 비교
             if (processedCount == totalPageCount) {
-                FileInfo resultFileInfo = apiCaller.getFileByNameAndStatus(userId, basename + "-page1.jpg", "CS");
+                FileInfo resultFileInfo = IDPService.getFileByNameAndStatus(userId, basename + "-page1.jpg", "CS");
                 if (resultFileInfo == null || resultFileInfo.getFilename() == null) {
-                    resultFileInfo = apiCaller.getFileByNameAndStatus(userId, basename + "-page1.jpg", "CF");
+                    resultFileInfo = IDPService.getFileByNameAndStatus(userId, basename + "-page1.jpg", "CF");
                 }
 
                 if (resultFileInfo != null && resultFileInfo.getFilename() != null) {
@@ -702,7 +703,7 @@ public class ExcelService {
                     pdfJsonBody.put("classificationStartDateTime", resultFileInfo.getClassificationStartDateTime());
                     pdfJsonBody.put("classificationEndDateTime", endDateTime);
 
-                    apiCaller.callUpdateApi(pdfJsonBody);
+                    IDPService.callUpdateApi(pdfJsonBody);
                 } else {
                     log.warn("page1 결과가 없어 PDF 업데이트를 진행하지 못했습니다: {}", basename);
                 }
@@ -733,7 +734,7 @@ public class ExcelService {
             jsonBody.put("classificationStartDateTime", classificationStartDateTime);
             jsonBody.put("classificationEndDateTime", getCurrentTime());
 
-            apiCaller.callUpdateApi(jsonBody);
+            IDPService.callUpdateApi(jsonBody);
         }
 
 
@@ -784,7 +785,7 @@ public class ExcelService {
     public void jsonDataUpdateWithUnitFile(String taskName, String fileName, String[] values) throws UnirestException {
         log.info("update start: " + fileName);
 
-        APICaller apiCaller = new APICaller();
+        IDPService IDPService = new IDPService();
         IOService ioService = new IOService();
         String userId = configLoader.apiUserId;
         String name = fileName.replace("_result", "");
@@ -803,7 +804,7 @@ public class ExcelService {
         }
 
         for (String ext : FileExtensionUtil.DA_SUPPORTED_EXT) {
-            fileInfo = apiCaller.getFileByName(userId, name2 + "." + ext);
+            fileInfo = IDPService.getFileByName(userId, name2 + "." + ext);
             if (fileInfo != null && fileInfo.getFilename() != null) {
                 officeExt = ext;
                 if (configLoader.usePdfExtractImage && officeExt.equals("pdf")) {
@@ -816,7 +817,7 @@ public class ExcelService {
 
         if (officeExt == null) {
             for (String ext : extensions) {
-                fileInfo = apiCaller.getFileByName(userId, name + ext);
+                fileInfo = IDPService.getFileByName(userId, name + ext);
                 if (fileInfo != null && fileInfo.getFilename() != null) {
                     imageExt = ext;
                     log.debug("imageExt: " + imageExt);
@@ -872,7 +873,7 @@ public class ExcelService {
             }
             jsonBody.put("taskName", apiTaskName);
 
-            apiCaller.callUpdateApi(jsonBody);
+            IDPService.callUpdateApi(jsonBody);
 
             File pdfResultPath;
 
@@ -901,9 +902,9 @@ public class ExcelService {
 
             // 마지막 페이지인 경우 원본 PDF 파일 업데이트 진행
             if (fileInfo.getPageNum() == maxPage) {
-                FileInfo resultFileInfo = apiCaller.getFileByNameAndStatus(userId, basename + "-page1.jpg", "CS");
+                FileInfo resultFileInfo = IDPService.getFileByNameAndStatus(userId, basename + "-page1.jpg", "CS");
                 if (resultFileInfo.getFilename() == null) {
-                    resultFileInfo = apiCaller.getFileByNameAndStatus(userId, basename + "-page1.jpg", "CF");
+                    resultFileInfo = IDPService.getFileByNameAndStatus(userId, basename + "-page1.jpg", "CF");
                 }
 
 //                log.info("resultFileInfo의 basename : " + basename + "-page1.jpg");
@@ -920,7 +921,7 @@ public class ExcelService {
 
                 String fileNameOnly = new File(basename).getName();
 
-                FileInfo checkFileName = apiCaller.getFileByName(configLoader.apiUserId, basename + ".pdf");
+                FileInfo checkFileName = IDPService.getFileByName(configLoader.apiUserId, basename + ".pdf");
                 log.debug("basename: {}, checkFileName: {}", basename + ".pdf", checkFileName.getFilename());
                 if (checkFileName.getFilename() == null || checkFileName.getFilename().isEmpty()) {
                     basename = basename.replace(File.separator, "/");
@@ -949,15 +950,15 @@ public class ExcelService {
                 }
                 pdfJsonBody.put("taskName", apiTaskName);
 
-                apiCaller.callUpdateApi(pdfJsonBody);
+                IDPService.callUpdateApi(pdfJsonBody);
 
-                FileInfo originalFileInfo = apiCaller.getFileByNameAndPageNumAndStatusNotNull(userId, basename + ".pdf", "CS", 0);
+                FileInfo originalFileInfo = IDPService.getFileByNameAndPageNumAndStatusNotNull(userId, basename + ".pdf", "CS", 0);
                 if (originalFileInfo.getFilename() == null) {
-                    originalFileInfo = apiCaller.getFileByNameAndPageNumAndStatusNotNull(userId, basename + ".pdf", "CF", 0);
+                    originalFileInfo = IDPService.getFileByNameAndPageNumAndStatusNotNull(userId, basename + ".pdf", "CF", 0);
                 }
 
                 if (configLoader.useCallbackUpdate && configLoader.serviceType.contains("da")) {
-                    apiCaller.callbackApi(originalFileInfo, pdfResultPath.getPath(), 200, "완료");
+                    IDPService.callbackApi(originalFileInfo, pdfResultPath.getPath(), 200, "완료");
                 }
             }
 
@@ -1045,9 +1046,9 @@ public class ExcelService {
             }
             jsonBody.put("taskName", apiTaskName);
 
-            apiCaller.callUpdateApi(jsonBody);
+            IDPService.callUpdateApi(jsonBody);
             if (configLoader.useCallbackUpdate && configLoader.serviceType.contains("da")) {
-                apiCaller.callbackApi(fileInfo, imgResultPath.getPath(), 200, "완료");
+                IDPService.callbackApi(fileInfo, imgResultPath.getPath(), 200, "완료");
             }
         }
 
@@ -1101,9 +1102,9 @@ public class ExcelService {
             }
             jsonBody.put("taskName", apiTaskName);
 
-            apiCaller.callUpdateApi(jsonBody);
+            IDPService.callUpdateApi(jsonBody);
             if (configLoader.useCallbackUpdate && configLoader.serviceType.contains("da")) {
-                apiCaller.callbackApi(fileInfo, officeResultPath.getPath(), 200, "완료");
+                IDPService.callbackApi(fileInfo, officeResultPath.getPath(), 200, "완료");
             }
         }
     }
@@ -1113,7 +1114,7 @@ public class ExcelService {
 
         String apiTaskName = (taskName == null || taskName.isEmpty()) ? "DEFAULT" : taskName;
 
-        APICaller apiCaller = new APICaller();
+        IDPService IDPService = new IDPService();
         String userId = configLoader.apiUserId;
 
         // 원본만 들어오지만 page 접미사 제거는 안전장치로 둠
@@ -1124,7 +1125,7 @@ public class ExcelService {
         String detectedExt = null; // 확장자(닷 없음)
 
         for (String ext : FileExtensionUtil.AIVISION_SUPPORTED_EXT) {
-            fileInfo = apiCaller.getFileByName(userId, defaultName + "." + ext);
+            fileInfo = IDPService.getFileByName(userId, defaultName + "." + ext);
             if (fileInfo != null && fileInfo.getFilename() != null) {
                 detectedExt = ext; // 예: "pdf"
                 log.debug("detected office/pdf ext: {}", detectedExt);
@@ -1133,7 +1134,7 @@ public class ExcelService {
         }
         if (fileInfo == null || fileInfo.getFilename() == null) {
             for (String ext : imageExts) {
-                fileInfo = apiCaller.getFileByName(userId, defaultName + "." + ext);
+                fileInfo = IDPService.getFileByName(userId, defaultName + "." + ext);
                 if (fileInfo != null && fileInfo.getFilename() != null) {
                     detectedExt = ext; // 예: "jpg"
                     log.debug("detected image ext: {}", detectedExt);
@@ -1207,23 +1208,23 @@ public class ExcelService {
         jsonBody.put("taskName", apiTaskName);
 
         // --- API 호출 ---
-        apiCaller.callUpdateApi(jsonBody);
+        IDPService.callUpdateApi(jsonBody);
 
         log.info("Vision update completed. resultFolder={}, fileFound={}", resultFolder.toString(), defaultName + "." + detectedExt);
     }
 
     public int getProcessedPageCount(String userId, String basename) throws UnirestException {
-        APICaller apiCaller = new APICaller();
+        IDPService IDPService = new IDPService();
         int count = 0;
 
-        List<FileInfo> filesWithCS = apiCaller.getAllFilesWithStatus(userId, "CS");
+        List<FileInfo> filesWithCS = IDPService.getAllFilesWithStatus(userId, "CS");
         for (FileInfo file : filesWithCS) {
             if (file.getFilename().startsWith(basename + "-page")) {
                 count++;
             }
         }
 
-        List<FileInfo> filesWithCF = apiCaller.getAllFilesWithStatus(userId, "CF");
+        List<FileInfo> filesWithCF = IDPService.getAllFilesWithStatus(userId, "CF");
         for (FileInfo file : filesWithCF) {
             if (file.getFilename().startsWith(basename + "-page")) {
                 count++;
@@ -1551,7 +1552,7 @@ public class ExcelService {
 
     public void moveFiles(String resultFilePath, Map<String, Map<String, String>> resultByVersion, String version, String subVersion, String subPath, String taskName) throws InterruptedException, UnirestException {
         IOService ioService = new IOService();
-        APICaller apiCaller = new APICaller();
+        IDPService IDPService = new IDPService();
 
 //        Set<String> allowedOriginals =
 //                (resultByVersion != null)
@@ -1679,7 +1680,7 @@ public class ExcelService {
                                     }
 
                                     // 현재 파일의 원본 파일 정보
-                                    currentFileInfo = apiCaller.getFileByName(configLoader.apiUserId, subPath + origName + origExt);
+                                    currentFileInfo = IDPService.getFileByName(configLoader.apiUserId, subPath + origName + origExt);
 
                                     log.trace("filename: {}", subPath + origName + origExt);
                                     log.trace("file info: {}", currentFileInfo.getFilename());
@@ -1725,7 +1726,7 @@ public class ExcelService {
                                 }
 
                                 // 현재 파일의 이미지 파일 정보
-                                FileInfo fileInfo = apiCaller.getFileByName(configLoader.apiUserId, subPath + baseName + ".jpg");
+                                FileInfo fileInfo = IDPService.getFileByName(configLoader.apiUserId, subPath + baseName + ".jpg");
 
                                 // CSV 파일들 (_result.csv, _result_2.csv, _result_3.csv 등) 이동 처리
                                 File[] resultFiles = folder.listFiles((dir, name) -> {
@@ -1926,7 +1927,7 @@ public class ExcelService {
                                    String subPath,
                                    String taskName) throws InterruptedException {
 
-        APICaller apiCaller = new APICaller();
+        IDPService IDPService = new IDPService();
         File folder = Paths.get(resultFilePath).toFile();
 
         File[] datFiles = folder.listFiles((dir, name) -> name.endsWith("_result.dat"));
@@ -2020,7 +2021,7 @@ public class ExcelService {
 
             for (String ext : FileExtensionUtil.DA_SUPPORTED_EXT) {
                 try {
-                    fileInfo = apiCaller.getFileByName(configLoader.apiUserId, subPath + originalName + "." + ext);
+                    fileInfo = IDPService.getFileByName(configLoader.apiUserId, subPath + originalName + "." + ext);
 
                     if (fileInfo != null && fileInfo.getFilename() != null) {
                         officeExt = ext;

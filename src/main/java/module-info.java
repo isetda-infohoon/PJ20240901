@@ -32,7 +32,10 @@ module com.isetda.idpengine {
     requires google.api.client;
     requires unirest.java;
     requires org.checkerframework.checker.qual;
+    requires hwplib;
 
     opens com.isetda.idpengine to javafx.fxml;
     exports com.isetda.idpengine;
+    exports com.isetda.idpengine.service;
+    opens com.isetda.idpengine.service to javafx.fxml;
 }
