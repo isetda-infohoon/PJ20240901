@@ -164,17 +164,17 @@ public class IDPEngineController {
                 return LocalDateTime.MIN;
             }
         }));
-//
-//        System.out.println("------ 정렬된 파일 목록 ------");
-//        for (FileInfo file : pendingFiles) {
-//            System.out.println("파일명: " + file.getFilename() + ", 생성일시: " + file.getCreateDateTime());
-//        }
-//
-//        for (FileInfo info : pendingFiles) {
-//            System.out.println(info.getUserId());
-//            System.out.println(info.getFilename());
-//            System.out.println(info.getLanguage());
-//        }
+
+        log.debug("------ 정렬된 파일 목록 ------");
+        for (FileInfo file : pendingFiles) {
+            log.debug("파일명: " + file.getFilename() + ", 생성일시: " + file.getCreateDateTime());
+        }
+
+        for (FileInfo info : pendingFiles) {
+            log.debug(info.getUserId());
+            log.debug(info.getFilename());
+            log.debug(info.getLanguage());
+        }
 
         //uploadFileList = pendingFiles;
 
@@ -1260,30 +1260,51 @@ public class IDPEngineController {
                                     }
                                 } else if (fileInfo.getServiceType().contains("ai.vision")) {
                                     if (FileExtensionUtil.AIVISION_SUPPORTED_EXT.contains(ext)) {
-//                                        if (ext.contains("hwp")) {
-//                                            String sourcePath = file.getPath();
-//                                            String resultPath = configLoader.resultFilePath + File.separator + file.getName();
-//                                            new File(resultPath).mkdirs();
-//
-//                                            HwpToDocxConverter hwpToDocxConverter = new HwpToDocxConverter();
-//                                            hwpToDocxConverter.convert(String.valueOf(sourcePath), configLoader.resultFilePath);
-//                                        } else {
-                                            if (fileInfo.getVisionStatus().equalsIgnoreCase("VS")) {
-                                                log.debug("visionStatus is VS");
-                                                // TODO: 파일명_groupUID 폴더 전체 복사, 원본 파일명에서 groupUID 제거
-                                                // TODO: page별 md 결과 기존 파일명 -> ~.dat로 변경
-                                                copyAndRenameVisionResult(fileInfo);
+                                        if (FileExtensionUtil.AIVISION_OFFICE_SUPPORTED_EXT.contains(ext)
+                                                && (fileInfo.getVisionStatus() == null || fileInfo.getVisionStatus().isEmpty())) {
+                                            Path source = Paths.get(file.getPath());
+                                            String fName = source.getFileName().toString(); // 파일명 추출
+                                            int lastDot = fName.lastIndexOf(".");
 
-                                                try {
-                                                    onButton2API(fileInfo);
-                                                } catch (Exception e) {
-                                                    log.error("Error executing onButton2API", e);
-                                                }
-                                            } else {
-                                                log.info("AI.VISION processing is not complete.");
-                                                break;
+                                            String bName = (lastDot > 0) ? fName.substring(0, lastDot) : fName;
+                                            String extension = (lastDot > 0) ? fName.substring(lastDot) : "";
+
+//                                            String guidName = bName + "_" + fileInfo.getGroupUID(); // 폴더명
+                                            String guidName = bName;                                 // 폴더명
+                                            String guidFileName = guidName + extension;              // 파일명
+
+                                            Path targetDir = Paths.get(configLoader.imageFolderPath, guidName);
+                                            Path target = targetDir.resolve(guidFileName);
+
+                                            //Path resultPath = Paths.get(configLoader.getResultFilePath(), bName);
+
+                                            try {
+                                                Files.createDirectories(targetDir);
+                                                Files.move(source, target, StandardCopyOption.REPLACE_EXISTING);
+                                                log.trace(ext + " 원본 파일 VISION용 폴더 생성 및 파일명 변경 성공 (파일명+GroupUID)");
+
+                                                HwpConverter hwpConverter = new HwpConverter();
+                                                hwpConverter.convertToMarkdown(target.toString(), targetDir.toString(), fileInfo);
+                                            } catch (Exception e) {
+                                                log.warn(ext + " 원본 파일 VISION용 폴더 생성 처리 중 오류 발생: {}", e.getMessage());
                                             }
-                                        //}
+                                            fileInfo = IDPService.getFileByName(configLoader.apiUserId, subPath + item.apiLookupName);
+                                        }
+                                        if (fileInfo.getVisionStatus().equalsIgnoreCase("VS")) {
+                                            log.debug("visionStatus is VS");
+                                            // TODO: 파일명_groupUID 폴더 전체 복사, 원본 파일명에서 groupUID 제거
+                                            // TODO: page별 md 결과 기존 파일명 -> ~.dat로 변경
+                                            copyAndRenameVisionResult(fileInfo);
+
+                                            try {
+                                                onButton2API(fileInfo);
+                                            } catch (Exception e) {
+                                                log.error("Error executing onButton2API", e);
+                                            }
+                                        } else {
+                                            log.info("AI.VISION processing is not complete.");
+                                            break;
+                                        }
                                     }
                                 } else {
                                     // OCR SERVICE TYPE이 GOOGLE, SYNAP에 해당되지 않는 경우
@@ -1701,6 +1722,7 @@ public class IDPEngineController {
         String originalFileName = buildNameForAiVision(fileInfo.getFilename(), fileInfo.getGroupUID()); // 파일명_groupUID.pdf
         int idx = originalFileName.lastIndexOf('.');
         String folderName = (idx > 0) ? originalFileName.substring(0, idx) : originalFileName; // 파일명_groupUID
+        String extension = (idx > 0) ? originalFileName.substring(idx) : "";
 
         Path source = Paths.get(configLoader.imageFolderPath, folderName);
         Path target = Paths.get(configLoader.resultFilePath, folderName);
@@ -1734,14 +1756,23 @@ public class IDPEngineController {
         log.debug("[renameVisionFiles] 시작 - targetDir='{}', original='{}', base='{}', groupUid='{}'", targetDir, original, base, groupUid);
 
         // 원본 파일명의 "_gorupUID" 제거
-        String originalFileName = buildNameForAiVision(original, groupUid); // 예: "파일명_ABC123.pdf"
-        Path targetFile = targetDir.resolve(originalFileName);
-        Path renamedFile = targetDir.resolve(original);
-        if (Files.exists(targetFile)) {
-            Files.move(targetFile, renamedFile, StandardCopyOption.REPLACE_EXISTING);
-            log.debug("[renameVisionFiles] 원본 파일명 리네임: '{}' -> '{}'", targetFile.getFileName(), renamedFile.getFileName());
+        String originalWithUid = buildNameForAiVision(original, groupUid); // 예: "파일명_ABC123.pdf"
+        Path sourcePath = targetDir.resolve(originalWithUid);
+        Path targetPath = targetDir.resolve(original);
+        if (Files.exists(sourcePath)) {
+            Files.move(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
+            log.debug("[renameVisionFiles] 원본 파일명 리네임: '{}' -> '{}'", sourcePath.getFileName(), targetPath.getFileName());
         } else {
-            log.debug("[renameVisionFiles] 원본 대상 파일이 없음(스킵): '{}'", targetFile.getFileName());
+            log.debug("[renameVisionFiles] 원본 대상 파일이 없음(스킵): '{}'", sourcePath.getFileName());
+        }
+
+        String subPdfWithUid = base + "_" + groupUid + ".pdf";
+        Path subPdfPath = targetDir.resolve(subPdfWithUid);
+        Path renamePdfPath = targetDir.resolve(base + ".pdf");
+
+        if (Files.exists(subPdfPath) && !subPdfPath.equals(renamePdfPath)) {
+            Files.move(subPdfPath, renamePdfPath, StandardCopyOption.REPLACE_EXISTING);
+            log.info("[renameVisionFiles] 서브 PDF 리네임 완료: '{}' -> '{}'", subPdfWithUid, renamePdfPath.getFileName());
         }
 
         // 페이지 MD: "파일명_groupUID-page<숫자>.md" -> "파일명-page<숫자>_result.dat"
@@ -1810,53 +1841,6 @@ public class IDPEngineController {
             }
         }
 
-//        try (DirectoryStream<Path> stream = Files.newDirectoryStream(targetDir, mdGlob)) {
-//            for (Path mdPath : stream) {
-//                String name = mdPath.getFileName().toString();
-//
-//                // 리네임될 새 .md 파일명 결정
-//                String newMdName;
-//                Matcher m = pagePattern.matcher(name);
-//                Matcher mr = pageResultPattern.matcher(name);
-//                if (m.matches()) {
-//                    // "base_groupUID-pageN.md" -> "base-pageN_result.md"
-//                    String page = m.group(1);
-//                    newMdName = base + "-page" + page + "_result.md";
-//                } else if (mr.matches()) {
-//                    // "base_groupUID-pageN_result.md" -> "base-pageN_result.md"
-//                    String page = mr.group(1);
-//                    newMdName = base + "-page" + page + "_result.md";
-//                } else if (name.equals(singleMdName)) {
-//                    // "base_groupUID.md" -> "base_result.md"
-//                    newMdName = base + "_result.md";
-//                } else {
-//                    // 혹시 모를 유사 파일은 스킵
-//                    log.debug("[renameVisionFiles][MD] 스킵: '{}'", name);
-//                    continue;
-//                }
-//
-//                // md 파일명 변경
-//                Path renamedMdPath = mdPath.resolveSibling(newMdName);
-//                try {
-//                    Files.move(mdPath, renamedMdPath, StandardCopyOption.REPLACE_EXISTING);
-//                    log.debug("[renameVisionFiles][MD] 리네임: '{}' -> '{}'", name, newMdName);
-//                } catch (Exception e) {
-//                    log.warn("[renameVisionFiles][MD] 리네임 실패: '{}' -> '{}', 원인: {}", name, newMdName, e.toString());
-//                    continue;
-//                }
-//
-//                // 결과 .md 를 동일 파일명으로 확장자만 .dat로 '복사'
-//                String datName = replaceExtension(newMdName, "dat"); // ".md" -> ".dat"
-//                Path datPath = renamedMdPath.resolveSibling(datName);
-//                try {
-//                    Files.copy(renamedMdPath, datPath, StandardCopyOption.REPLACE_EXISTING);
-//                    log.debug("[renameVisionFiles][MD] DAT 생성: '{}' (from '{}')", datName, newMdName);
-//                } catch (Exception e) {
-//                    log.warn("[renameVisionFiles][MD] DAT 생성 실패: '{}' (from '{}'), 원인: {}", datName, newMdName, e.toString());
-//                }
-//            }
-//        }
-
         //String jsonGlob = base + "_" + groupUid + "*.json"; // "base_groupUID.json", "base_groupUID-page{N}.json" 등을 포함
         Pattern jsonPagePattern = Pattern.compile(
                 Pattern.quote(base) + "_" + Pattern.quote(groupUid) + "-page(\\d+)\\.json"
@@ -1897,34 +1881,6 @@ public class IDPEngineController {
                 }
             }
         }
-//        try (DirectoryStream<Path> stream = Files.newDirectoryStream(targetDir, jsonGlob)) {
-//            for (Path jsonPath : stream) {
-//                String name = jsonPath.getFileName().toString();
-//
-//                String newJsonName;
-//                Matcher jm = jsonPagePattern.matcher(name);
-//                if (jm.matches()) {
-//                    // "base_groupUID-pageN.json" -> "base-pageN.json"
-//                    String page = jm.group(1);
-//                    newJsonName = base + "-page" + page + "_result.json";
-//                } else if (name.equals(singleJsonName)) {
-//                    // (옵션) "base_groupUID.json" -> "base.json"
-//                    newJsonName = base + ".json";
-//                } else {
-//                    // 대상 외 파일 스킵
-//                    log.debug("[renameVisionFiles][JSON] 스킵: '{}'", name);
-//                    continue;
-//                }
-//
-//                Path renamedJsonPath = jsonPath.resolveSibling(newJsonName);
-//                try {
-//                    Files.move(jsonPath, renamedJsonPath, StandardCopyOption.REPLACE_EXISTING);
-//                    log.debug("[renameVisionFiles][JSON] 리네임: '{}' -> '{}'", name, newJsonName);
-//                } catch (Exception e) {
-//                    log.warn("[renameVisionFiles][JSON] 리네임 실패: '{}' -> '{}', 원인: {}", name, newJsonName, e.toString());
-//                }
-//            }
-//        }
     }
 
     // AI.VISION의 결과 파일 이름 생성 (파일명_groupUID.확장자)

@@ -434,6 +434,7 @@ public class DocumentService {
 
         int idx = fileInfo.getFilename().lastIndexOf('.');
         String visionResultFolder = fileInfo.getFilename().substring(0, idx) + "_" + fileInfo.getGroupUID();
+        String ext = fileInfo.getFilename().substring(idx + 1);
 
         int cnt = 1;
         for (File curFile : jsonFiles) {
@@ -532,7 +533,7 @@ public class DocumentService {
                     }
                     String[] values = value.split(Pattern.quote(File.separator));
                     try {
-                        excelService.jsonDataUpdateWithVision(taskName, subPath, fileName, fileInfo.getGroupUID(), values);
+                        excelService.jsonDataUpdateWithVision(taskName, subPath, fileName, fileInfo.getGroupUID(), values, ext);
                         log.info("Update completed");
                     } catch (Exception e) {
                         log.warn("Update api failed. {}", e.getMessage());

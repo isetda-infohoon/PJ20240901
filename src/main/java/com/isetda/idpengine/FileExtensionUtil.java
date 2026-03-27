@@ -16,7 +16,11 @@ public class FileExtensionUtil {
     );
 
     public static final Set<String> AIVISION_SUPPORTED_EXT = Set.of(
-            "pdf", "hwp", "hwpx"
+            "pdf", "hwp", "hwpx", "doc", "docx", "xls", "xlsx", "ppt", "pptx"
+    );
+
+    public static final Set<String> AIVISION_OFFICE_SUPPORTED_EXT = Set.of(
+            "hwp", "hwpx", "doc", "docx", "xls", "xlsx", "ppt", "pptx"
     );
 
     public static String getExtension(String filename) {

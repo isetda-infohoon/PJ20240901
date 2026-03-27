@@ -90,6 +90,7 @@ public class ConfigLoader {
     public boolean useCallbackUpdate;
     public boolean useMdFileCreation;
     public boolean useSourceDeletion;
+    public boolean usePdfExtractImage;
     public String resultFileNamingRule;
     public int processPeriodDays;
 
@@ -97,7 +98,7 @@ public class ConfigLoader {
     public boolean csvFileDownload;
     public boolean htmlFileDownload;
 
-    public boolean usePdfExtractImage;
+    public String officePath;
 
     private String configFilePath = "Config.xml";
     private static final String backupFilePath = "Config_backup.xml";
@@ -558,6 +559,12 @@ public class ConfigLoader {
                 throw new RuntimeException("Missing required configuration: processPeriodDays");
             }
 
+            if (root.getElementsByTagName("officePath").getLength() > 0) {
+                officePath = root.getElementsByTagName("officePath").item(0).getTextContent().trim();
+            } else {
+                log.error("The officePath tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: officePath");
+            }
             Files.copy(configFile.toPath(), new File(backupFilePath).toPath(), StandardCopyOption.REPLACE_EXISTING);
         } catch (Exception e) {
             log.error("Failed to load configuration. Restoring from backup or default.", e);

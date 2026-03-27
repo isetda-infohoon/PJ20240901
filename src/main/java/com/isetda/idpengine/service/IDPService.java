@@ -55,22 +55,22 @@ public class IDPService {
                     }
 
                     FileInfo fileInfo = new FileInfo();
-                    fileInfo.setFilename(data.optString("fileName"));
-                    fileInfo.setUserId(data.optString("userId"));
-                    fileInfo.setPageNum(data.optInt("pageNum"));
-                    fileInfo.setServiceType(data.optString("serviceType"));
-                    fileInfo.setGroupUID(data.optString("grouP_UID"));
-                    fileInfo.setLanguage(data.optString("language"));
-                    fileInfo.setLClassification(data.optString("lClassification"));
-                    fileInfo.setMClassification(data.optString("mClassification"));
-                    fileInfo.setSClassification(data.optString("sClassification"));
-                    fileInfo.setClassificationStatus(data.optString("classificationStatus"));
-                    fileInfo.setJobType(data.optString("jobType"));
-                    fileInfo.setRequestId(data.optString("requestId"));
-                    fileInfo.setReceiveData(data.optString("receiveData"));
-                    fileInfo.setUrlData(data.optString("urlData"));
-                    fileInfo.setTaskName(data.optString("taskName"));
-                    fileInfo.setVisionStatus(data.optString("visionStatus"));
+                    fileInfo.setFilename(data.optString("FileName"));
+                    fileInfo.setUserId(data.optString("UserID"));
+                    fileInfo.setPageNum(data.optInt("PageNum"));
+                    fileInfo.setServiceType(data.optString("ServiceType"));
+                    fileInfo.setGroupUID(data.optString("GroupUID"));
+                    fileInfo.setLanguage(data.optString("Language"));
+                    fileInfo.setLClassification(data.optString("LClassification"));
+                    fileInfo.setMClassification(data.optString("MClassification"));
+                    fileInfo.setSClassification(data.optString("SClassification"));
+                    fileInfo.setClassificationStatus(data.optString("ClassificationStatus"));
+                    fileInfo.setJobType(data.optString("JobType"));
+                    fileInfo.setRequestId(data.optString("RequestID"));
+                    fileInfo.setReceiveData(data.optString("ReceiveData"));
+                    fileInfo.setUrlData(data.optString("URLData"));
+                    fileInfo.setTaskName(data.optString("TaskName"));
+                    fileInfo.setVisionStatus(data.optString("VisionStatus"));
 
                     fileList.add(fileInfo);
                 }
@@ -127,25 +127,25 @@ public class IDPService {
                         continue;
                     }
 
-                    fileInfo.setFilename(data.optString("fileName"));
-                    fileInfo.setUserId(data.optString("userId"));
-                    fileInfo.setPageNum(data.optInt("pageNum"));
-                    fileInfo.setServiceType(data.optString("serviceType"));
-                    fileInfo.setGroupUID(data.optString("grouP_UID"));
-                    fileInfo.setLanguage(data.optString("language"));
-                    fileInfo.setLClassification(data.optString("lClassification"));
-                    fileInfo.setMClassification(data.optString("mClassification"));
-                    fileInfo.setSClassification(data.optString("sClassification"));
-                    fileInfo.setClassificationStatus(data.optString("classificationStatus"));
-                    fileInfo.setJobType(data.optString("jobType"));
-                    fileInfo.setClassificationStartDateTime(data.optString("classificationStartDateTime"));
-                    fileInfo.setClassificationEndDateTime(data.optString("classificationEndDateTime"));
-                    fileInfo.setCreateDateTime(data.optString("createDateTime"));
-                    fileInfo.setRequestId(data.optString("requestId"));
-                    fileInfo.setReceiveData(data.optString("receiveData"));
-                    fileInfo.setUrlData(data.optString("urlData"));
-                    fileInfo.setTaskName(data.optString("taskName"));
-                    fileInfo.setVisionStatus(data.optString("visionStatus"));
+                    fileInfo.setFilename(data.optString("FileName"));
+                    fileInfo.setUserId(data.optString("UserID"));
+                    fileInfo.setPageNum(data.optInt("PageNum"));
+                    fileInfo.setServiceType(data.optString("ServiceType"));
+                    fileInfo.setGroupUID(data.optString("GroupUID"));
+                    fileInfo.setLanguage(data.optString("Language"));
+                    fileInfo.setLClassification(data.optString("LClassification"));
+                    fileInfo.setMClassification(data.optString("MClassification"));
+                    fileInfo.setSClassification(data.optString("SClassification"));
+                    fileInfo.setClassificationStatus(data.optString("ClassificationStatus"));
+                    fileInfo.setJobType(data.optString("JobType"));
+                    fileInfo.setClassificationStartDateTime(data.optString("ClassificationStartDateTime"));
+                    fileInfo.setClassificationEndDateTime(data.optString("ClassificationEndDateTime"));
+                    fileInfo.setCreateDateTime(data.optString("CreateDateTime"));
+                    fileInfo.setRequestId(data.optString("RequestID"));
+                    fileInfo.setReceiveData(data.optString("ReceiveData"));
+                    fileInfo.setUrlData(data.optString("URLData"));
+                    fileInfo.setTaskName(data.optString("TaskName"));
+                    fileInfo.setVisionStatus(data.optString("VisionStatus"));
                 }
             }
         } else {
@@ -199,25 +199,25 @@ public class IDPService {
                         continue;
                     }
 
-                    fileInfo.setFilename(data.optString("fileName"));
-                    fileInfo.setUserId(data.optString("userId"));
-                    fileInfo.setPageNum(data.optInt("pageNum"));
-                    fileInfo.setServiceType(data.optString("serviceType"));
-                    fileInfo.setGroupUID(data.optString("grouP_UID"));
-                    fileInfo.setLanguage(data.optString("language"));
-                    fileInfo.setLClassification(data.optString("lClassification"));
-                    fileInfo.setMClassification(data.optString("mClassification"));
-                    fileInfo.setSClassification(data.optString("sClassification"));
-                    fileInfo.setClassificationStatus(data.optString("classificationStatus"));
-                    fileInfo.setJobType(data.optString("jobType"));
-                    fileInfo.setClassificationStartDateTime(data.optString("classificationStartDateTime"));
-                    fileInfo.setClassificationEndDateTime(data.optString("classificationEndDateTime"));
-                    fileInfo.setCreateDateTime(data.optString("createDateTime"));
-                    fileInfo.setRequestId(data.optString("requestId"));
-                    fileInfo.setReceiveData(data.optString("receiveData"));
-                    fileInfo.setUrlData(data.optString("urlData"));
-                    fileInfo.setTaskName(data.optString("taskName"));
-                    fileInfo.setVisionStatus(data.optString("visionStatus"));
+                    fileInfo.setFilename(data.optString("FileName"));
+                    fileInfo.setUserId(data.optString("UserID"));
+                    fileInfo.setPageNum(data.optInt("PageNum"));
+                    fileInfo.setServiceType(data.optString("ServiceType"));
+                    fileInfo.setGroupUID(data.optString("GroupUID"));
+                    fileInfo.setLanguage(data.optString("Language"));
+                    fileInfo.setLClassification(data.optString("LClassification"));
+                    fileInfo.setMClassification(data.optString("MClassification"));
+                    fileInfo.setSClassification(data.optString("SClassification"));
+                    fileInfo.setClassificationStatus(data.optString("ClassificationStatus"));
+                    fileInfo.setJobType(data.optString("JobType"));
+                    fileInfo.setClassificationStartDateTime(data.optString("ClassificationStartDateTime"));
+                    fileInfo.setClassificationEndDateTime(data.optString("ClassificationEndDateTime"));
+                    fileInfo.setCreateDateTime(data.optString("CreateDateTime"));
+                    fileInfo.setRequestId(data.optString("RequestID"));
+                    fileInfo.setReceiveData(data.optString("ReceiveData"));
+                    fileInfo.setUrlData(data.optString("URLData"));
+                    fileInfo.setTaskName(data.optString("TaskName"));
+                    fileInfo.setVisionStatus(data.optString("VisionStatus"));
                 }
             }
         } else {
@@ -271,25 +271,25 @@ public class IDPService {
                         continue;
                     }
 
-                    fileInfo.setFilename(data.optString("fileName"));
-                    fileInfo.setUserId(data.optString("userId"));
-                    fileInfo.setPageNum(data.optInt("pageNum"));
-                    fileInfo.setServiceType(data.optString("serviceType"));
-                    fileInfo.setGroupUID(data.optString("grouP_UID"));
-                    fileInfo.setLanguage(data.optString("language"));
-                    fileInfo.setLClassification(data.optString("lClassification"));
-                    fileInfo.setMClassification(data.optString("mClassification"));
-                    fileInfo.setSClassification(data.optString("sClassification"));
-                    fileInfo.setClassificationStatus(data.optString("classificationStatus"));
-                    fileInfo.setJobType(data.optString("jobType"));
-                    fileInfo.setClassificationStartDateTime(data.optString("classificationStartDateTime"));
-                    fileInfo.setClassificationEndDateTime(data.optString("classificationEndDateTime"));
-                    fileInfo.setCreateDateTime(data.optString("createDateTime"));
-                    fileInfo.setRequestId(data.optString("requestId"));
-                    fileInfo.setReceiveData(data.optString("receiveData"));
-                    fileInfo.setUrlData(data.optString("urlData"));
-                    fileInfo.setTaskName(data.optString("taskName"));
-                    fileInfo.setVisionStatus(data.optString("visionStatus"));
+                    fileInfo.setFilename(data.optString("FileName"));
+                    fileInfo.setUserId(data.optString("UserID"));
+                    fileInfo.setPageNum(data.optInt("PageNum"));
+                    fileInfo.setServiceType(data.optString("ServiceType"));
+                    fileInfo.setGroupUID(data.optString("GroupUID"));
+                    fileInfo.setLanguage(data.optString("Language"));
+                    fileInfo.setLClassification(data.optString("LClassification"));
+                    fileInfo.setMClassification(data.optString("MClassification"));
+                    fileInfo.setSClassification(data.optString("SClassification"));
+                    fileInfo.setClassificationStatus(data.optString("ClassificationStatus"));
+                    fileInfo.setJobType(data.optString("JobType"));
+                    fileInfo.setClassificationStartDateTime(data.optString("ClassificationStartDateTime"));
+                    fileInfo.setClassificationEndDateTime(data.optString("ClassificationEndDateTime"));
+                    fileInfo.setCreateDateTime(data.optString("CreateDateTime"));
+                    fileInfo.setRequestId(data.optString("RequestID"));
+                    fileInfo.setReceiveData(data.optString("ReceiveData"));
+                    fileInfo.setUrlData(data.optString("URLData"));
+                    fileInfo.setTaskName(data.optString("TaskName"));
+                    fileInfo.setVisionStatus(data.optString("VisionStatus"));
                 }
             }
         } else {
@@ -343,24 +343,24 @@ public class IDPService {
                         continue;
                     }
 
-                    fileInfo.setFilename(data.optString("fileName"));
-                    fileInfo.setUserId(data.optString("userId"));
-                    fileInfo.setPageNum(data.optInt("pageNum"));
-                    fileInfo.setServiceType(data.optString("serviceType"));
-                    fileInfo.setGroupUID(data.optString("grouP_UID"));
-                    fileInfo.setLanguage(data.optString("language"));
-                    fileInfo.setLClassification(data.optString("lClassification"));
-                    fileInfo.setMClassification(data.optString("mClassification"));
-                    fileInfo.setSClassification(data.optString("sClassification"));
-                    fileInfo.setClassificationStatus(data.optString("classificationStatus"));
-                    fileInfo.setJobType(data.optString("jobType"));
-                    fileInfo.setClassificationStartDateTime(data.optString("classificationStartDateTime"));
-                    fileInfo.setClassificationEndDateTime(data.optString("classificationEndDateTime"));
-                    fileInfo.setRequestId(data.optString("requestId"));
-                    fileInfo.setReceiveData(data.optString("receiveData"));
-                    fileInfo.setUrlData(data.optString("urlData"));
-                    fileInfo.setTaskName(data.optString("taskName"));
-                    fileInfo.setVisionStatus(data.optString("visionStatus"));
+                    fileInfo.setFilename(data.optString("FileName"));
+                    fileInfo.setUserId(data.optString("UserID"));
+                    fileInfo.setPageNum(data.optInt("PageNum"));
+                    fileInfo.setServiceType(data.optString("ServiceType"));
+                    fileInfo.setGroupUID(data.optString("GroupUID"));
+                    fileInfo.setLanguage(data.optString("Language"));
+                    fileInfo.setLClassification(data.optString("LClassification"));
+                    fileInfo.setMClassification(data.optString("MClassification"));
+                    fileInfo.setSClassification(data.optString("SClassification"));
+                    fileInfo.setClassificationStatus(data.optString("ClassificationStatus"));
+                    fileInfo.setJobType(data.optString("JobType"));
+                    fileInfo.setClassificationStartDateTime(data.optString("ClassificationStartDateTime"));
+                    fileInfo.setClassificationEndDateTime(data.optString("ClassificationEndDateTime"));
+                    fileInfo.setRequestId(data.optString("RequestID"));
+                    fileInfo.setReceiveData(data.optString("ReceiveData"));
+                    fileInfo.setUrlData(data.optString("URLData"));
+                    fileInfo.setTaskName(data.optString("TaskName"));
+                    fileInfo.setVisionStatus(data.optString("VisionStatus"));
                 }
             }
         } else {
@@ -406,21 +406,21 @@ public class IDPService {
                     }
 
                     FileInfo fileInfo = new FileInfo();
-                    fileInfo.setFilename(data.optString("fileName"));
-                    fileInfo.setUserId(data.optString("userId"));
-                    fileInfo.setPageNum(data.optInt("pageNum"));
-                    fileInfo.setServiceType(data.optString("serviceType"));
-                    fileInfo.setGroupUID(data.optString("grouP_UID"));
-                    fileInfo.setLanguage(data.optString("language"));
-                    fileInfo.setLClassification(data.optString("lClassification"));
-                    fileInfo.setMClassification(data.optString("mClassification"));
-                    fileInfo.setSClassification(data.optString("sClassification"));
-                    fileInfo.setClassificationStatus(data.optString("classificationStatus"));
-                    fileInfo.setJobType(data.optString("jobType"));
-                    fileInfo.setClassificationStartDateTime(data.optString("classificationStartDateTime"));
-                    fileInfo.setClassificationEndDateTime(data.optString("classificationEndDateTime"));
-                    fileInfo.setTaskName(data.optString("taskName"));
-                    fileInfo.setVisionStatus(data.optString("visionStatus"));
+                    fileInfo.setFilename(data.optString("FileName"));
+                    fileInfo.setUserId(data.optString("UserID"));
+                    fileInfo.setPageNum(data.optInt("PageNum"));
+                    fileInfo.setServiceType(data.optString("ServiceType"));
+                    fileInfo.setGroupUID(data.optString("GroupUID"));
+                    fileInfo.setLanguage(data.optString("Language"));
+                    fileInfo.setLClassification(data.optString("LClassification"));
+                    fileInfo.setMClassification(data.optString("MClassification"));
+                    fileInfo.setSClassification(data.optString("SClassification"));
+                    fileInfo.setClassificationStatus(data.optString("ClassificationStatus"));
+                    fileInfo.setJobType(data.optString("JobType"));
+                    fileInfo.setClassificationStartDateTime(data.optString("ClassificationStartDateTime"));
+                    fileInfo.setClassificationEndDateTime(data.optString("ClassificationEndDateTime"));
+                    fileInfo.setTaskName(data.optString("TaskName"));
+                    fileInfo.setVisionStatus(data.optString("VisionStatus"));
 
                     fileList.add(fileInfo);
                 }
@@ -468,22 +468,22 @@ public class IDPService {
                         }
 
                         FileInfo fileInfo = new FileInfo();
-                        fileInfo.setFilename(data.optString("fileName"));
-                        fileInfo.setUserId(data.optString("userId"));
-                        fileInfo.setPageNum(data.optInt("pageNum"));
-                        fileInfo.setServiceType(data.optString("serviceType"));
-                        fileInfo.setGroupUID(data.optString("grouP_UID"));
-                        fileInfo.setLanguage(data.optString("language"));
-                        fileInfo.setLClassification(data.optString("lClassification"));
-                        fileInfo.setMClassification(data.optString("mClassification"));
-                        fileInfo.setSClassification(data.optString("sClassification"));
-                        fileInfo.setClassificationStatus(data.optString("classificationStatus"));
-                        fileInfo.setJobType(data.optString("jobType"));
-                        fileInfo.setClassificationStartDateTime(data.optString("classificationStartDateTime"));
-                        fileInfo.setClassificationEndDateTime(data.optString("classificationEndDateTime"));
-                        fileInfo.setCreateDateTime(data.optString("createDateTime"));
-                        fileInfo.setTaskName(data.optString("taskName"));
-                        fileInfo.setVisionStatus(data.optString("visionStatus"));
+                        fileInfo.setFilename(data.optString("FileName"));
+                        fileInfo.setUserId(data.optString("UserID"));
+                        fileInfo.setPageNum(data.optInt("PageNum"));
+                        fileInfo.setServiceType(data.optString("ServiceType"));
+                        fileInfo.setGroupUID(data.optString("GroupUID"));
+                        fileInfo.setLanguage(data.optString("Language"));
+                        fileInfo.setLClassification(data.optString("LClassification"));
+                        fileInfo.setMClassification(data.optString("MClassification"));
+                        fileInfo.setSClassification(data.optString("SClassification"));
+                        fileInfo.setClassificationStatus(data.optString("ClassificationStatus"));
+                        fileInfo.setJobType(data.optString("JobType"));
+                        fileInfo.setClassificationStartDateTime(data.optString("ClassificationStartDateTime"));
+                        fileInfo.setClassificationEndDateTime(data.optString("ClassificationEndDateTime"));
+                        fileInfo.setCreateDateTime(data.optString("CreateDateTime"));
+                        fileInfo.setTaskName(data.optString("TaskName"));
+                        fileInfo.setVisionStatus(data.optString("VisionStatus"));
 
                         fileList.add(fileInfo);
                     }
@@ -555,21 +555,21 @@ public class IDPService {
                     }
 
                     FileInfo fileInfo = new FileInfo();
-                    fileInfo.setFilename(data.optString("fileName"));
-                    fileInfo.setUserId(data.optString("userId"));
-                    fileInfo.setPageNum(data.optInt("pageNum"));
-                    fileInfo.setServiceType(data.optString("serviceType"));
-                    fileInfo.setGroupUID(data.optString("grouP_UID"));
-                    fileInfo.setLanguage(data.optString("language"));
-                    fileInfo.setLClassification(data.optString("lClassification"));
-                    fileInfo.setMClassification(data.optString("mClassification"));
-                    fileInfo.setSClassification(data.optString("sClassification"));
-                    fileInfo.setClassificationStatus(data.optString("classificationStatus"));
-                    fileInfo.setJobType(data.optString("jobType"));
-                    fileInfo.setClassificationStartDateTime(data.optString("classificationStartDateTime"));
-                    fileInfo.setClassificationEndDateTime(data.optString("classificationEndDateTime"));
-                    fileInfo.setTaskName(data.optString("taskName"));
-                    fileInfo.setVisionStatus(data.optString("visionStatus"));
+                    fileInfo.setFilename(data.optString("FileName"));
+                    fileInfo.setUserId(data.optString("UserID"));
+                    fileInfo.setPageNum(data.optInt("PageNum"));
+                    fileInfo.setServiceType(data.optString("ServiceType"));
+                    fileInfo.setGroupUID(data.optString("GroupUID"));
+                    fileInfo.setLanguage(data.optString("Language"));
+                    fileInfo.setLClassification(data.optString("LClassification"));
+                    fileInfo.setMClassification(data.optString("MClassification"));
+                    fileInfo.setSClassification(data.optString("SClassification"));
+                    fileInfo.setClassificationStatus(data.optString("ClassificationStatus"));
+                    fileInfo.setJobType(data.optString("JobType"));
+                    fileInfo.setClassificationStartDateTime(data.optString("ClassificationStartDateTime"));
+                    fileInfo.setClassificationEndDateTime(data.optString("ClassificationEndDateTime"));
+                    fileInfo.setTaskName(data.optString("TaskName"));
+                    fileInfo.setVisionStatus(data.optString("VisionStatus"));
 
                     fileList.add(fileInfo);
                 }
@@ -609,8 +609,8 @@ public class IDPService {
         String defaultUrl = configLoader.apiURL;
         Unirest.setTimeouts(0, 0);
 
-        String filename = jsonBody.optString("fileName");
-        jsonBody.put("fileName", toWindowsPath(filename));
+        String filename = jsonBody.optString("FileName");
+        jsonBody.put("FileName", toWindowsPath(filename));
 
         String apiUrl = defaultUrl + "/doc/update";
         HttpResponse<String> response = Unirest.post(apiUrl)

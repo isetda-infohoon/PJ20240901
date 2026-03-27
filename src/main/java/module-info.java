@@ -33,6 +33,8 @@ module com.isetda.idpengine {
     requires unirest.java;
     requires org.checkerframework.checker.qual;
     requires hwplib;
+    requires jodconverter.core;
+    requires jodconverter.local;
 
     opens com.isetda.idpengine to javafx.fxml;
     exports com.isetda.idpengine;

@@ -415,6 +415,7 @@ public class IOService {
             String fileName;     // 전체 파일 이름 (subpath + 파일명_groupUID.확장자)
             String baseWithUid = null;  // 확장자 빠진 파일 이름 (subpath + 파일명_ groupUID)
             String extWithDot = null;   // 확장자 (.확장자)
+            String extOnly = null; // .제외한 확장자
 
             if (unitFileInfo.getServiceType().equalsIgnoreCase("ai.vision")) {
                 String original = unitFileInfo.getFilename();
@@ -426,35 +427,43 @@ public class IOService {
                 if (idx > 0 && idx < fileNameOnly.length() - 1) { // 확장자 체크
                     base = fileNameOnly.substring(0, idx);     // subpath~파일명
                     extWithDot = fileNameOnly.substring(idx);  // 확장자 (.pdf)
+                    extOnly = fileNameOnly.substring(idx + 1).toLowerCase();
                 } else {
                     // 확장자 없을 때
                     base = fileNameOnly;
                     extWithDot = "";      // 확장자 없음
                 }
 
-                if (extWithDot.contains("hwp")) {
-                    baseWithUid = base;
-                } else {
-                    baseWithUid = base + "_" + unitFileInfo.getGroupUID();
-                }
+//                if (FileExtensionUtil.AIVISION_OFFICE_SUPPORTED_EXT.contains(extOnly)) {
+//                    baseWithUid = base;
+//                } else {
+//                    baseWithUid = base + "_" + unitFileInfo.getGroupUID();
+//                }
+                baseWithUid = base + "_" + unitFileInfo.getGroupUID();
                 fileName = baseWithUid + extWithDot;
             } else {
                 fileName = unitFileInfo.getFilename();
             }
+
+            log.debug("baseName_groupUid: " + baseWithUid);
 
             String normalizedFileName = fileName.replace("/", File.separator).replace("\\", File.separator);
             File file = null;
 
             for (FolderMapping mapping : configLoader.folderMappings) {
                 File targetFile;
-                if (unitFileInfo.getServiceType().equalsIgnoreCase("ai.vision") && !extWithDot.contains("hwp")) {
-                    Path targetDir = Paths.get(mapping.getImageFolderPath(), baseWithUid);
-                    targetFile = targetDir.resolve(baseWithUid + extWithDot).toFile();
+                if (unitFileInfo.getServiceType().equalsIgnoreCase("ai.vision")) {
+                    if (!FileExtensionUtil.AIVISION_OFFICE_SUPPORTED_EXT.contains(extOnly)) {
+                        Path targetDir = Paths.get(mapping.getImageFolderPath(), baseWithUid);
+                        targetFile = targetDir.resolve(baseWithUid + extWithDot).toFile();
+                    } else {
+                        targetFile = Paths.get(mapping.getImageFolderPath()).resolve(baseWithUid + extWithDot).toFile();
+                    }
                 } else {
                     targetFile = Paths.get(mapping.getImageFolderPath(), normalizedFileName).toFile();
                 }
 
-                log.trace("파일 탐색 시도 경로: {}", targetFile.getAbsolutePath());
+                log.debug("파일 탐색 시도 경로: {}", targetFile.getAbsolutePath());
 
                 if (targetFile.exists()) {
                     file = targetFile;

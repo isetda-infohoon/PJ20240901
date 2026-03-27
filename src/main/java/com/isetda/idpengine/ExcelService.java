@@ -623,22 +623,22 @@ public class ExcelService {
             String endDateTime = getCurrentTime();
 
             JSONObject jsonBody = new JSONObject();
-            jsonBody.put("fileName", fileInfo.getFilename());
-            jsonBody.put("pageNum", fileInfo.getPageNum());
-            jsonBody.put("userId", userId);
-            jsonBody.put("serviceType", fileInfo.getServiceType());
-            jsonBody.put("language", fileInfo.getLanguage());
-            jsonBody.put("lClassification", getCountryName(fileInfo.getLanguage()));
-            jsonBody.put("mClassification", values[2]);
+            jsonBody.put("FileName", fileInfo.getFilename());
+            jsonBody.put("PageNum", fileInfo.getPageNum());
+            jsonBody.put("UserID", userId);
+            jsonBody.put("ServiceType", fileInfo.getServiceType());
+            jsonBody.put("Language", fileInfo.getLanguage());
+            jsonBody.put("LClassification", getCountryName(fileInfo.getLanguage()));
+            jsonBody.put("MClassification", values[2]);
             if (values[2].contains("미분류")) {
-                jsonBody.put("classificationStatus", "CF"); // 미분류: CF
+                jsonBody.put("ClassificationStatus", "CF"); // 미분류: CF
             } else {
-                jsonBody.put("classificationStatus", "CS"); // 정상분류: CS
+                jsonBody.put("ClassificationStatus", "CS"); // 정상분류: CS
             }
-            jsonBody.put("visionResultFileName", name + "_result.dat");
-            jsonBody.put("classificationResultFileName", name + "_result.txt");
-            jsonBody.put("classificationStartDateTime", classificationStartDateTime);
-            jsonBody.put("classificationEndDateTime", endDateTime);
+            jsonBody.put("VisionResultFileName", name + "_result.dat");
+            jsonBody.put("ClassificationResultFileName", name + "_result.txt");
+            jsonBody.put("ClassificationStartDateTime", classificationStartDateTime);
+            jsonBody.put("ClassificationEndDateTime", endDateTime);
 
             IDPService.callUpdateApi(jsonBody);
 
@@ -692,16 +692,16 @@ public class ExcelService {
 
                 if (resultFileInfo != null && resultFileInfo.getFilename() != null) {
                     JSONObject pdfJsonBody = new JSONObject();
-                    pdfJsonBody.put("fileName", basename + ".pdf");
-                    pdfJsonBody.put("pageNum", 0);
-                    pdfJsonBody.put("userId", userId);
-                    pdfJsonBody.put("serviceType", resultFileInfo.getServiceType());
-                    pdfJsonBody.put("language", resultFileInfo.getLanguage());
-                    pdfJsonBody.put("lClassification", resultFileInfo.getLClassification());
-                    pdfJsonBody.put("mClassification", resultFileInfo.getMClassification());
-                    pdfJsonBody.put("classificationStatus", resultFileInfo.getClassificationStatus());
-                    pdfJsonBody.put("classificationStartDateTime", resultFileInfo.getClassificationStartDateTime());
-                    pdfJsonBody.put("classificationEndDateTime", endDateTime);
+                    pdfJsonBody.put("FileName", basename + ".pdf");
+                    pdfJsonBody.put("PageNum", 0);
+                    pdfJsonBody.put("UserID", userId);
+                    pdfJsonBody.put("ServiceType", resultFileInfo.getServiceType());
+                    pdfJsonBody.put("Language", resultFileInfo.getLanguage());
+                    pdfJsonBody.put("LClassification", resultFileInfo.getLClassification());
+                    pdfJsonBody.put("MClassification", resultFileInfo.getMClassification());
+                    pdfJsonBody.put("ClassificationStatus", resultFileInfo.getClassificationStatus());
+                    pdfJsonBody.put("ClassificationStartDateTime", resultFileInfo.getClassificationStartDateTime());
+                    pdfJsonBody.put("ClassificationEndDateTime", endDateTime);
 
                     IDPService.callUpdateApi(pdfJsonBody);
                 } else {
@@ -715,24 +715,24 @@ public class ExcelService {
         // jpg, png, jpeg가 원본일 경우
         if (fileInfo.getPageNum() == 0 && imageExt != null && !imageExt.equals(".pdf")) {
             JSONObject jsonBody = new JSONObject();
-            jsonBody.put("fileName", fileInfo.getFilename());
-            jsonBody.put("pageNum", 0);
-            jsonBody.put("userId", userId);
-            jsonBody.put("serviceType", fileInfo.getServiceType());
-            jsonBody.put("language", fileInfo.getLanguage());
-            jsonBody.put("lClassification", getCountryName(fileInfo.getLanguage()));
-            jsonBody.put("mClassification", values[2]);
+            jsonBody.put("FileName", fileInfo.getFilename());
+            jsonBody.put("PageNum", 0);
+            jsonBody.put("UserID", userId);
+            jsonBody.put("ServiceType", fileInfo.getServiceType());
+            jsonBody.put("Language", fileInfo.getLanguage());
+            jsonBody.put("LClassification", getCountryName(fileInfo.getLanguage()));
+            jsonBody.put("MClassification", values[2]);
 
             if (values[2].contains("미분류")) {
-                jsonBody.put("classificationStatus", "CF"); // 미분류: CF
+                jsonBody.put("ClassificationStatus", "CF"); // 미분류: CF
             } else {
-                jsonBody.put("classificationStatus", "CS"); // 정상분류: CS
+                jsonBody.put("ClassificationStatus", "CS"); // 정상분류: CS
             }
 
-            jsonBody.put("visionResultFileName", name + "_result.dat");
-            jsonBody.put("classificationResultFileName", name + "_result.txt");
-            jsonBody.put("classificationStartDateTime", classificationStartDateTime);
-            jsonBody.put("classificationEndDateTime", getCurrentTime());
+            jsonBody.put("VisionResultFileName", name + "_result.dat");
+            jsonBody.put("ClassificationResultFileName", name + "_result.txt");
+            jsonBody.put("ClassificationStartDateTime", classificationStartDateTime);
+            jsonBody.put("ClassificationEndDateTime", getCurrentTime());
 
             IDPService.callUpdateApi(jsonBody);
         }
@@ -840,38 +840,39 @@ public class ExcelService {
             String endDateTime = getCurrentTime();
 
             JSONObject jsonBody = new JSONObject();
-            jsonBody.put("fileName", fileInfo.getFilename());
-            jsonBody.put("pageNum", fileInfo.getPageNum());
-            jsonBody.put("userId", userId);
-            jsonBody.put("serviceType", fileInfo.getServiceType());
-            jsonBody.put("language", fileInfo.getLanguage());
-            jsonBody.put("lClassification", getCountryName(fileInfo.getLanguage()));
-            jsonBody.put("mClassification", values[2]);
+            jsonBody.put("FileName", fileInfo.getFilename());
+            jsonBody.put("PageNum", fileInfo.getPageNum());
+            jsonBody.put("UserID", userId);
+            jsonBody.put("ServiceType", fileInfo.getServiceType());
+            jsonBody.put("Language", fileInfo.getLanguage());
+            jsonBody.put("LClassification", getCountryName(fileInfo.getLanguage()));
+            jsonBody.put("MClassification", values[2]);
             if (values[2].contains("미분류")) {
                 if (configLoader.useUnclassifiedAsCS) {
-                    jsonBody.put("classificationStatus", "CS");
+                    jsonBody.put("ClassificationStatus", "CS");
                 } else {
-                    jsonBody.put("classificationStatus", "CF"); // 미분류: CF
+                    jsonBody.put("ClassificationStatus", "CF"); // 미분류: CF
                 }
             } else {
-                jsonBody.put("classificationStatus", "CS"); // 정상분류: CS
+                jsonBody.put("ClassificationStatus", "CS"); // 정상분류: CS
             }
 
             if (fileInfo.getServiceType().equals("da")) {
-                jsonBody.put("extractionResultFileName", fileInfo.getGroupUID().substring(0,8) + configLoader.resultFileNamingRule + defaultName + "_result.dat");
+                jsonBody.put("ExtractionResultFileName", fileInfo.getGroupUID().substring(0,8) + configLoader.resultFileNamingRule + defaultName + "_result.dat");
             } else {
-                jsonBody.put("visionResultFileName", fileInfo.getGroupUID().substring(0,8) + configLoader.resultFileNamingRule + defaultName + "_result.dat");
+                jsonBody.put("VisionResultFileName", fileInfo.getGroupUID().substring(0,8) + configLoader.resultFileNamingRule + defaultName + "_result.dat");
             }
-            //jsonBody.put("visionResultFileName", defaultName + "_result.dat");
-            jsonBody.put("classificationResultFileName", fileInfo.getGroupUID().substring(0,8) + configLoader.resultFileNamingRule + defaultName + "_result.txt");
-            jsonBody.put("classificationStartDateTime", classificationStartDateTime);
-            jsonBody.put("classificationEndDateTime", endDateTime);
+            //jsonBody.put("VisionResultFileName", defaultName + "_result.dat");
+            jsonBody.put("ClassificationResultFileName", fileInfo.getGroupUID().substring(0,8) + configLoader.resultFileNamingRule + defaultName + "_result.txt");
+            jsonBody.put("ClassificationStartDateTime", classificationStartDateTime);
+            jsonBody.put("ClassificationEndDateTime", endDateTime);
             if (configLoader.useMdFileCreation) {
-                jsonBody.put("extractionStartDateTime", classificationStartDateTime);
-                jsonBody.put("extractionEndDateTime", endDateTime);
-                jsonBody.put("extractionStatus", "ES");
+                jsonBody.put("ExtractionStartDateTime", classificationStartDateTime);
+                jsonBody.put("ExtractionEndDateTime", endDateTime);
+                jsonBody.put("ExtacationStatus", "ES");
             }
-            jsonBody.put("taskName", apiTaskName);
+            jsonBody.put("TaskName", apiTaskName);
+            jsonBody.put("GroupUID", fileInfo.getGroupUID());
 
             IDPService.callUpdateApi(jsonBody);
 
@@ -929,26 +930,27 @@ public class ExcelService {
                 }
 
                 JSONObject pdfJsonBody = new JSONObject();
-                pdfJsonBody.put("fileName", basename + ".pdf");
-                pdfJsonBody.put("pageNum", 0);
-                pdfJsonBody.put("userId", userId);
-                pdfJsonBody.put("serviceType", resultFileInfo.getServiceType());
-                pdfJsonBody.put("language", resultFileInfo.getLanguage());
-                pdfJsonBody.put("lClassification", resultFileInfo.getLClassification());
-                pdfJsonBody.put("mClassification", resultFileInfo.getMClassification());
-                pdfJsonBody.put("classificationStatus", resultFileInfo.getClassificationStatus());
-                pdfJsonBody.put("classificationResultFileName", resultFileInfo.getGroupUID().substring(0,8) + configLoader.resultFileNamingRule + fileNameOnly + "_result.txt");
+                pdfJsonBody.put("FileName", basename + ".pdf");
+                pdfJsonBody.put("PageNum", 0);
+                pdfJsonBody.put("UserID", userId);
+                pdfJsonBody.put("ServiceType", resultFileInfo.getServiceType());
+                pdfJsonBody.put("Language", resultFileInfo.getLanguage());
+                pdfJsonBody.put("LClassification", resultFileInfo.getLClassification());
+                pdfJsonBody.put("MClassification", resultFileInfo.getMClassification());
+                pdfJsonBody.put("ClassificationStatus", resultFileInfo.getClassificationStatus());
+                pdfJsonBody.put("ClassificationResultFileName", resultFileInfo.getGroupUID().substring(0,8) + configLoader.resultFileNamingRule + fileNameOnly + "_result.txt");
                 if (resultFileInfo.getServiceType().equals("da") && configLoader.useMdFileCreation) {
-                    pdfJsonBody.put("extractionResultFileName", resultFileInfo.getGroupUID().substring(0,8) + configLoader.resultFileNamingRule + fileNameOnly + "_result.md");
+                    pdfJsonBody.put("ExtractionResultFileName", resultFileInfo.getGroupUID().substring(0,8) + configLoader.resultFileNamingRule + fileNameOnly + "_result.md");
                 }
-                pdfJsonBody.put("classificationStartDateTime", resultFileInfo.getClassificationStartDateTime());
-                pdfJsonBody.put("classificationEndDateTime", endDateTime);
+                pdfJsonBody.put("ClassificationStartDateTime", resultFileInfo.getClassificationStartDateTime());
+                pdfJsonBody.put("ClassificationEndDateTime", endDateTime);
                 if (configLoader.useMdFileCreation) {
-                    pdfJsonBody.put("extractionStartDateTime", resultFileInfo.getClassificationStartDateTime());
-                    pdfJsonBody.put("extractionEndDateTime", endDateTime);
-                    pdfJsonBody.put("extractionStatus", "ES");
+                    pdfJsonBody.put("ExtractionStartDateTime", resultFileInfo.getClassificationStartDateTime());
+                    pdfJsonBody.put("ExtractionEndDateTime", endDateTime);
+                    pdfJsonBody.put("ExtacationStatus", "ES");
                 }
-                pdfJsonBody.put("taskName", apiTaskName);
+                pdfJsonBody.put("TaskName", apiTaskName);
+                jsonBody.put("GroupUID", fileInfo.getGroupUID());
 
                 IDPService.callUpdateApi(pdfJsonBody);
 
@@ -1014,37 +1016,38 @@ public class ExcelService {
             }
 
             JSONObject jsonBody = new JSONObject();
-            jsonBody.put("fileName", fileInfo.getFilename());
-            jsonBody.put("pageNum", 0);
-            jsonBody.put("userId", userId);
-            jsonBody.put("serviceType", fileInfo.getServiceType());
-            jsonBody.put("language", fileInfo.getLanguage());
-            jsonBody.put("lClassification", getCountryName(fileInfo.getLanguage()));
-            jsonBody.put("mClassification", values[2]);
+            jsonBody.put("FileName", fileInfo.getFilename());
+            jsonBody.put("PageNum", 0);
+            jsonBody.put("UserID", userId);
+            jsonBody.put("ServiceType", fileInfo.getServiceType());
+            jsonBody.put("Language", fileInfo.getLanguage());
+            jsonBody.put("LClassification", getCountryName(fileInfo.getLanguage()));
+            jsonBody.put("MClassification", values[2]);
 
             if (values[2].contains("미분류")) {
                 if (configLoader.useUnclassifiedAsCS) {
-                    jsonBody.put("classificationStatus", "CS");
+                    jsonBody.put("ClassificationStatus", "CS");
                 } else {
-                    jsonBody.put("classificationStatus", "CF"); // 미분류: CF
+                    jsonBody.put("ClassificationStatus", "CF"); // 미분류: CF
                 }
             } else {
-                jsonBody.put("classificationStatus", "CS"); // 정상분류: CS
+                jsonBody.put("ClassificationStatus", "CS"); // 정상분류: CS
             }
 
-            jsonBody.put("visionResultFileName", fileInfo.getGroupUID().substring(0,8) + configLoader.resultFileNamingRule + defaultName + "_result.dat");
-            jsonBody.put("classificationResultFileName", fileInfo.getGroupUID().substring(0,8) + configLoader.resultFileNamingRule + defaultName + "_result.txt");
+            jsonBody.put("VisionResultFileName", fileInfo.getGroupUID().substring(0,8) + configLoader.resultFileNamingRule + defaultName + "_result.dat");
+            jsonBody.put("ClassificationResultFileName", fileInfo.getGroupUID().substring(0,8) + configLoader.resultFileNamingRule + defaultName + "_result.txt");
             if (fileInfo.getServiceType().equals("da") && configLoader.useMdFileCreation) {
-                jsonBody.put("extractionResultFileName", fileInfo.getGroupUID().substring(0,8) + configLoader.resultFileNamingRule + defaultName + "_result.md");
+                jsonBody.put("ExtractionResultFileName", fileInfo.getGroupUID().substring(0,8) + configLoader.resultFileNamingRule + defaultName + "_result.md");
             }
-            jsonBody.put("classificationStartDateTime", classificationStartDateTime);
-            jsonBody.put("classificationEndDateTime", getCurrentTime());
+            jsonBody.put("ClassificationStartDateTime", classificationStartDateTime);
+            jsonBody.put("ClassificationEndDateTime", getCurrentTime());
             if (configLoader.useMdFileCreation) {
-                jsonBody.put("extractionStartDateTime", classificationStartDateTime);
-                jsonBody.put("extractionEndDateTime", getCurrentTime());
-                jsonBody.put("extractionStatus", "ES");
+                jsonBody.put("ExtractionStartDateTime", classificationStartDateTime);
+                jsonBody.put("ExtractionEndDateTime", getCurrentTime());
+                jsonBody.put("ExtacationStatus", "ES");
             }
-            jsonBody.put("taskName", apiTaskName);
+            jsonBody.put("TaskName", apiTaskName);
+            jsonBody.put("GroupUID", fileInfo.getGroupUID());
 
             IDPService.callUpdateApi(jsonBody);
             if (configLoader.useCallbackUpdate && configLoader.serviceType.contains("da")) {
@@ -1069,38 +1072,39 @@ public class ExcelService {
             }
 
             JSONObject jsonBody = new JSONObject();
-            jsonBody.put("fileName", fileInfo.getFilename());
-            jsonBody.put("pageNum", 0);
-            jsonBody.put("userId", userId);
-            jsonBody.put("serviceType", fileInfo.getServiceType());
-            jsonBody.put("language", fileInfo.getLanguage());
-            jsonBody.put("lClassification", getCountryName(fileInfo.getLanguage()));
-            jsonBody.put("mClassification", values[2]);
+            jsonBody.put("FileName", fileInfo.getFilename());
+            jsonBody.put("PageNum", 0);
+            jsonBody.put("UserID", userId);
+            jsonBody.put("ServiceType", fileInfo.getServiceType());
+            jsonBody.put("Language", fileInfo.getLanguage());
+            jsonBody.put("LClassification", getCountryName(fileInfo.getLanguage()));
+            jsonBody.put("MClassification", values[2]);
 
             if (values[2].contains("미분류")) {
                 if (configLoader.useUnclassifiedAsCS) {
-                    jsonBody.put("classificationStatus", "CS");
+                    jsonBody.put("ClassificationStatus", "CS");
                 } else {
-                    jsonBody.put("classificationStatus", "CF"); // 미분류: CF
+                    jsonBody.put("ClassificationStatus", "CF"); // 미분류: CF
                 }
             } else {
-                jsonBody.put("classificationStatus", "CS"); // 정상분류: CS
+                jsonBody.put("ClassificationStatus", "CS"); // 정상분류: CS
             }
 
             String defaultName2 = new File(name2).getName();
 
-            jsonBody.put("classificationResultFileName", fileInfo.getGroupUID().substring(0,8) + configLoader.resultFileNamingRule + defaultName2 + "_result.txt");
+            jsonBody.put("ClassificationResultFileName", fileInfo.getGroupUID().substring(0,8) + configLoader.resultFileNamingRule + defaultName2 + "_result.txt");
             if (fileInfo.getServiceType().equals("da") && configLoader.useMdFileCreation) {
-                jsonBody.put("extractionResultFileName", fileInfo.getGroupUID().substring(0,8) + configLoader.resultFileNamingRule + defaultName2 + "_result.md");
+                jsonBody.put("ExtractionResultFileName", fileInfo.getGroupUID().substring(0,8) + configLoader.resultFileNamingRule + defaultName2 + "_result.md");
             }
-            jsonBody.put("classificationStartDateTime", classificationStartDateTime);
-            jsonBody.put("classificationEndDateTime", getCurrentTime());
+            jsonBody.put("ClassificationStartDateTime", classificationStartDateTime);
+            jsonBody.put("ClassificationEndDateTime", getCurrentTime());
             if (configLoader.useMdFileCreation) {
-                jsonBody.put("extractionStartDateTime", classificationStartDateTime);
-                jsonBody.put("extractionEndDateTime", getCurrentTime());
-                jsonBody.put("extractionStatus", "ES");
+                jsonBody.put("ExtractionStartDateTime", classificationStartDateTime);
+                jsonBody.put("ExtractionEndDateTime", getCurrentTime());
+                jsonBody.put("ExtacationStatus", "ES");
             }
-            jsonBody.put("taskName", apiTaskName);
+            jsonBody.put("TaskName", apiTaskName);
+            jsonBody.put("GroupUID", fileInfo.getGroupUID());
 
             IDPService.callUpdateApi(jsonBody);
             if (configLoader.useCallbackUpdate && configLoader.serviceType.contains("da")) {
@@ -1109,7 +1113,7 @@ public class ExcelService {
         }
     }
 
-    public void jsonDataUpdateWithVision(String taskName, String subpath, String fileName, String groupUid, String[] values) throws UnirestException {
+    public void jsonDataUpdateWithVision(String taskName, String subpath, String fileName, String groupUid, String[] values, String ext) throws UnirestException {
         log.info("update start: " + subpath + File.separator + fileName);
 
         String apiTaskName = (taskName == null || taskName.isEmpty()) ? "DEFAULT" : taskName;
@@ -1118,34 +1122,39 @@ public class ExcelService {
         String userId = configLoader.apiUserId;
 
         // 원본만 들어오지만 page 접미사 제거는 안전장치로 둠
-        String defaultName = new File(fileName.replace("_result", "").replaceAll("-page\\d+$", "")).getName(); // 디렉토리 제거
+//        String defaultName = new File(fileName.replace("_result", "").replaceAll("-page\\d+$", "")).getName(); // 디렉토리 제거
+//
+//        String[] imageExts = {"jpg", "png", "jpeg", "JPG", "PNG", "JPEG"}; // (닷 없음으로 맞춤)
+//        FileInfo fileInfo = null;
+//        String detectedExt = null; // 확장자(닷 없음)
 
-        String[] imageExts = {"jpg", "png", "jpeg", "JPG", "PNG", "JPEG"}; // (닷 없음으로 맞춤)
-        FileInfo fileInfo = null;
-        String detectedExt = null; // 확장자(닷 없음)
+        String defaultName = fileName.replace("_result", "")
+                .replaceAll("-page\\d+$", "");
 
-        for (String ext : FileExtensionUtil.AIVISION_SUPPORTED_EXT) {
-            fileInfo = IDPService.getFileByName(userId, defaultName + "." + ext);
-            if (fileInfo != null && fileInfo.getFilename() != null) {
-                detectedExt = ext; // 예: "pdf"
-                log.debug("detected office/pdf ext: {}", detectedExt);
-                break;
-            }
-        }
-        if (fileInfo == null || fileInfo.getFilename() == null) {
-            for (String ext : imageExts) {
-                fileInfo = IDPService.getFileByName(userId, defaultName + "." + ext);
-                if (fileInfo != null && fileInfo.getFilename() != null) {
-                    detectedExt = ext; // 예: "jpg"
-                    log.debug("detected image ext: {}", detectedExt);
-                    break;
-                }
-            }
-        }
+        FileInfo fileInfo = IDPService.getFileByName(userId, defaultName + "." + ext);
+
+//        for (String ext : FileExtensionUtil.AIVISION_SUPPORTED_EXT) {
+//            fileInfo = IDPService.getFileByName(userId, defaultName + "." + ext);
+//            if (fileInfo != null && fileInfo.getFilename() != null) {
+//                detectedExt = ext; // 예: "pdf"
+//                log.debug("detected office/pdf ext: {}", detectedExt);
+//                break;
+//            }
+//        }
+//        if (fileInfo == null || fileInfo.getFilename() == null) {
+//            for (String ext : imageExts) {
+//                fileInfo = IDPService.getFileByName(userId, defaultName + "." + ext);
+//                if (fileInfo != null && fileInfo.getFilename() != null) {
+//                    detectedExt = ext; // 예: "jpg"
+//                    log.debug("detected image ext: {}", detectedExt);
+//                    break;
+//                }
+//            }
+//        }
 
         // 파일 메타 없으면 종료
         if (fileInfo == null || fileInfo.getFilename() == null) {
-            log.warn("파일 정보를 찾지 못했습니다. API 호출 생략: {}", defaultName);
+            log.warn("파일 정보를 찾지 못했습니다. API 호출 생략: {}", defaultName + "." + ext);
             return;
         }
 
@@ -1190,27 +1199,25 @@ public class ExcelService {
         String resultMdName  = defaultName + "_result.md";
 
         JSONObject jsonBody = new JSONObject();
-        jsonBody.put("fileName", fileInfo.getFilename());
-        jsonBody.put("pageNum", 0);
-        jsonBody.put("userId", userId);
-        jsonBody.put("serviceType", fileInfo.getServiceType());
-        jsonBody.put("language", fileInfo.getLanguage());
-        jsonBody.put("lClassification", getCountryName(fileInfo.getLanguage()));
-        jsonBody.put("mClassification", mClass);
-        jsonBody.put("classificationStatus", classificationStatus);
-
-        jsonBody.put("classificationResultFileName", resultTxtName);
-        jsonBody.put("visionResultFileName", resultMdName);
-
-
-        jsonBody.put("classificationStartDateTime", classificationStartDateTime);
-        jsonBody.put("classificationEndDateTime", getCurrentTime());
-        jsonBody.put("taskName", apiTaskName);
+        jsonBody.put("FileName", fileInfo.getFilename());
+        jsonBody.put("PageNum", 0);
+        jsonBody.put("UserID", userId);
+        jsonBody.put("GroupUID", fileInfo.getGroupUID());
+        jsonBody.put("ServiceType", fileInfo.getServiceType());
+        jsonBody.put("Language", fileInfo.getLanguage());
+        jsonBody.put("LClassification", getCountryName(fileInfo.getLanguage()));
+        jsonBody.put("MClassification", mClass);
+        jsonBody.put("ClassificationStatus", classificationStatus);
+        jsonBody.put("ClassificationResultFileName", resultTxtName);
+        jsonBody.put("VisionResultFileName", resultMdName);
+        jsonBody.put("ClassificationStartDateTime", classificationStartDateTime);
+        jsonBody.put("ClassificationEndDateTime", getCurrentTime());
+        jsonBody.put("TaskName", apiTaskName);
 
         // --- API 호출 ---
         IDPService.callUpdateApi(jsonBody);
 
-        log.info("Vision update completed. resultFolder={}, fileFound={}", resultFolder.toString(), defaultName + "." + detectedExt);
+        log.info("Vision update completed. resultFolder={}, fileFound={}", resultFolder.toString(), defaultName + "." + ext);
     }
 
     public int getProcessedPageCount(String userId, String basename) throws UnirestException {
