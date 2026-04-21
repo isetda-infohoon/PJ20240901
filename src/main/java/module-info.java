@@ -1,4 +1,4 @@
-module com.isetda.idpengine {
+module com.isetda.daidpengineclassification {
     requires javafx.controls;
     requires javafx.fxml;
 
@@ -36,8 +36,8 @@ module com.isetda.idpengine {
     requires jodconverter.core;
     requires jodconverter.local;
 
-    opens com.isetda.idpengine to javafx.fxml;
-    exports com.isetda.idpengine;
-    exports com.isetda.idpengine.service;
-    opens com.isetda.idpengine.service to javafx.fxml;
+    opens com.isetda.daidpengineclassification to javafx.fxml;
+    exports com.isetda.daidpengineclassification;
+    exports com.isetda.daidpengineclassification.service;
+    opens com.isetda.daidpengineclassification.service to javafx.fxml;
 }

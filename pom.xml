@@ -5,9 +5,9 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.isetda</groupId>
-  <artifactId>IDPEngine</artifactId>
+  <artifactId>daidpengineclassification</artifactId>
   <version>1.0-SNAPSHOT</version>
-  <name>IDPEngine</name>
+  <name>DAIDPEngineClassification</name>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -282,7 +282,7 @@
             <!-- Default configuration for running with: mvn clean javafx:run -->
             <id>default-cli</id>
             <configuration>
-              <mainClass>com.isetda.idpengine/com.isetda.idpengine.IDPEngineApplication</mainClass>
+              <mainClass>com.isetda.idpengine/com.isetda.daidpengineclassification.Application</mainClass>
               <launcher>app</launcher>
               <jlinkZipName>app</jlinkZipName>
               <jlinkImageName>app</jlinkImageName>
@@ -330,9 +330,12 @@
             <manifest>
               <addClasspath>true</addClasspath>
               <classpathPrefix>lib/</classpathPrefix>
-              <mainClass>com.isetda.idpengine.IDPEngineApplication</mainClass>
+              <mainClass>com.isetda.daidpengineclassification.Application</mainClass>
+              <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
             </manifest>
             <manifestEntries>
+              <Implementation-Version>${project.version}</Implementation-Version>
+              <Implementation-Title>${project.name}</Implementation-Title>
               <Build-Time>${maven.build.timestamp}</Build-Time>
               <Build-Number>${buildNumber}</Build-Number>
             </manifestEntries>
