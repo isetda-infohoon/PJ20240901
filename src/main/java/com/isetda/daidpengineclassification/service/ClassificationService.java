@@ -72,6 +72,7 @@ public class ClassificationService {
                     fileInfo.setUrlData(data.optString("URLData"));
                     fileInfo.setTaskName(data.optString("TaskName"));
                     fileInfo.setVisionStatus(data.optString("VisionStatus"));
+                    fileInfo.setClassificationType(data.optString("ClassificationType"));
 
                     fileList.add(fileInfo);
                 }
@@ -96,6 +97,10 @@ public class ClassificationService {
 
     // 데이터를 조회하고 해당 정보를 반환
     public FileInfo getFileByName(String userId, String filename) throws UnirestException {
+        return getFileByName(userId, filename, null);
+    }
+
+    public FileInfo getFileByName(String userId, String filename, String groupUID) throws UnirestException {
         String defaultUrl = configLoader.apiURL;
         FileInfo fileInfo = new FileInfo();
 
@@ -111,6 +116,7 @@ public class ClassificationService {
                 .queryString("CLASSIFICATION_STATUS", "")
                 .queryString("REQUEST_START_DATE", "")
                 .queryString("REQUEST_END_DATE", "")
+                .queryString("GROUPUID", groupUID)
                 .asString();
 
         if (response.getStatus() == 200) {
@@ -147,6 +153,7 @@ public class ClassificationService {
                     fileInfo.setUrlData(data.optString("URLData"));
                     fileInfo.setTaskName(data.optString("TaskName"));
                     fileInfo.setVisionStatus(data.optString("VisionStatus"));
+                    fileInfo.setClassificationType(data.optString("ClassificationType"));
                 }
             }
         } else {
@@ -219,6 +226,7 @@ public class ClassificationService {
                     fileInfo.setUrlData(data.optString("URLData"));
                     fileInfo.setTaskName(data.optString("TaskName"));
                     fileInfo.setVisionStatus(data.optString("VisionStatus"));
+                    fileInfo.setClassificationType(data.optString("ClassificationType"));
                 }
             }
         } else {
@@ -291,6 +299,7 @@ public class ClassificationService {
                     fileInfo.setUrlData(data.optString("URLData"));
                     fileInfo.setTaskName(data.optString("TaskName"));
                     fileInfo.setVisionStatus(data.optString("VisionStatus"));
+                    fileInfo.setClassificationType(data.optString("ClassificationType"));
                 }
             }
         } else {
@@ -362,6 +371,7 @@ public class ClassificationService {
                     fileInfo.setUrlData(data.optString("URLData"));
                     fileInfo.setTaskName(data.optString("TaskName"));
                     fileInfo.setVisionStatus(data.optString("VisionStatus"));
+                    fileInfo.setClassificationType(data.optString("ClassificationType"));
                 }
             }
         } else {
@@ -422,6 +432,7 @@ public class ClassificationService {
                     fileInfo.setClassificationEndDateTime(data.optString("ClassificationEndDateTime"));
                     fileInfo.setTaskName(data.optString("TaskName"));
                     fileInfo.setVisionStatus(data.optString("VisionStatus"));
+                    fileInfo.setClassificationType(data.optString("ClassificationType"));
 
                     fileList.add(fileInfo);
                 }
@@ -485,12 +496,13 @@ public class ClassificationService {
                         fileInfo.setCreateDateTime(data.optString("CreateDateTime"));
                         fileInfo.setTaskName(data.optString("TaskName"));
                         fileInfo.setVisionStatus(data.optString("VisionStatus"));
+                        fileInfo.setClassificationType(data.optString("ClassificationType"));
 
                         fileList.add(fileInfo);
                     }
                 }
             } else {
-                log.warn("STATUS CHECK API 호출 실패: " + response.getStatus() + " - " + response.getStatusText());
+                log.info("STATUS CHECK API 호출 실패: " + response.getStatus() + " - " + response.getStatusText());
             }
 
             // createDateTime 시간 오름차순 정렬
@@ -571,6 +583,7 @@ public class ClassificationService {
                     fileInfo.setClassificationEndDateTime(data.optString("ClassificationEndDateTime"));
                     fileInfo.setTaskName(data.optString("TaskName"));
                     fileInfo.setVisionStatus(data.optString("VisionStatus"));
+                    fileInfo.setClassificationType(data.optString("ClassificationType"));
 
                     fileList.add(fileInfo);
                 }
@@ -613,19 +626,21 @@ public class ClassificationService {
         String filename = jsonBody.optString("FileName");
         jsonBody.put("FileName", toWindowsPath(filename));
 
+        log.info("CALL UPDATE API - FILENAME: {}", toWindowsPath(filename));
+
         String apiUrl = defaultUrl + "/doc/update";
         HttpResponse<String> response = Unirest.post(apiUrl)
                 .header("Content-Type", "application/json")
                 .body(jsonBody.toString()).asString();
 
-        log.trace("UPDATE API 응답 코드: " + response.getStatus());
-        log.trace("UPDATE API 응답 내용: " + response.getBody());
+        log.info("UPDATE API 응답 코드: " + response.getStatus());
+        log.info("UPDATE API 응답 내용: " + response.getBody());
 
         if (response.getStatus() == 200) {
             log.info("UPDATE API call successful");
         } else {
-            log.warn("UPDATE API 호출 실패: " + response.getStatus() + " - " + response.getStatusText());
-            log.trace("UPDATE API 응답 내용: {}", response.getBody());
+            log.info("UPDATE API 호출 실패: " + response.getStatus() + " - " + response.getStatusText());
+            log.info("UPDATE API 응답 내용: {}", response.getBody());
         }
     }
 
@@ -633,22 +648,25 @@ public class ClassificationService {
         String defaultUrl = configLoader.apiURL;
         Unirest.setTimeouts(0, 0);
 
-        JSONObject jsonBody = new JSONObject();
-
-        String version = Main.getProjectVersion();
+        String rawVersion = Main.getProjectVersion();
+        String version = rawVersion.replaceAll("[^0-9.]", "");
+        log.trace("버전 변환: {} -> {}", rawVersion, version);
 
         String apiUrl = defaultUrl + "/doc/updateuser";
         HttpResponse<String> response = Unirest.post(apiUrl)
                 .queryString("USERID", configLoader.apiUserId)
                 .queryString("VERSION", version)
                 .queryString("COMMAND", command)
+                .header("accept", "*/*") // 모든 응답 허용 추가
                 .asString();
 
+        log.info("API 호출 URL: {}", apiUrl);
         log.info("UPDATE USER API 응답 코드: " + response.getStatus());
         log.info("UPDATE USER API 응답 내용: " + response.getBody());
 
         if (response.getStatus() == 200) {
             log.info("UPDATE USER API call successful");
+            System.out.println("DEBUG: API 호출 시작 - " + command); // STOP 시 확인 로그
         } else {
             log.info("UPDATE API 호출 실패: " + response.getStatus() + " - " + response.getStatusText());
             log.info("UPDATE API 응답 내용: {}", response.getBody());

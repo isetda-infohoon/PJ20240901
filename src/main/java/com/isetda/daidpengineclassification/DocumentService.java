@@ -7,6 +7,7 @@ import org.apache.logging.log4j.Logger;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -429,12 +430,23 @@ public class DocumentService {
         new Controller(sharedState).jsonfiles = jsonFiles.length;
 
         //TODO
-        configLoader.classificationCriteria = "C1";
-        configLoader.subClassificationCriteria = "C1";
+        if (fileInfo.getClassificationType().equals("M")) {
+            configLoader.classificationCriteria = "C1";
+            configLoader.subClassificationCriteria = "C1";
+        } else if (fileInfo.getClassificationType().equals("H")) {
+            configLoader.classificationCriteria = "H";
+            configLoader.subClassificationCriteria = "H";
+        } else {
+            return;
+        }
 
-        int idx = fileInfo.getFilename().lastIndexOf('.');
-        String visionResultFolder = fileInfo.getFilename().substring(0, idx) + "_" + fileInfo.getGroupUID();
-        String ext = fileInfo.getFilename().substring(idx + 1);
+        String mainCategory = null;
+        String subCategory = null;
+
+        String onlyFileName = Paths.get(fileInfo.getFilename()).getFileName().toString();
+        int idx = onlyFileName.lastIndexOf('.');
+        String visionResultFolder = onlyFileName.substring(0, idx) + "_" + fileInfo.getGroupUID();
+        String ext = onlyFileName.substring(idx + 1);
 
         int cnt = 1;
         for (File curFile : jsonFiles) {
@@ -472,19 +484,26 @@ public class DocumentService {
             resultByVersion.put(fileName.replace("_result", ""), new HashMap<>());
             finalResultByVersion.put(fileName.replace("_result", ""), new HashMap<>());
 
-            if (configLoader.cdAUsageFlag) {
-                classifyDocuments1(jsonData, allWords);
-                postProcessing("A1");
-            }
+            if (fileInfo.getClassificationType().equals("M")) {
+                if (configLoader.cdAUsageFlag) {
+                    classifyDocuments1(jsonData, allWords);
+                    postProcessing("A1");
+                }
 
-            if (configLoader.cdBUsageFlag) {
-                classifyDocuments_B1(jsonData, allWords);
-                postProcessing("B1");
-            }
+                if (configLoader.cdBUsageFlag) {
+                    classifyDocuments_B1(jsonData, allWords);
+                    postProcessing("B1");
+                }
 
-            if (configLoader.cdCUsageFlag) {
-                classifyDocuments_C1(jsonData, allWords);
-                postProcessing("C1");
+                if (configLoader.cdCUsageFlag) {
+                    classifyDocuments_C1(jsonData, allWords);
+                    postProcessing("C1");
+                }
+            } else if (fileInfo.getClassificationType().equals("H")) {
+                String[] matchedCategory = classifyDocumentsH(fileInfo);
+                mainCategory = matchedCategory[0];
+                subCategory = matchedCategory[1];
+                postProcessing("H");
             }
 
             Thread.sleep(200);
@@ -495,7 +514,9 @@ public class DocumentService {
             }
 
             if (configLoader.writeTextResults) {
-                excelService.textFinalResult(textSaveFilePath, fileName, finalResultByVersion, configLoader.classificationCriteria, configLoader.subClassificationCriteria, finalCertificateResult);
+                if (fileInfo.getClassificationType().equals("M")) {
+                    excelService.textFinalResult(textSaveFilePath, fileName, finalResultByVersion, configLoader.classificationCriteria, configLoader.subClassificationCriteria, finalCertificateResult);
+                }
 
                 if (fileName.contains("-page")) { // '파일명-page?_result'
                     excelService.appendPageResultToMaster(fileName, visionResultFolder);
@@ -525,15 +546,19 @@ public class DocumentService {
         if (configLoader.apiUsageFlag) {
             Map<String, String> valueList = finalResultByVersion.get(fileName.replace("_result", ""));
 
+            log.info("valueList 내용: {}", valueList);
+
             if (valueList != null) {
+                log.info("valueList not null");
                 String value = valueList.get(configLoader.classificationCriteria);
                 if (value != null) {
+                    log.info("value not null");
                     if (value.contains("미분류")) {
                         value = valueList.get(configLoader.subClassificationCriteria);
                     }
                     String[] values = value.split(Pattern.quote(File.separator));
                     try {
-                        excelService.jsonDataUpdateWithVision(taskName, subPath, fileName, fileInfo.getGroupUID(), values, ext);
+                        excelService.jsonDataUpdateWithVision(taskName, subPath, fileName, fileInfo.getGroupUID(), values, ext, mainCategory, subCategory);
                         log.info("Update completed");
                     } catch (Exception e) {
                         log.warn("Update api failed. {}", e.getMessage());
@@ -557,16 +582,18 @@ public class DocumentService {
         }
         log.trace("matchjsonWord : {}",matchjsonWord);
 
-        try {
-            if (configLoader.writeExcelResults) {
-                excelService.createExcel2(resultList, filteredResult, fileName, saveFilePath, a);
-            }
+        if (!a.equals("H")) {
+            try {
+                if (configLoader.writeExcelResults) {
+                    excelService.createExcel2(resultList, filteredResult, fileName, saveFilePath, a);
+                }
 
-            if (configLoader.writeTextResults) {
-                excelService.createText(resultList, filteredResult, fileName, textSaveFilePath, a);
+                if (configLoader.writeTextResults) {
+                    excelService.createText(resultList, filteredResult, fileName, textSaveFilePath, a);
+                }
+            } catch (IOException e) {
+                log.error("결과 파일 생성 실패: {}", e.getStackTrace()[0]);
             }
-        } catch (IOException e) {
-            log.error("결과 파일 생성 실패: {}", e.getStackTrace()[0]);
         }
         matchjsonWord = new ArrayList<>();
 
@@ -605,6 +632,46 @@ public class DocumentService {
                 }
             }
         }
+    }
+
+    public String[] classifyDocumentsH(FileInfo fileInfo) {
+        String matchedMainCategory = "미분류";
+        String matchedSubCategory = "미분류";
+        resultList = new ArrayList<>();
+
+        List<String> countryType = new ArrayList<>();
+        countryType.add("국가");
+
+        List<String> languageCode = new ArrayList<>();
+        languageCode.add("언어");
+
+        List<String> documentType = new ArrayList<>();
+        documentType.add("문서 양식");
+
+        for (PatternSetting pattern : configLoader.patternSettings) {
+            String main = pattern.getMainCategory();
+            String sub = pattern.getSubCategory();
+            String categoryPath = main + File.separator + sub;
+
+            if (subPath.contains(categoryPath)) {
+                matchedMainCategory = main;
+                matchedSubCategory = sub;
+
+                log.info("Pattern matched: {}", categoryPath);
+                break;
+            }
+        }
+        log.info("Final Pattern matched: {} / {}", matchedMainCategory, matchedSubCategory);
+
+        countryType.add(ExcelService.getCountryName(fileInfo.getLanguage()));
+        languageCode.add(fileInfo.getLanguage());
+        documentType.add(matchedMainCategory);
+
+        resultList.add(countryType);
+        resultList.add(languageCode);
+        resultList.add(documentType);
+
+        return new String[]{matchedMainCategory, matchedSubCategory};
     }
 
     // 합쳐진 추출 단어(description)로 일치 단어 비교

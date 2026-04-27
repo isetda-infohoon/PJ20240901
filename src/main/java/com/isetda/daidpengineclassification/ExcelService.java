@@ -1113,7 +1113,7 @@ public class ExcelService {
         }
     }
 
-    public void jsonDataUpdateWithVision(String taskName, String subpath, String fileName, String groupUid, String[] values, String ext) throws UnirestException {
+    public void jsonDataUpdateWithVision(String taskName, String subpath, String fileName, String groupUid, String[] values, String ext, String mainCategory, String subCategory) throws UnirestException {
         log.info("update start: " + subpath + File.separator + fileName);
 
         String apiTaskName = (taskName == null || taskName.isEmpty()) ? "DEFAULT" : taskName;
@@ -1121,36 +1121,10 @@ public class ExcelService {
         ClassificationService ClassificationService = new ClassificationService();
         String userId = configLoader.apiUserId;
 
-        // 원본만 들어오지만 page 접미사 제거는 안전장치로 둠
-//        String defaultName = new File(fileName.replace("_result", "").replaceAll("-page\\d+$", "")).getName(); // 디렉토리 제거
-//
-//        String[] imageExts = {"jpg", "png", "jpeg", "JPG", "PNG", "JPEG"}; // (닷 없음으로 맞춤)
-//        FileInfo fileInfo = null;
-//        String detectedExt = null; // 확장자(닷 없음)
-
         String defaultName = fileName.replace("_result", "")
                 .replaceAll("-page\\d+$", "");
 
-        FileInfo fileInfo = ClassificationService.getFileByName(userId, defaultName + "." + ext);
-
-//        for (String ext : FileExtensionUtil.AIVISION_SUPPORTED_EXT) {
-//            fileInfo = IDPService.getFileByName(userId, defaultName + "." + ext);
-//            if (fileInfo != null && fileInfo.getFilename() != null) {
-//                detectedExt = ext; // 예: "pdf"
-//                log.debug("detected office/pdf ext: {}", detectedExt);
-//                break;
-//            }
-//        }
-//        if (fileInfo == null || fileInfo.getFilename() == null) {
-//            for (String ext : imageExts) {
-//                fileInfo = IDPService.getFileByName(userId, defaultName + "." + ext);
-//                if (fileInfo != null && fileInfo.getFilename() != null) {
-//                    detectedExt = ext; // 예: "jpg"
-//                    log.debug("detected image ext: {}", detectedExt);
-//                    break;
-//                }
-//            }
-//        }
+        FileInfo fileInfo = ClassificationService.getFileByName(userId, subpath + defaultName + "." + ext, groupUid);
 
         // 파일 메타 없으면 종료
         if (fileInfo == null || fileInfo.getFilename() == null) {
@@ -1160,15 +1134,15 @@ public class ExcelService {
 
         // 원본만 대상이므로 pageNum == 0 만 의미 있음
         if (fileInfo.getPageNum() != 0) {
-            log.debug("원본 전용 메서드이므로 pageNum != 0 인 경우 스킵: {}", fileInfo.getPageNum());
+            log.warn("원본 전용 메서드이므로 pageNum != 0 인 경우 스킵: {}", fileInfo.getPageNum());
             return;
         }
 
         // subpath 정리 (앞, 뒤 경로 구분자 제거)
         Path base = Paths.get(configLoader.resultFilePath);
         Path branch = configLoader.createClassifiedFolder
-                ? base.resolve(values[2]).resolve(apiTaskName)
-                : base.resolve(apiTaskName);
+                ? base.resolve(values[2]).resolve(taskName)
+                : base.resolve(taskName);
 
         if (subpath != null && !subpath.trim().isEmpty()) {
             // OS별 구분자 자동 처리
@@ -1186,7 +1160,7 @@ public class ExcelService {
 
         // 폴더 존재 확인
         if (!Files.exists(resultFolder) || !Files.isDirectory(resultFolder)) {
-            log.debug("결과 폴더가 존재하지 않습니다. resultFolder={}", resultFolder.toString());
+            log.warn("결과 폴더가 존재하지 않습니다. resultFolder={}", resultFolder.toString());
             return;
         }
 
@@ -1206,9 +1180,14 @@ public class ExcelService {
         jsonBody.put("ServiceType", fileInfo.getServiceType());
         jsonBody.put("Language", fileInfo.getLanguage());
         jsonBody.put("LClassification", getCountryName(fileInfo.getLanguage()));
-        jsonBody.put("MClassification", mClass);
+        if (fileInfo.getClassificationType().equals("M")) {
+            jsonBody.put("MClassification", mClass);
+            jsonBody.put("ClassificationResultFileName", resultTxtName);
+        } else if (fileInfo.getClassificationType().equals("H")) {
+            jsonBody.put("MClassification", mainCategory);
+            jsonBody.put("SClassification", subCategory);
+        }
         jsonBody.put("ClassificationStatus", classificationStatus);
-        jsonBody.put("ClassificationResultFileName", resultTxtName);
         jsonBody.put("VisionResultFileName", resultMdName);
         jsonBody.put("ClassificationStartDateTime", classificationStartDateTime);
         jsonBody.put("ClassificationEndDateTime", getCurrentTime());

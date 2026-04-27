@@ -61,6 +61,8 @@ public class Controller {
     double progressStep;
     AtomicReference<Double> currentProgress;
 
+    String subPath;
+
     @FXML
     public void initialize() {
         lood();
@@ -186,6 +188,10 @@ public class Controller {
             //excelService.deleteFileList();
 
             for (FileInfo fileInfo : pendingFiles) {
+                if (fileInfo.getClassificationType() == null || fileInfo.getClassificationType().trim().isEmpty()) {
+                    log.warn("파일 제외됨 (ClassificationType이 null): {}", fileInfo.getFilename());
+                    continue;
+                }
                 unitFileInfo = fileInfo;
                 //onButton1Click();
                 onButton1API();
@@ -275,164 +281,6 @@ public class Controller {
             int a = 1;
 
             if (configLoader.apiUsageFlag) {
-//                for (FileInfo info : uploadFileList) {
-//                    String filename = info.getFilename();
-//                    String countryName = info.getLanguage();
-//                    System.out.println("get language : " + countryName);
-//
-//                    // imageAndPdfFiles 와 filename 일치하는 파일 찾기
-//                    Optional<File> matchedFile = Arrays.stream(imageAndPdfFiles)
-//                            .filter(f -> f.getName().equals(filename))
-//                            .findFirst();
-//
-//                    System.out.println("matchedFile List : " + matchedFile);
-//
-//                    if (matchedFile.isPresent()) {
-//                        File file = matchedFile.get();
-//
-//                        try {
-//                            if (file.getName().toLowerCase().endsWith(".pdf")) {
-//                                int maxPage = getPdfPageCount(configLoader.imageFolderPath + File.separator + filename);
-//
-//                                IOService.copyFiles(file);
-//                                apiCaller.callDivisionApi(configLoader.apiUserId, maxPage, filename, info.getOcrServiceType());
-//                                continue;
-//                            }
-//                            if (countryName.equals("KR_DEV")) {
-//                                googleService.uploadAndOCR(file);
-//
-//                                try {
-//                                    if (googleService.checkBadImg == true) {
-//                                        IOService.copyFiles(file);
-//
-//                                        //File dir = new File(inputResultFolderPath.getText());
-//                                        File dir = new File(configLoader.resultFilePath);
-//                                        String[] fileNames = dir.list();
-//
-//                                        String fileName = file.getName();
-//                                        String baseName = fileName.substring(0, fileName.lastIndexOf('.'));
-//                                        baseName = baseName.replaceAll("-page\\d+", "");
-//
-//                                        // "미분류" 폴더 경로 생성
-//                                        //File uncategorizedDir = new File(inputResultFolderPath.getText() + "/KR_DEV");
-//                                        File uncategorizedDir = new File(configLoader.resultFilePath + "/KR_DEV");
-//                                        if (!uncategorizedDir.exists()) {
-//                                            uncategorizedDir.mkdir(); // "미분류" 폴더가 없다면 생성
-//                                        }
-//
-//                                        // baseName을 포함하는 모든 파일들을 필터링 (확장자에 상관없이)
-//                                        List<File> files = new ArrayList<>();
-//                                        for (String name : fileNames) {
-//                                            if (name.contains(baseName)) {  // baseName을 포함하는 모든 파일을 필터링
-//                                                files.add(new File(dir, name));
-//                                            }
-//                                        }
-//
-//                                        // "미분류" 폴더로 파일 이동
-//                                        for (File fileToMove : files) {
-//                                            File destFile = new File(uncategorizedDir, fileToMove.getName());
-//                                            if (fileToMove.renameTo(destFile)) {
-//                                                log.info("Moved file: {} to 'KR_DEV' folder.", fileToMove.getName());
-//                                            } else {
-//                                                log.error("Failed to move file: {}", fileToMove.getName());
-//                                            }
-//                                        }
-//                                    } else {
-//                                        badFileImg.add(file);
-//
-//                                        // File dir = new File(inputResultFolderPath.getText());
-//                                        File dir = new File(configLoader.resultFilePath);
-//                                        String[] fileNames = dir.list();
-//
-//                                        String fileName = file.getName();
-//                                        String baseName = fileName.substring(0, fileName.lastIndexOf('.'));
-//                                        baseName = baseName.replaceAll("-page\\d+", "");
-//
-//                                        // "미분류" 폴더 경로 생성
-//                                        // File uncategorizedDir = new File(inputResultFolderPath.getText() + "/KR_DEV");
-//                                        File uncategorizedDir = new File(configLoader.resultFilePath + "/KR_DEV");
-//                                        if (!uncategorizedDir.exists()) {
-//                                            uncategorizedDir.mkdir(); // "미분류" 폴더가 없다면 생성
-//                                        }
-//
-//                                        // baseName을 포함하는 모든 파일들을 필터링 (확장자에 상관없이)
-//                                        List<File> files = new ArrayList<>();
-//                                        for (String name : fileNames) {
-//                                            if (name.contains(baseName)) {  // baseName을 포함하는 모든 파일을 필터링
-//                                                files.add(new File(dir, name));
-//                                            }
-//                                        }
-//
-//                                        // "미분류" 폴더로 파일 이동
-//                                        for (File fileToMove : files) {
-//                                            File destFile = new File(uncategorizedDir, fileToMove.getName());
-//                                            if (fileToMove.renameTo(destFile)) {
-//                                                log.info("Moved file: {} to 'KR_DEV' folder.", fileToMove.getName());
-//                                            } else {
-//                                                log.error("Failed to move file: {}", fileToMove.getName());
-//                                            }
-//                                        }
-//                                    }
-//                                } catch (IOException e) {
-//                                    throw new RuntimeException(e);
-//                                }
-//                                //추가 버전 20250117
-//                            } else if (!allowedCountries.contains(countryName)) {
-//                                googleService.FullTextOCR(file);
-//
-//                                try {
-//                                    if (googleService.checkBadImg == true) {
-//                                        IOService.copyFiles(file);
-//                                    } else {
-//                                        badFileImg.add(file);
-//                                    }
-//                                } catch (IOException e) {
-//                                    throw new RuntimeException(e);
-//                                }
-//                            } else {
-//                                googleService.uploadAndOCR(file);
-//
-//                                try {
-//                                    if (googleService.checkBadImg == true) {
-//                                        IOService.copyFiles(file);
-//                                    } else {
-//                                        badFileImg.add(file);
-//                                    }
-//                                } catch (IOException e) {
-//                                    throw new RuntimeException(e);
-//                                }
-//
-//                            }
-//                        } catch (IOException | UnirestException e) {
-//                            throw new RuntimeException(e);
-//                        }
-//
-//                        if (!allowedCountries.contains(countryName)) {
-//                            movefilefulltext(configLoader.resultFilePath);
-//                        }
-//                    } else {
-//                        log.warn("파일 {} 을 찾을 수 없습니다. 다음 파일 진행", filename);
-//                    }
-//                }
-
-//                File folder = new File(configLoader.imageFolderPath);
-//                File[] allFiles = folder.listFiles();
-//
-//                if (allFiles != null) {
-//                    for (File file : allFiles) {
-//                        if (file.isFile()) {
-//                            try {
-//
-//                                FileInfo fileInfo = apiCaller.getFileWithStatus2(configLoader.apiUserId, file.getName());
-//                                if (fileInfo != null && fileInfo.getFilename() != null) {
-//                                    imageAndPdfFilesWithAPI.add(file); // 조회된 파일만 추가
-//                                }
-//                            } catch (Exception e) {
-//                                log.error("API 조회 실패: {}", file.getName(), e);
-//                            }
-//                        }
-//                    }
-//                }
                 try {
                     if (imageAndPdfFilesWithAPI != null || !imageAndPdfFilesWithAPI.isEmpty()) {
                         for (FileWithLookupName item : imageAndPdfFilesWithAPI) {
@@ -955,47 +803,6 @@ public class Controller {
                                 })
                                 .collect(Collectors.toList());
 
-                        //                List<File> matchedFiles = Arrays.stream(datFiles)
-                        //                        .filter(datFile -> filesForCountry.stream()
-                        //                                .anyMatch(info -> info.getFilename().equals(datFile.getName())))
-                        //                        .collect(Collectors.toList());
-
-//                        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS");
-//
-//                        List<File> sortedMatchedFiles = matchedFiles.stream()
-//                                .sorted((f1, f2) -> {
-//                                    try {
-//                                        String imageName1 = f1.getName().replaceAll("(_result)?\\.dat$", "") + ".jpg";
-//                                        String imageName2 = f2.getName().replaceAll("(_result)?\\.dat$", "") + ".jpg";
-//
-//                                        FileInfo info1 = apiCaller.getFileByName(configLoader.apiUserId, imageName1);
-//                                        FileInfo info2 = apiCaller.getFileByName(configLoader.apiUserId, imageName2);
-//
-//                                        if (info1 == null || info2 == null || info1.getCreateDateTime() == null || info2.getCreateDateTime() == null) {
-//                                            return 0;
-//                                        }
-//
-//                                        LocalDateTime dt1 = LocalDateTime.parse(info1.getCreateDateTime(), formatter);
-//                                        LocalDateTime dt2 = LocalDateTime.parse(info2.getCreateDateTime(), formatter);
-//
-//                                        return dt1.compareTo(dt2);
-//
-//                                    } catch (Exception e) {
-//                                        log.warn("파일 정렬 중 오류 발생: {}, {}", f1.getName(), f2.getName(), e);
-//                                        return 0; // 오류 발생 시 순서 유지
-//                                    }
-//                                }).collect(Collectors.toList());
-//
-//                        try {
-//                            for (File file : sortedMatchedFiles) {
-//                                FileInfo info = apiCaller.getFileByName(configLoader.apiUserId, file.getName());
-//                                log.info("파일명: " + file.getName() + ", 생성일시: " + info.getCreateDateTime());
-//                            }
-//                        } catch (Exception e) {
-//
-//                        }
-//                        documentService.jsonFiles = sortedMatchedFiles.toArray(new File[0]);
-
                         // 정렬 로직 추가
                         Comparator<File> naturalOrderComparator = (f1, f2) -> compareNaturally(f1.getName(), f2.getName());
                         matchedFiles.sort(naturalOrderComparator);
@@ -1090,7 +897,7 @@ public class Controller {
                 resultFilePath = ioService.fullResultPath;
                 configLoader.resultFilePath = resultFilePath;
 
-                String subPath = ioService.subPath;
+                subPath = ioService.subPath;
                 documentService.subPath = subPath;
 
                 for (FileWithLookupName item : imageAndPdfFilesWithAPI) {
@@ -1099,7 +906,8 @@ public class Controller {
 
                     FileInfo fileInfo;
                     try {
-                        fileInfo = ClassificationService.getFileByName(configLoader.apiUserId, subPath + item.apiLookupName);
+                        // TODO: GroupUID까지 넣어서 검색하는 것 (같은 fileName의 데이터가 여러개 존재할 경우 groupUID 확인 필요)
+                        fileInfo = ClassificationService.getFileByName(configLoader.apiUserId, subPath + item.apiLookupName, unitFileInfo.getGroupUID());
                     } catch (UnirestException e) {
                         throw new RuntimeException(e);
                     }
@@ -1262,6 +1070,7 @@ public class Controller {
                                     if (FileExtensionUtil.AIVISION_SUPPORTED_EXT.contains(ext)) {
                                         if (FileExtensionUtil.AIVISION_OFFICE_SUPPORTED_EXT.contains(ext)
                                                 && (fileInfo.getVisionStatus() == null || fileInfo.getVisionStatus().isEmpty())) {
+                                            //TODO
                                             Path source = Paths.get(file.getPath());
                                             String fName = source.getFileName().toString(); // 파일명 추출
                                             int lastDot = fName.lastIndexOf(".");
@@ -1288,7 +1097,7 @@ public class Controller {
                                             } catch (Exception e) {
                                                 log.warn(ext + " 원본 파일 VISION용 폴더 생성 처리 중 오류 발생: {}", e.getMessage());
                                             }
-                                            fileInfo = ClassificationService.getFileByName(configLoader.apiUserId, subPath + item.apiLookupName);
+                                            fileInfo = ClassificationService.getFileByName(configLoader.apiUserId, subPath + item.apiLookupName, unitFileInfo.getGroupUID());
                                         }
                                         if (fileInfo.getVisionStatus().equalsIgnoreCase("VS")) {
                                             log.debug("visionStatus is VS");
@@ -1311,37 +1120,6 @@ public class Controller {
                                     log.info("The file operation is skipped because there is no matching OCR Service Type.");
                                     continue;
                                 }
-
-//                                try {
-//                                    if (!googleService.checkBadImg || !synapService.checkBadImg) { // 이미지 원본 파일 깨져있을 때 오류 처리 필요 checkbadimg 사용X 다른 걸로 수정 필요
-//                                        //ioService.copyFiles(file);
-//
-//                                        log.error("Error image file: {}", file.getAbsolutePath());
-//
-//                                        ioService.moveFileToErrorDirectory(file);
-//
-//                                        APICaller apiCaller = new APICaller();
-//                                        File apiFileName = Paths.get(subPath, file.getName()).toFile();
-//                                        try {
-//                                            FileInfo errorFileInfo = apiCaller.getFileByName(configLoader.apiUserId, apiFileName.getAbsolutePath());
-//                                            apiCaller.callDeleteApi(configLoader.apiUserId, errorFileInfo.getFilename(), errorFileInfo.getOcrServiceType());
-//                                            if (errorFileInfo.getUrlData() != null) {
-//                                                apiCaller.callbackApi(errorFileInfo, subPath);
-//                                            } else {
-//                                                log.info("URL DATA IS NULL");
-//                                            }
-//                                        } catch (UnirestException ex) {
-//                                            log.info("DELETE API/CALLBACK API 호출 실패: {}", ex);
-//                                        }
-//
-//                                        //TODO : DELETE 작업 추가 필요
-//
-//                                    } else {
-//                                        badFileImg.add(file);
-//                                    }
-//                                } catch (Exception e) {
-//                                    throw new RuntimeException(e);
-//                                }
                             }
                         } catch (Exception e) {
                             throw new RuntimeException(e);
@@ -1427,11 +1205,15 @@ public class Controller {
 
             File resultDir;
             if (fileInfo.getServiceType().equalsIgnoreCase("ai.vision")) {
-                int idx = fileInfo.getFilename().lastIndexOf('.');
-                resultDir = new File(configLoader.resultFilePath, fileInfo.getFilename().substring(0, idx) + "_" + fileInfo.getGroupUID());
+                String onlyFileName = Paths.get(fileInfo.getFilename()).getFileName().toString();
+                int idx = onlyFileName.lastIndexOf('.');
+                Path resultDirPath = Paths.get(configLoader.resultFilePath, onlyFileName.substring(0, idx) + "_" + fileInfo.getGroupUID());
+                resultDir = resultDirPath.toFile();
             } else {
                 resultDir = new File(configLoader.resultFilePath);
             }
+
+            log.info("resultDir: " + resultDir.toString());
             File[] datFiles = resultDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".dat"));
 
             if (datFiles == null || datFiles.length == 0) {
@@ -1719,7 +1501,7 @@ public class Controller {
     }
 
     public void copyAndRenameVisionResult(FileInfo fileInfo) throws Exception {
-        String originalFileName = buildNameForAiVision(fileInfo.getFilename(), fileInfo.getGroupUID()); // 파일명_groupUID.pdf
+        String originalFileName = buildNameForAiVision(Paths.get(fileInfo.getFilename()).getFileName().toString(), fileInfo.getGroupUID()); // 파일명_groupUID.pdf
         int idx = originalFileName.lastIndexOf('.');
         String folderName = (idx > 0) ? originalFileName.substring(0, idx) : originalFileName; // 파일명_groupUID
         String extension = (idx > 0) ? originalFileName.substring(idx) : "";
@@ -1750,7 +1532,7 @@ public class Controller {
 
     // 원본 파일, MD 파일 이름 변경 (파일명 내 groupUID 제거, .md -> _result.dat 변경)
     private void renameVisionFiles(FileInfo fileInfo, Path targetDir) throws IOException {
-        String original = fileInfo.getFilename();              // 예: 파일명.pdf
+        String original = Paths.get(fileInfo.getFilename()).getFileName().toString();              // 예: 파일명.pdf
         String base = original.substring(0, original.lastIndexOf("."));  // 파일명
         String groupUid = fileInfo.getGroupUID();
         log.debug("[renameVisionFiles] 시작 - targetDir='{}', original='{}', base='{}', groupUid='{}'", targetDir, original, base, groupUid);

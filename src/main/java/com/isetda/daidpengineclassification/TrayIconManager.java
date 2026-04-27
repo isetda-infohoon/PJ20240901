@@ -23,15 +23,9 @@ public class TrayIconManager {
         MenuItem exitItem = new MenuItem("Exit");
 
         exitItem.addActionListener(e -> {
-            log.info("Shut down process started...");
-            try {
-                classificationService.callUpdateUserApi("STOP");
-            } catch (Exception ex) {
-                log.error("Failed to notify server: " + ex.getMessage());
-            } finally {
-                log.info("Shut down DA.IDP Engine Classification");
-                System.exit(0);
-            }
+            log.info("트레이 아이콘을 통해 종료합니다.");
+            // 이 메서드를 실행하면 위에서 만든 '셧다운 훅'이 알아서 STOP을 보내고 꺼집니다.
+            System.exit(0);
         });
 
         popup.add(exitItem);

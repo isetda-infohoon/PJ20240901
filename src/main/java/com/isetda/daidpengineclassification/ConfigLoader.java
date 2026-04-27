@@ -105,8 +105,25 @@ public class ConfigLoader {
     private static final String backupFilePath = "Config_backup.xml";
     //jar파일 만들 때 상대경로 config 파일 빼놓기 위한 경로
 
+    private String jarDir;
+
     private ConfigLoader() {
-        loadConfig();
+        try {
+            String jarPath = ConfigLoader.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath();
+            File file = new File(jarPath);
+
+            if (jarPath.contains("target/classes")) {
+                this.jarDir = System.getProperty("useer.dir");
+                log.trace("Running in IDE mode. Working Directory: " + this.jarDir);
+            } else {
+                this.jarDir = file.getParent();
+                log.trace("Running in JAR mode. Jar Directory: " + this.jarDir);
+            }
+
+            loadConfig();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to initialize Jar Directory", e);
+        }
     }
 
     public static ConfigLoader getInstance() {
@@ -118,12 +135,16 @@ public class ConfigLoader {
 
     private void loadConfig() {
         try {
-            File configFile = new File(configFilePath);
+            File configFile = new File(jarDir, configFilePath);
+            File backupFile = new File(jarDir, backupFilePath);
+
+            log.trace("Loading config from: " + configFile.getAbsolutePath());
+
             if (!configFile.exists() || configFile.length() == 0) {
                 log.warn("Config.xml is missing or empty. Creating default configuration.");
                 restoreFromBackupOrDefault();
             } else {
-                Files.copy(configFile.toPath(), new File(backupFilePath).toPath(), StandardCopyOption.REPLACE_EXISTING);
+                Files.copy(configFile.toPath(), backupFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
             }
             DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
             DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
@@ -261,8 +282,8 @@ public class ConfigLoader {
                     patternSettings.add(new PatternSetting(mCategory, sCategory));
                 }
             } else {
-                log.error("The imageFolderPath tag does not exist in Config.xml. Application will terminate.");
-                throw new RuntimeException("Missing required configuration: imageFolderPath");
+                log.error("The patternSettings tag does not exist in Config.xml. Application will terminate.");
+                throw new RuntimeException("Missing required configuration: patternSettings");
             }
 
             if (root.getElementsByTagName("jdbcUrl").getLength() > 0) {
@@ -631,16 +652,15 @@ public class ConfigLoader {
 
     private void restoreFromBackupOrDefault() {
         try {
-            File backupFile = new File(backupFilePath);
-            File configFile = new File(configFilePath);
+            File backupFile = new File(jarDir, backupFilePath);
+            File configFile = new File(jarDir, configFilePath);
 
             if (backupFile.exists() && backupFile.length() > 0) {
                 log.warn("Restoring Config.xml from backup.");
                 Files.copy(backupFile.toPath(), configFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
             } else {
                 log.warn("No backup found. Creating default Config.xml.");
-                String defaultXml = "<Config><projectId>default</projectId><bucketNames>defaultBucket</bucketNames></Config>";
-                Files.writeString(configFile.toPath(), defaultXml, StandardCharsets.UTF_8);
+                createDefaultConfig(configFile);
             }
         } catch (IOException ex) {
             throw new RuntimeException("Failed to restore Config.xml", ex);
@@ -658,7 +678,7 @@ public class ConfigLoader {
 
     public void saveConfig() {
         try {
-            File configFile = new File(configFilePath);
+            File configFile = new File(jarDir, configFilePath);
             DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
 
             // 공백 보존 설정

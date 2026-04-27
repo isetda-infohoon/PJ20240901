@@ -416,36 +416,55 @@ public class IOService {
             String baseWithUid = null;  // 확장자 빠진 파일 이름 (subpath + 파일명_ groupUID)
             String extWithDot = null;   // 확장자 (.확장자)
             String extOnly = null; // .제외한 확장자
+            String fileNameOnly = null;
+
+//            if (unitFileInfo.getServiceType().equalsIgnoreCase("ai.vision")) {
+//                String original = unitFileInfo.getFilename();
+//                String fileNameOnly = Paths.get(original).getFileName().toString();
+//
+//                int idx = fileNameOnly.lastIndexOf('.');
+//                String base;
+//
+//                if (idx > 0 && idx < fileNameOnly.length() - 1) { // 확장자 체크
+//                    base = fileNameOnly.substring(0, idx);     // subpath~파일명
+//                    extWithDot = fileNameOnly.substring(idx);  // 확장자 (.pdf)
+//                    extOnly = fileNameOnly.substring(idx + 1).toLowerCase();
+//                } else {
+//                    // 확장자 없을 때
+//                    base = fileNameOnly;
+//                    extWithDot = "";      // 확장자 없음
+//                }
+//
+//                baseWithUid = base + "_" + unitFileInfo.getGroupUID();
+//                fileName = baseWithUid + extWithDot;
+//            } else {
+//                fileName = unitFileInfo.getFilename();
+//            }
 
             if (unitFileInfo.getServiceType().equalsIgnoreCase("ai.vision")) {
                 String original = unitFileInfo.getFilename();
-                String fileNameOnly = Paths.get(original).getFileName().toString();
+                fileNameOnly = Paths.get(original).getFileName().toString();
 
-                int idx = fileNameOnly.lastIndexOf('.');
+                int idx = original.lastIndexOf('.');
                 String base;
 
-                if (idx > 0 && idx < fileNameOnly.length() - 1) { // 확장자 체크
-                    base = fileNameOnly.substring(0, idx);     // subpath~파일명
-                    extWithDot = fileNameOnly.substring(idx);  // 확장자 (.pdf)
-                    extOnly = fileNameOnly.substring(idx + 1).toLowerCase();
+                if (idx > 0 && idx < original.length() - 1) { // 확장자 체크
+                    base = original.substring(0, idx);     // subpath~파일명
+                    extWithDot = original.substring(idx);  // 확장자 (.pdf)
+                    extOnly = original.substring(idx + 1).toLowerCase();
                 } else {
                     // 확장자 없을 때
-                    base = fileNameOnly;
+                    base = original;
                     extWithDot = "";      // 확장자 없음
                 }
 
-//                if (FileExtensionUtil.AIVISION_OFFICE_SUPPORTED_EXT.contains(extOnly)) {
-//                    baseWithUid = base;
-//                } else {
-//                    baseWithUid = base + "_" + unitFileInfo.getGroupUID();
-//                }
                 baseWithUid = base + "_" + unitFileInfo.getGroupUID();
                 fileName = baseWithUid + extWithDot;
             } else {
                 fileName = unitFileInfo.getFilename();
             }
 
-            log.debug("baseName_groupUid: " + baseWithUid);
+            log.info("baseName_groupUid: " + baseWithUid);
 
             String normalizedFileName = fileName.replace("/", File.separator).replace("\\", File.separator);
             File file = null;
@@ -463,12 +482,11 @@ public class IOService {
                     targetFile = Paths.get(mapping.getImageFolderPath(), normalizedFileName).toFile();
                 }
 
-                log.debug("파일 탐색 시도 경로: {}", targetFile.getAbsolutePath());
+                log.info("파일 탐색 시도 경로: {}", targetFile.getAbsolutePath());
 
                 if (targetFile.exists()) {
                     file = targetFile;
 
-                    // 세부 경로 추출 (26.02 기준 ai.vision은 subpath (NAS 경로 기능) 사용 전이기 때문에 제외)
                     String subDirPath = "";
                     if (!unitFileInfo.getServiceType().equalsIgnoreCase("ai.vision")) {
                         int lastSeparatorIndex = normalizedFileName.lastIndexOf(File.separator);
@@ -476,24 +494,30 @@ public class IOService {
                             String rawSubPath = fileName.substring(0, lastSeparatorIndex);
                             subDirPath = Paths.get(rawSubPath).toString() + File.separator;
                         }
-//                        int lastSeparatorIndex = normalizedFileName.lastIndexOf(File.separator);
-//                        String subDirPath = (lastSeparatorIndex != -1) ? fileName.substring(0, lastSeparatorIndex) + File.separator : "";
+                    } else {
+                        String normalizedFileName2 = unitFileInfo.getFilename().replace("/", File.separator).replace("\\", File.separator);
+
+                        int lastSeparatorIndex = normalizedFileName2.lastIndexOf(File.separator);
+                        if (lastSeparatorIndex != -1) {
+                            String rawSubPath = normalizedFileName2.substring(0, lastSeparatorIndex);
+                            subDirPath = Paths.get(rawSubPath).toString() + File.separator;
+                        }
                     }
 
                     configLoader.imageFolderPath = mapping.getImageFolderPath() + File.separator + subDirPath;
                     configLoader.resultFilePath = mapping.getResultFilePath();
                     subPath = subDirPath;
                     fullResultPath = mapping.getResultFilePath();
-                    log.debug("결과 저장 경로 (String): {}", fullResultPath);
-                    log.debug("Sub Path: {}", subPath);
+                    log.info("결과 저장 경로 (String): {}", fullResultPath);
+                    log.info("Sub Path: {}", subPath);
 
                     File resultDir = Paths.get(fullResultPath).toFile();
                     if (!resultDir.exists()) {
                         resultDir.mkdirs();
                     }
 
-                    log.debug("원본 파일명: {}, 정규화 파일명: {}", fileName, normalizedFileName);
-                    log.debug("탐색 대상 매핑 경로: {}", mapping.getImageFolderPath());
+                    log.info("원본 파일명: {}, 정규화 파일명: {}", fileName, normalizedFileName);
+                    log.info("탐색 대상 매핑 경로: {}", mapping.getImageFolderPath());
 
 
                     break;
@@ -518,7 +542,7 @@ public class IOService {
                     int maxPage = getPdfPageCount(file.getAbsolutePath());
                     ClassificationService.callDivisionApi(configLoader.apiUserId, maxPage, fileName, unitFileInfo.getServiceType(), unitFileInfo.getTaskName());
 
-                    log.debug("PDF에서 추출된 이미지 {}개 추가됨: {}", extractedImages.size(), fileName);
+                    log.info("PDF에서 추출된 이미지 {}개 추가됨: {}", extractedImages.size(), fileName);
                 } else if (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg") || lowerName.endsWith(".png")) {
                     collectedFiles.add(file);
                     ioService.copyFiles(file);

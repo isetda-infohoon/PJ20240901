@@ -14,6 +14,16 @@ public class Main {
     private static final Logger log = LogManager.getLogger(Main.class);
 
     public static void main(String[] arg) throws UnirestException {
+        ClassificationService classificationService = new ClassificationService();
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            try {
+                log.info("종료 신호 감지: 서버에 STOP 상태를 전송합니다.");
+                classificationService.callUpdateUserApi("STOP");
+            } catch (Exception e) {
+                log.error("종료 알림 전송 실패: " + e.getMessage());
+            }
+        }));
+
         // 중복 실행 방지
 //        if (!SingleInstanceChecker.check()) {
 //            log.info("IDP Engine is already running.");
@@ -23,7 +33,6 @@ public class Main {
         // 트레이 아이콘 설정
         TrayIconManager.setupTrayIcon();
 
-        ClassificationService classificationService = new ClassificationService();
         classificationService.callUpdateUserApi("STARTING");
 
         log.info("==================================== start ====================================");
@@ -33,7 +42,6 @@ public class Main {
 
     public static String getProjectVersion() {
         Properties prop = new Properties();
-        // static 메서드에서는 Main.class를 직접 참조합니다.
         try (InputStream is = Main.class.getClassLoader().getResourceAsStream("version.properties")) {
             if (is != null) {
                 prop.load(is);
