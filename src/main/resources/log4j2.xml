@@ -5,7 +5,7 @@
       <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss,SSS} [%-5level] %C{1}.%M(%L) - %msg%n"/>
     </Console>
     <!--  파일에 로그를 저장하는 Appender  -->
-    <RollingFile name="FILE" fileName="LOG/${date:yyyy}/${date:MM}/IDPEngine.log" filePattern="LOG/${date:yyyy}/${date:MM}/IDPEngine_%d{yyyy-MM-dd}.%i.log">
+    <RollingFile name="FILE" fileName="${sys:logPath}/LOG/${date:yyyy}/${date:MM}/IDPEngine.log" filePattern="${sys:logPath}/LOG/${date:yyyy}/${date:MM}/IDPEngine_%d{yyyy-MM-dd}.%i.log">
       <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%-5level] %c{1}.%M(%L) - %msg%n" charset="UTF-8"/>
       <Policies>
         <TimeBasedTriggeringPolicy interval="1" modulate="true"/>

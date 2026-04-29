@@ -10,7 +10,6 @@ public class TrayIconManager {
     private static final Logger log = LogManager.getLogger(Main.class);
 
     public static void setupTrayIcon() {
-        ClassificationService classificationService = new ClassificationService();
         if (!SystemTray.isSupported()) {
             log.info("System tray not supported.");
             return;

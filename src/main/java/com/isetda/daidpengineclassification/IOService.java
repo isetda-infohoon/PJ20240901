@@ -464,7 +464,7 @@ public class IOService {
                 fileName = unitFileInfo.getFilename();
             }
 
-            log.info("baseName_groupUid: " + baseWithUid);
+            log.debug("baseName_groupUid: " + baseWithUid);
 
             String normalizedFileName = fileName.replace("/", File.separator).replace("\\", File.separator);
             File file = null;
@@ -482,7 +482,7 @@ public class IOService {
                     targetFile = Paths.get(mapping.getImageFolderPath(), normalizedFileName).toFile();
                 }
 
-                log.info("파일 탐색 시도 경로: {}", targetFile.getAbsolutePath());
+                log.debug("파일 탐색 시도 경로: {}", targetFile.getAbsolutePath());
 
                 if (targetFile.exists()) {
                     file = targetFile;

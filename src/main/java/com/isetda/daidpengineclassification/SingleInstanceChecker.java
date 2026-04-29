@@ -12,9 +12,13 @@ public class SingleInstanceChecker {
     private static RandomAccessFile raf;
     private static File lockFile;
 
+    // 중복 실행 확인
     public static boolean check() {
         try {
-            lockFile = new File("app.lock");
+            // 현재 실행중인 클래스가 포함된 JAR 파일의 경로 가져오기
+            String baseDir = AppInfo.getHomePath();
+
+            lockFile = new File(baseDir, "app.lock");
             raf = new RandomAccessFile(lockFile, "rw");
             channel = raf.getChannel();
 
@@ -27,18 +31,19 @@ public class SingleInstanceChecker {
             // 종료 시 lock 해제
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                 try {
-                    lock.release();
-                    channel.close();
-                    raf.close();
-                    lockFile.delete();
+                    if (lock != null) lock.release();
+                    if (channel != null) channel.close();
+                    if (raf != null) raf.close();
+                    if (lockFile != null && lockFile.exists()) {
+                        lockFile.delete();
+                    }
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             }));
 
             return true;
-
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             return false;
         }

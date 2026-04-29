@@ -1,5 +1,6 @@
 package com.isetda.daidpengineclassification.service;
 
+import com.isetda.daidpengineclassification.AppInfo;
 import com.isetda.daidpengineclassification.ConfigLoader;
 import com.isetda.daidpengineclassification.FileInfo;
 import com.isetda.daidpengineclassification.Main;
@@ -648,7 +649,7 @@ public class ClassificationService {
         String defaultUrl = configLoader.apiURL;
         Unirest.setTimeouts(0, 0);
 
-        String rawVersion = Main.getProjectVersion();
+        String rawVersion = AppInfo.getProjectVersion();
         String version = rawVersion.replaceAll("[^0-9.]", "");
         log.trace("버전 변환: {} -> {}", rawVersion, version);
 

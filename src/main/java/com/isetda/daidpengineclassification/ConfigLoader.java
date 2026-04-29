@@ -109,15 +109,13 @@ public class ConfigLoader {
 
     private ConfigLoader() {
         try {
+            this.jarDir = AppInfo.getHomePath();
+
             String jarPath = ConfigLoader.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath();
             File file = new File(jarPath);
 
-            if (jarPath.contains("target/classes")) {
-                this.jarDir = System.getProperty("useer.dir");
-                log.trace("Running in IDE mode. Working Directory: " + this.jarDir);
-            } else {
-                this.jarDir = file.getParent();
-                log.trace("Running in JAR mode. Jar Directory: " + this.jarDir);
+            if (log.isTraceEnabled()) {
+                log.trace("Executable file path (JAR/IDE PATH): " + this.jarDir);
             }
 
             loadConfig();
